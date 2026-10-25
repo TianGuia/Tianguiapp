@@ -10,7 +10,7 @@ Future<void> main() async {
       'Faltan --dart-define=SUPABASE_URL y SUPABASE_KEY');
   await Supabase.initialize(
     url: SupabaseConfig.url,
-    publishableKey: SupabaseConfig.key, // aquí va la publishable/anon key
+    anonKey: SupabaseConfig.key, // aquí va la publishable/anon key
   );
   runApp(const TianGuiaApp());
 }

@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/theme.dart';
 import 'screens/bienvenida_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
 
 class TianGuiaApp extends StatelessWidget {
   const TianGuiaApp({super.key});
@@ -17,8 +18,7 @@ class TianGuiaApp extends StatelessWidget {
       );
 }
 
-/// Sin sesión -> Bienvenida (el comprador elige un nombre; vendedor/admin hace login).
-/// Con sesión (anónima o con correo) -> Home.
+/// Muestra Bienvenida/Login o Home según haya sesión activa.
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -28,10 +28,26 @@ class AuthGate extends StatelessWidget {
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, _) {
         final sesion = Supabase.instance.client.auth.currentSession;
-        if (sesion == null) return const BienvenidaScreen();
-        // La llave por usuario reinicia las pestañas al cambiar de usuario.
-        return HomeScreen(key: ValueKey(sesion.user.id));
+        return sesion == null ? const _Entrada() : const HomeScreen();
       },
     );
+  }
+}
+
+/// Bienvenida ("COMENZAR") y, al tocar, el formulario de acceso.
+class _Entrada extends StatefulWidget {
+  const _Entrada();
+  @override
+  State<_Entrada> createState() => _EntradaState();
+}
+
+class _EntradaState extends State<_Entrada> {
+  bool _login = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return _login
+        ? LoginScreen(onVolver: () => setState(() => _login = false))
+        : BienvenidaScreen(onComenzar: () => setState(() => _login = true));
   }
 }

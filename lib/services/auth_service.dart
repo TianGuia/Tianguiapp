@@ -1,36 +1,10 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// RF-01 a RF-05, RF-40.
-///
-/// Dos formas de entrar:
-///  - Comprador: SIN cuenta. Elige un nombre de usuario y Supabase le crea una
-///    identidad anónima en su celular (signInAnonymously).
-///  - Vendedor / administrador: correo + código de un solo uso (OTP).
+/// RF-01 a RF-05, RF-40. Login con código de un solo uso (OTP) por correo.
 class AuthService {
   final _db = Supabase.instance.client;
 
   User? get usuario => _db.auth.currentUser;
-
-  /// true si es un comprador sin cuenta (identidad anónima).
-  bool get esAnonimo => usuario?.isAnonymous ?? false;
-
-  // ---------------- Comprador sin cuenta ----------------
-
-  /// Entra como comprador con solo un nombre de usuario.
-  Future<void> entrarComoComprador(String nombre) async {
-    final n = nombre.trim();
-    await _db.auth.signInAnonymously(data: {'nombre_publico': n});
-    // RF-40: registra la aceptación de condiciones.
-    try {
-      await aceptarTerminosVigentes();
-    } catch (_) {}
-    // Respaldo por si el trigger de alta no tomó el nombre.
-    try {
-      await actualizarPerfil(nombre: n);
-    } catch (_) {}
-  }
-
-  // ---------------- Vendedor / administrador (OTP) ----------------
 
   /// RF-01/RF-03: envía el código al correo (crea la cuenta si no existe).
   Future<void> enviarCodigo(String correo, {String? nombre}) =>
@@ -48,29 +22,34 @@ class AuthService {
         type: OtpType.email,
       );
 
-  // ---------------- Términos (RF-40 / RF-53) ----------------
-
-  /// Acepta las versiones pendientes. Funciona si terminos_pendientes()
-  /// devuelve filas (versión original) o un booleano (versión de 01_setup.sql).
+  /// RF-40 / RF-53: acepta todas las versiones pendientes.
+  /// Usa la función existente terminos_pendientes() (devuelve filas de
+  /// versiones_documento) y registra cada aceptación.
   Future<void> aceptarTerminosVigentes() async {
     final uid = usuario?.id;
     if (uid == null) return;
-    final r = await _db.rpc('terminos_pendientes');
-    if (r is List) {
-      if (r.isEmpty) return;
-      await _db.from('aceptaciones_terminos').insert([
-        for (final v in r) {'id_usuario': uid, 'id_version': v['id']}
-      ]);
-    } else if (r == true) {
-      await _db.rpc('aceptar_terminos_vigentes');
-    }
+    final pendientes = await _db.rpc('terminos_pendientes') as List;
+    if (pendientes.isEmpty) return;
+    await _db.from('aceptaciones_terminos').insert([
+      for (final v in pendientes) {'id_usuario': uid, 'id_version': v['id']}
+    ]);
   }
 
   /// RF-53: ¿hay una versión nueva pendiente de aceptar?
-  Future<bool> hayTerminosPendientes() async {
-    final r = await _db.rpc('terminos_pendientes');
-    return r is List ? r.isNotEmpty : r == true;
-  }
+  Future<bool> hayTerminosPendientes() async =>
+      (await _db.rpc('terminos_pendientes') as List).isNotEmpty;
+
+  /// SOLO DESARROLLO: acceso con contraseña para probar sin SMTP.
+  /// Requiere desactivar "Confirm email" en Authentication > Providers > Email.
+  Future<void> entrarConContrasena(String correo, String clave) =>
+      _db.auth.signInWithPassword(email: correo.trim(), password: clave);
+
+  Future<void> registrarConContrasena(String correo, String clave, String nombre) =>
+      _db.auth.signUp(
+        email: correo.trim(),
+        password: clave,
+        data: {'nombre_publico': nombre.trim()},
+      );
 
   /// RF-04
   Future<void> cerrarSesion() => _db.auth.signOut();

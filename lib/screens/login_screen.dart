@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
+import '../widgets/fondo.dart';
 import '../services/auth_service.dart';
 
-/// Solo para vendedores y administradores (RF-01, RF-02, RF-03, RF-40):
-/// correo -> código de 6 dígitos -> sesión. Los compradores no pasan por aquí.
+/// RF-01, RF-02, RF-03, RF-40.
+/// Modo normal: correo -> código de 6 dígitos.
+/// Modo desarrollo: correo + contraseña (para probar sin SMTP).
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  /// Para regresar a la pantalla de bienvenida.
+  final VoidCallback? onVolver;
+  const LoginScreen({super.key, this.onVolver});
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -14,8 +18,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final _auth = AuthService();
   final _correo = TextEditingController();
   final _nombre = TextEditingController();
+  final _clave = TextEditingController();
   final _codigo = TextEditingController();
-  bool _codigoEnviado = false, _acepta = false, _cargando = false;
+  bool _codigoEnviado = false, _acepta = false, _cargando = false, _modoClave = false;
+
+  static const _negro = TextStyle(color: Colors.black);
 
   void _msg(String t) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
@@ -38,13 +45,36 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _cargando = true);
     try {
       await _auth.verificarCodigo(_correo.text, _codigo.text);
-      try {
-        await _auth.aceptarTerminosVigentes(); // RF-40
-      } catch (_) {}
-      // Cierra esta pantalla; AuthGate ya muestra el Home con la sesión nueva.
-      if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
+      await _auth.aceptarTerminosVigentes();
     } catch (e) {
-      _msg('Código incorrecto o vencido');
+      _msg('Código incorrecto o vencido: $e');
+    } finally {
+      if (mounted) setState(() => _cargando = false);
+    }
+  }
+
+  Future<void> _entrarConClave() async {
+    if (_correo.text.trim().isEmpty || _clave.text.length < 6) {
+      return _msg('Escribe tu correo y una contraseña de al menos 6 caracteres');
+    }
+    if (!_acepta) return _msg('Debes aceptar las condiciones de uso y el aviso de privacidad');
+    setState(() => _cargando = true);
+    try {
+      try {
+        await _auth.entrarConContrasena(_correo.text, _clave.text);
+      } catch (_) {
+        final nombre = _nombre.text.trim().isEmpty
+            ? _correo.text.split('@').first
+            : _nombre.text;
+        await _auth.registrarConContrasena(_correo.text, _clave.text, nombre);
+      }
+      if (_auth.usuario == null) {
+        _msg('Cuenta creada. Desactiva "Confirm email" en Supabase o confirma el correo.');
+      } else {
+        await _auth.aceptarTerminosVigentes();
+      }
+    } catch (e) {
+      _msg('No se pudo entrar: $e');
     } finally {
       if (mounted) setState(() => _cargando = false);
     }
@@ -52,35 +82,47 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    return Fondo(
+      child: Scaffold(
         backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text('Acceso para vendedores'),
-      ),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Text('TIANGUÍA',
-                  style: TextStyle(fontSize: 44, fontWeight: FontWeight.w900, color: Colors.white)),
-              const Text('Comida, antojitos y más…',
-                  style: TextStyle(color: Tg.amarillo, fontStyle: FontStyle.italic)),
-              const SizedBox(height: 32),
+        body: SafeArea(
+          child: Stack(children: [
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: Image.asset('assets/images/logo.png', width: 150, height: 150),
+                  ),
+                  const SizedBox(height: 10),
+                  Transform.rotate(
+                    angle: -0.05,
+                    child: Text('COMIDA, ANTOJITOS Y MÁS…', style: Tg.marcador(15)),
+                  ),
+                  const SizedBox(height: 26),
               if (!_codigoEnviado) ...[
                 TextField(
                   controller: _correo,
                   keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: Colors.black),
+                  style: _negro,
                   decoration: const InputDecoration(hintText: 'Correo electrónico'),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _nombre,
-                  style: const TextStyle(color: Colors.black),
+                  style: _negro,
                   decoration: const InputDecoration(hintText: 'Nombre público (solo si eres nuevo)'),
                 ),
+                if (_modoClave) ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _clave,
+                    obscureText: true,
+                    style: _negro,
+                    decoration: const InputDecoration(hintText: 'Contraseña (modo desarrollo)'),
+                  ),
+                ],
                 CheckboxListTile(
                   value: _acepta,
                   onChanged: (v) => setState(() => _acepta = v ?? false),
@@ -89,7 +131,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(fontSize: 13)),
                 ),
                 const SizedBox(height: 8),
-                FilledButton(onPressed: _cargando ? null : _enviar, child: const Text('ENVIAR CÓDIGO')),
+                FilledButton(
+                  onPressed: _cargando ? null : (_modoClave ? _entrarConClave : _enviar),
+                  child: Text(_modoClave ? 'ENTRAR / CREAR CUENTA' : 'ENVIAR CÓDIGO'),
+                ),
+                TextButton(
+                  onPressed: () => setState(() => _modoClave = !_modoClave),
+                  child: Text(_modoClave
+                      ? 'Usar código por correo'
+                      : 'Modo desarrollo: entrar con contraseña'),
+                ),
               ] else ...[
                 Text('Enviamos un código a ${_correo.text}', textAlign: TextAlign.center),
                 const SizedBox(height: 12),
@@ -107,8 +158,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: const Text('Cambiar correo'),
                 ),
               ],
-            ]),
-          ),
+                ]),
+              ),
+            ),
+            if (widget.onVolver != null)
+              Positioned(
+                top: 4,
+                left: 4,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, size: 28),
+                  onPressed: widget.onVolver,
+                ),
+              ),
+          ]),
         ),
       ),
     );

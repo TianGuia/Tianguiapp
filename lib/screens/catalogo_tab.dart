@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
+import '../widgets/pincel.dart';
+import 'producto_detalle_screen.dart';
+import 'puesto_screen.dart' show TarjetaProducto;
 
-/// RF-06, RF-07, RF-08.
+/// RF-06, RF-07, RF-08: búsqueda y filtros de productos.
 class CatalogoTab extends StatefulWidget {
   const CatalogoTab({super.key});
   @override
@@ -20,65 +23,98 @@ class _CatalogoTabState extends State<CatalogoTab> {
   @override
   void initState() {
     super.initState();
-    _svc.categorias().then((c) => setState(() => _cats = c));
+    _svc.categorias().then((c) {
+      if (mounted) setState(() => _cats = c);
+    }).catchError((_) {});
   }
 
-  void _buscar() => setState(() => _futuro = _svc.buscar(texto: _texto.text, idCategoria: _cat));
+  @override
+  void dispose() {
+    _texto.dispose();
+    super.dispose();
+  }
+
+  void _buscar() {
+    setState(() {
+      _futuro = _svc.buscar(texto: _texto.text, idCategoria: _cat);
+    });
+  }
 
   @override
   Widget build(BuildContext context) => Column(children: [
         Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
           child: TextField(
             controller: _texto,
-            style: const TextStyle(color: Colors.black),
+            style: const TextStyle(color: Colors.black, fontSize: 16),
+            textInputAction: TextInputAction.search,
             onSubmitted: (_) => _buscar(),
             decoration: InputDecoration(
-              hintText: 'Buscar productos…',
+              hintText: 'Buscar antojitos, ropa, chacharas…',
               prefixIcon: const Icon(Icons.search, color: Tg.azul),
-              suffixIcon: IconButton(icon: const Icon(Icons.arrow_forward, color: Tg.azul), onPressed: _buscar),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.arrow_forward, color: Tg.azul),
+                onPressed: _buscar,
+              ),
             ),
           ),
         ),
         SizedBox(
-          height: 48,
-          child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 8), children: [
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ChoiceChip(label: const Text('Todas'), selected: _cat == null, onSelected: (_) { _cat = null; _buscar(); }),
-            ),
-            for (final c in _cats)
+          height: 46,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            children: [
               Padding(
                 padding: const EdgeInsets.only(right: 8),
-                child: ChoiceChip(label: Text(c['nombre']), selected: _cat == c['id'], onSelected: (_) { _cat = c['id']; _buscar(); }),
+                child: ChipCategoria(
+                  texto: 'Todas',
+                  icono: Icons.storefront,
+                  seleccionado: _cat == null,
+                  onTap: () {
+                    _cat = null;
+                    _buscar();
+                  },
+                ),
               ),
-          ]),
+              for (final c in _cats)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChipCategoria(
+                    texto: c['nombre'] as String,
+                    icono: iconoCategoria(c['nombre'] as String),
+                    seleccionado: _cat == c['id'],
+                    onTap: () {
+                      _cat = c['id'] as String;
+                      _buscar();
+                    },
+                  ),
+                ),
+            ],
+          ),
         ),
+        const SizedBox(height: 8),
         Expanded(
           child: FutureBuilder<List<Producto>>(
             future: _futuro,
             builder: (_, s) {
-              if (s.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
+              if (s.connectionState != ConnectionState.done) {
+                return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
+              }
               if (s.hasError) return Center(child: Text('Error: ${s.error}'));
               final l = s.data!;
               if (l.isEmpty) return const Center(child: Text('Sin resultados'));
-              return ListView.builder(
+              return ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                 itemCount: l.length,
-                itemBuilder: (_, i) {
-                  final p = l[i];
-                  return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: ListTile(
-                      leading: p.imagenes.isEmpty
-                          ? const Icon(Icons.image_not_supported, size: 40)
-                          : ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(p.imagenes.first, width: 56, height: 56, fit: BoxFit.cover)),
-                      title: Text(p.nombre, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text([p.categoria, p.puestoNombre].whereType<String>().join(' · ')),
-                      trailing: Text(p.precio == null ? '' : '\$${p.precio}',
-                          style: const TextStyle(color: Tg.amarillo, fontWeight: FontWeight.w800, fontSize: 16)),
-                    ),
-                  );
-                },
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (_, i) => TarjetaProducto(
+                  producto: l[i],
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => ProductoDetalleScreen(producto: l[i])),
+                  ),
+                ),
               );
             },
           ),

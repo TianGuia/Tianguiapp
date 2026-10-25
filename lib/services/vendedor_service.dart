@@ -2,7 +2,9 @@ import 'dart:io';
 import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/supabase_config.dart';
+import '../config/estados.dart';
 import '../models/modelos.dart';
+import '../models/tratos.dart';
 
 /// RF-19 a RF-30: todo lo que hace quien opera un puesto.
 class VendedorService {
@@ -46,11 +48,56 @@ class VendedorService {
     return r.map<Puesto>(Puesto.fromMap).toList();
   }
 
-  Future<void> crearPuesto(String idVendedor, String idTianguis, String nombre, {String? codigo}) =>
-      _db.from('puestos').insert({
-        'id_vendedor': idVendedor, 'id_tianguis': idTianguis,
-        'nombre': nombre, 'codigo': codigo,
-      });
+  Future<String> crearPuesto(String idVendedor, String idTianguis, String nombre,
+      {String? codigo, String? descripcion}) async {
+    final r = await _db.from('puestos').insert({
+      'id_vendedor': idVendedor, 'id_tianguis': idTianguis,
+      'nombre': nombre, 'codigo': codigo, 'descripcion': descripcion,
+    }).select('id').single();
+    return r['id'];
+  }
+
+  /// Edita nombre, código, descripción o foto del puesto.
+  Future<void> actualizarPuesto(String idPuesto, Map<String, dynamic> cambios) =>
+      _db.from('puestos').update(cambios).eq('id', idPuesto);
+
+  /// Sube (o reemplaza) la foto del puesto. Borra la anterior si existía.
+  Future<void> subirFotoPuesto(String idPuesto, File archivo, {String? rutaAnterior}) async {
+    final ruta = '$_uid/puestos/$idPuesto/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    await _db.storage.from(SupabaseConfig.bucketProductos).upload(ruta, archivo);
+    await actualizarPuesto(idPuesto, {'foto_ruta': ruta});
+    if (rutaAnterior != null) {
+      try { await _db.storage.from(SupabaseConfig.bucketProductos).remove([rutaAnterior]); } catch (_) {}
+    }
+  }
+
+  /// Cierre con aviso a los compradores. Primero cierra la jornada (cerrar_puesto)
+  /// y luego marca el tipo de cierre; al volver a abrir el trigger lo limpia.
+  Future<void> cerrarTemporalmente(String idPuesto, {DateTime? reabreEn, String? motivo}) async {
+    await cerrarPuesto(idPuesto);
+    await actualizarPuesto(idPuesto, {
+      'cierre_tipo': 'temporal',
+      'reabre_en': reabreEn?.toIso8601String().substring(0, 10),
+      'cierre_motivo': (motivo ?? '').trim().isEmpty ? null : motivo!.trim(),
+    });
+  }
+
+  Future<void> cerrarHastaNuevoAviso(String idPuesto, {String? motivo}) async {
+    await cerrarPuesto(idPuesto);
+    await actualizarPuesto(idPuesto, {
+      'cierre_tipo': 'hasta_nuevo_aviso',
+      'reabre_en': null,
+      'cierre_motivo': (motivo ?? '').trim().isEmpty ? null : motivo!.trim(),
+    });
+  }
+
+  /// Eliminar = baja lógica (activo=false), como con los productos: se conservan
+  /// visitas y calificaciones. Sus productos quedan sin puesto (siguen en tu catálogo).
+  Future<void> eliminarPuesto(String idPuesto) async {
+    await cerrarPuesto(idPuesto);
+    await _db.from('productos').update({'id_puesto': null}).eq('id_puesto', idPuesto);
+    await actualizarPuesto(idPuesto, {'activo': false});
+  }
 
   /// RF-27 + RF-28: abre el puesto y registra la ubicación UNA sola vez
   /// (sin rastreo continuo, RNF-2).
@@ -91,7 +138,7 @@ class VendedorService {
   Future<List<Producto>> misProductos(String idVendedor) async {
     final r = await _db
         .from('productos')
-        .select('*, categorias(nombre), puestos(nombre, estado), producto_imagenes(ruta_storage, orden)')
+        .select('*, categorias(nombre), puestos(nombre, estado), producto_imagenes(id, ruta_storage, orden)')
         .eq('id_vendedor', idVendedor)
         .eq('activo', true)
         .order('creado_en', ascending: false);
@@ -124,14 +171,30 @@ class VendedorService {
   /// RF-25: baja lógica
   Future<void> retirarProducto(String id) => actualizarProducto(id, {'activo': false});
 
-  /// RF-23: sube foto a Storage y la liga al producto.
+  /// RF-23: sube una foto a Storage y la liga al producto (al final del orden).
   Future<void> subirImagen(String idProducto, File archivo, {int orden = 0}) async {
-    final ruta = '$_uid/$idProducto/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final ruta = '$_uid/$idProducto/${DateTime.now().microsecondsSinceEpoch}.jpg';
     await _db.storage.from(SupabaseConfig.bucketProductos).upload(ruta, archivo);
     await _db.from('producto_imagenes').insert({'id_producto': idProducto, 'ruta_storage': ruta, 'orden': orden});
   }
 
+  /// Quita una foto del producto (fila + archivo).
+  Future<void> eliminarImagen(ImagenProducto img) async {
+    if (img.id != null) await _db.from('producto_imagenes').delete().eq('id', img.id!);
+    try { await _db.storage.from(SupabaseConfig.bucketProductos).remove([img.ruta]); } catch (_) {}
+  }
+
   // ---- Ofertas (RF-29, RF-30) ----
+  Future<List<Oferta>> misOfertas(String idVendedor) async {
+    final r = await _db
+        .from('ofertas')
+        .select('*, oferta_productos(precio_promocional, descuento_porcentaje, productos(nombre, precio_referencia))')
+        .eq('id_vendedor', idVendedor)
+        .order('creado_en', ascending: false)
+        .limit(50);
+    return r.map<Oferta>(Oferta.fromMap).toList();
+  }
+
   Future<void> publicarOferta({
     required String idVendedor,
     required String titulo,
@@ -142,15 +205,22 @@ class VendedorService {
       'id_vendedor': idVendedor, 'titulo': titulo,
       'fecha_fin': fin.toUtc().toIso8601String(),
     }).select('id').single();
-    await _db.from('oferta_productos').insert([
-      for (final p in productos)
-        {
-          'id_oferta': o['id'], 'id_producto': p.idProducto,
-          'precio_promocional': p.precioPromo, 'descuento_porcentaje': p.descuento,
-        }
-    ]);
+    try {
+      await _db.from('oferta_productos').insert([
+        for (final p in productos)
+          {
+            'id_oferta': o['id'], 'id_producto': p.idProducto,
+            'precio_promocional': p.precioPromo, 'descuento_porcentaje': p.descuento,
+          }
+      ]);
+    } catch (e) {
+      // no dejar una oferta vacía si fallaron sus productos
+      try { await _db.from('ofertas').delete().eq('id', o['id']); } catch (_) {}
+      rethrow;
+    }
   }
 
+  /// RF-30: terminar anticipadamente.
   Future<void> terminarOferta(String idOferta) =>
-      _db.from('ofertas').update({'estado': 'finalizada'}).eq('id', idOferta);
+      _db.from('ofertas').update({'estado': Est.ofertaFinalizada}).eq('id', idOferta);
 }
