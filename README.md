@@ -1,73 +1,29 @@
 # TianGuía
 
-**Encuentra el puesto. Descubre el producto. Contacta al vendedor.**
+TianGuía es la plataforma que conecta a vendedores y compradores en tu tianguis
+más cercano. Un lugar para descubrir lo que buscas, encontrar a tus tiangueros
+favoritos y seguir apoyando al comercio local.
 
-TianGuía es un proyecto estudiantil de ingeniería de software que desarrolla
-una aplicación móvil para los tianguis de México. Su objetivo es ayudar a los
-compradores a encontrar productos y vendedores, y facilitar que los tiangueros
-den a conocer sus puestos, su disponibilidad y su mercancía.
+Tianguiapp es el código de la app para móviles, hecha con ❤️ en Flutter.
+La estamos construyendo en comunidad para que puedas:
 
-Buscar un artículo puede implicar recorrer todo el tianguis sin saber si el
-vendedor estará ese día. TianGuía reúne un directorio de puestos, información de
-productos, ubicaciones y comunicación directa para facilitar la planeación y el
-recorrido de esas visitas.
+- Encontrar productos y puestos abiertos en el tianguis.
+- Consultar dónde se instaló tu vendedor favorito ese día.
+- Compartir tu catálogo, disponibilidad y ofertas si eres tianguero.
+- Platicar con vendedores, proponer un precio y pedir un apartado.
+- Guardar favoritos y enterarte de ofertas y días de tianguis.
+- Compartir tu experiencia y ayudar a cuidar la comunidad.
 
-## ¿A quién está dirigida?
+La compra se acuerda y se paga directamente en el puesto. La app te ayuda a
+llegar, preguntar y conectar; el encuentro sucede en el tianguis.
 
-| Público | ¿En qué busca ayudarle TianGuía? |
-| --- | --- |
-| Compradores | Encontrar productos y puestos abiertos, consultar disponibilidad y contactar a los vendedores antes de visitarlos. |
-| Vendedores | Compartir dónde están trabajando, mantener un catálogo de productos y coordinarse con clientes y otros vendedores. |
-| Administradores y moderadores | Mantener la información de los tianguis y atender reportes y solicitudes de revisión para apoyar la confianza de la comunidad. |
-
-El diseño prioriza acciones claras e interfaces legibles para personas con
-distintos niveles de familiaridad con la tecnología.
-
-## Visión del proyecto
-
-La especificación de requisitos de software define la dirección del proyecto:
-
-- **Búsqueda y ubicación:** buscar productos, filtrar por tianguis o categoría y
-  consultar un mapa de puestos abiertos con la ubicación que registra cada
-  vendedor al iniciar su jornada.
-- **Visibilidad del vendedor:** gestionar el estado del puesto, las descripciones
-  y fotografías de los productos, su disponibilidad y las ofertas temporales.
-- **Coordinación directa:** resolver dudas sobre productos, proponer precios,
-  solicitar apartados temporales e intercambiar información sobre espacios en
-  los tianguis.
-- **Comunidad y confianza:** guardar favoritos, elegir notificaciones, confirmar
-  visitas presenciales, dejar valoraciones y utilizar herramientas de reporte y
-  moderación.
-
-Estos objetivos orientan el desarrollo; las funciones disponibles dependen de
-cada versión. Las prioridades y los avances se registran en el tablero del
-proyecto.
-
-TianGuía apoya el comercio presencial. Los pagos e intercambios se realizan
-directamente entre las personas involucradas. El procesamiento de pagos, las
-comisiones, los envíos y la formalización jurídica de acuerdos quedan fuera del
-alcance del proyecto. La ubicación de un puesto corresponde a la última posición
-registrada para esa jornada, sin seguimiento continuo del vendedor.
-
-## Ingeniería de software y contexto académico
-
-TianGuía nació como un proyecto de Ingeniería en Computación en la
-**Universidad de Guadalajara, Centro Universitario de Ciencias Exactas e
-Ingenierías (CUCEI)**.
-
-El documento de requisitos relaciona el planteamiento del problema con requisitos
-funcionales y no funcionales, casos de uso, historias de usuario, un modelo
-conceptual del dominio y una matriz de trazabilidad. El levantamiento inicial
-incluyó entrevistas con cinco vendedores y cuatro compradores, utilizadas como
-orientación cualitativa para el diseño.
-
-El desarrollo busca llevar esas necesidades a la implementación y revisión del
-software, con especial atención a la usabilidad, la privacidad, los permisos,
-la actualización de la información del tianguis y las interrupciones de conexión.
+¿Te gustaría sumar algo? Las ideas, las experiencias del tianguis y las
+contribuciones al código son bienvenidas. En el tablero del proyecto puedes ver
+lo que estamos preparando.
 
 ## Tecnologías y estructura del repositorio
 
-La aplicación utiliza **Flutter y Dart**, con **Supabase** para autenticación,
+La aplicación utiliza Flutter y Dart, con Supabase para autenticación,
 datos en PostgreSQL, almacenamiento de imágenes y mensajería en tiempo real.
 Android es la plataforma móvil configurada en este repositorio.
 
@@ -183,10 +139,9 @@ entorno persistentes.
 
 ## Cómo contribuir
 
-Son bienvenidas las contribuciones al código, la documentación, la accesibilidad,
-el diseño de interfaces y la revisión de requisitos. La experiencia como
-comprador o vendedor en tianguis resulta especialmente útil para discutir el
-comportamiento de la aplicación.
+Puedes ayudar con código, documentación, accesibilidad, diseño o ideas. Si vas al
+tianguis a comprar o vender, tu experiencia también cuenta: cuéntanos qué te
+gustaría encontrar en la app y qué haría más fácil tu día.
 
 1. Revisa el documento de requisitos y el tablero del proyecto, y consulta las
    [incidencias existentes](https://github.com/Tianguia/Tianguiapp/issues) para
