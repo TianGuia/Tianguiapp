@@ -1,11 +1,12 @@
-/// Datos públicos de tu proyecto (Dashboard > Project Settings > API).
-/// Se pasan al compilar para no dejarlos en el repositorio:
-///   flutter run --dart-define=SUPABASE_URL=https://xxxx.supabase.co \
-///               --dart-define=SUPABASE_KEY=tu_publishable_key
-/// NUNCA pongas aquí la clave service_role / secret.
 class SupabaseConfig {
-  static const url = String.fromEnvironment('SUPABASE_URL');
-  static const key = String.fromEnvironment('SUPABASE_KEY');
+  static const url = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://ijnvztoyhizdwtzagrvy.supabase.co',
+  );
+  static const key = String.fromEnvironment(
+    'SUPABASE_KEY',
+    defaultValue: 'sb_publishable_C4i-Lm08t35unAMETI36uw_0pH9hSc1',
+  );
   static const bucketProductos = 'productos';
   static const bucketPerfiles = 'perfiles';
 }
