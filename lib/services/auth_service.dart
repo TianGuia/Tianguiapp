@@ -7,7 +7,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///    identidad anónima en su celular (signInAnonymously).
 ///  - Vendedor / administrador: correo + código de un solo uso (OTP).
 class AuthService {
-  final _db = Supabase.instance.client;
+  AuthService({SupabaseClient? client})
+      : _db = client ?? Supabase.instance.client;
+
+  final SupabaseClient _db;
 
   User? get usuario => _db.auth.currentUser;
 
@@ -50,8 +53,8 @@ class AuthService {
 
   // ---------------- Términos (RF-40 / RF-53) ----------------
 
-  /// Acepta las versiones pendientes. Funciona si terminos_pendientes()
-  /// devuelve filas (versión original) o un booleano (versión de 01_setup.sql).
+  /// Acepta las versiones pendientes; admite respuestas de versiones anteriores
+  /// del backend además de la lista de documentos vigente en Toldo.
   Future<void> aceptarTerminosVigentes() async {
     final uid = usuario?.id;
     if (uid == null) return;
@@ -76,17 +79,14 @@ class AuthService {
   Future<void> cerrarSesion() => _db.auth.signOut();
 
   /// RF-05
-  Future<Map<String, dynamic>?> miPerfil() => _db
-      .from('usuarios')
-      .select()
-      .eq('id', usuario!.id)
-      .maybeSingle();
+  Future<Map<String, dynamic>?> miPerfil() =>
+      _db.from('usuarios').select().eq('id', usuario!.id).maybeSingle();
 
-  Future<void> actualizarPerfil({String? nombre, String? telefono, String? fotoUrl}) =>
+  Future<void> actualizarPerfil(
+          {String? nombre, String? telefono, String? fotoUrl}) =>
       _db.from('usuarios').update({
         if (nombre != null) 'nombre_publico': nombre,
         if (telefono != null) 'telefono': telefono,
         if (fotoUrl != null) 'foto_url': fotoUrl,
-        'actualizado_en': DateTime.now().toUtc().toIso8601String(),
       }).eq('id', usuario!.id);
 }

@@ -46,3 +46,6 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Configuración temporal de Supabase (el backend se mantiene en Toldo).
+/supabase/

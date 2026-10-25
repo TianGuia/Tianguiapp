@@ -33,9 +33,12 @@ lib/
   models/       Modelos de datos del dominio
   screens/      Pantallas y pestañas de Flutter
   services/     Autenticación y operaciones del dominio
-supabase/       Script de seguridad y funciones; datos de ejemplo opcionales
 android/        Aplicación Android y configuración de compilación
+test/           Pruebas automatizadas de la aplicación
 ```
+
+El backend se mantiene en [Toldo](https://github.com/Tianguia/Toldo), con sus
+migraciones, permisos, datos de ejemplo y pruebas de base de datos.
 
 ## Ejecución local
 
@@ -61,12 +64,12 @@ parámetros para conectarte a tu propio backend de desarrollo. Utiliza una clave
 pública de cliente (`publishable` o `anon`) y mantén las claves privilegiadas
 `service_role` fuera de la aplicación.
 
-Los flujos de datos requieren una base de datos compatible en Supabase. El
-[directorio supabase](supabase/) contiene políticas de seguridad, funciones y
-datos de ejemplo opcionales. Estos scripts trabajan sobre tablas existentes;
-el repositorio todavía no incluye el SQL que crea esas tablas, sus columnas,
-relaciones y tipos personalizados. Para utilizar un proyecto nuevo de Supabase,
-primero es necesario proporcionar esa estructura de base de datos.
+Los flujos de datos requieren una base de datos compatible en Supabase.
+Consulta las instrucciones de [Toldo](https://github.com/Tianguia/Toldo) para las
+migraciones y la preparación del backend. Toldo ya verifica la restauración de
+la base y algunos permisos en Docker; la configuración completa de autenticación
+y almacenamiento para un entorno nuevo todavía está en desarrollo.
+Los SQL antiguos de este repositorio se conservan en el historial de Git.
 La autenticación utiliza acceso anónimo para compradores y códigos de un solo
 uso (OTP) por correo para vendedores y administradores; habilita estos métodos
 en tu backend.
@@ -160,7 +163,12 @@ estático:
 ```sh
 dart format lib
 flutter analyze
+flutter test
 ```
+
+GitHub Actions ejecuta el análisis estático y las pruebas en cada push y pull
+request. Las pruebas de la app usan respuestas HTTP simuladas, sin conectarse al
+Supabase compartido. Las pruebas de base de datos se ejecutan por separado en Toldo.
 
 Incluye las pruebas pertinentes al agregar o modificar comportamientos y describe
 las verificaciones manuales que requieran un dispositivo o un backend
@@ -169,5 +177,5 @@ incidencias, capturas de pantalla y commits.
 
 ## Licencia
 
-Todavía no se ha agregado un archivo de licencia. Los responsables del proyecto
-deben establecer los términos de reutilización y redistribución.
+Este proyecto se distribuye bajo la licencia [BSD de 3 cláusulas](LICENSE)
+(`BSD-3-Clause`).

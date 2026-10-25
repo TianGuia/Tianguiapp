@@ -1,0 +1,27 @@
+name: Verificación de Flutter
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.8'
+          cache: true
+      - name: Instalar dependencias
+        run: flutter pub get --enforce-lockfile
+      - name: Analizar código
+        run: flutter analyze --no-pub
+      - name: Ejecutar pruebas
+        run: flutter test --no-pub
