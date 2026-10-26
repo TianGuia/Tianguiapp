@@ -55,3 +55,21 @@ github-recovery-codes*.txt
 /.signing/
 *.p12
 *.pfx
+
+# Credenciales locales y archivos de firma.
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.jks
+*.keystore
+key.properties
+*recovery-codes*.txt
+
+# Copias antiguas, paquetes de entrega y temporales locales.
+/tianguia/
+/tianguia.zip
+/tmp/
+__pycache__/

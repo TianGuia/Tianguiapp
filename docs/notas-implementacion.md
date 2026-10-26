@@ -1,73 +1,24 @@
 # Notas de implementación y pruebas manuales
 
-Estas notas acompañaban los cambios integrados de la app. Los pasos originales
-de creación del proyecto y ejecución de SQL se conservan como referencia
-histórica; la instalación vigente está en el [README](../README.md) y el backend
-se mantiene en [Toldo](https://github.com/Tianguia/Toldo). Los SQL 01 y 02
-mencionados aquí ya no forman parte de la raíz del repositorio.
+La app activa está en la raíz del repositorio. La instalación y ejecución
+se documentan en el [README](../README.md), los iconos en
+[Iconos de la app](iconos.md) y el backend en
+[Toldo](https://github.com/Tianguia/Toldo). Las antiguas copias de la app,
+paquetes ZIP y scripts SQL se conservan únicamente en el historial de Git.
 
-App Android (Flutter/Dart) con Supabase como backend. Diseño tomado de tus pantallas:
-fondo azul con pinceladas, letra tipo marcador, chips amarillos, tarjeta "Destacado de la semana".
+## Acceso anónimo y habilitación de vendedores
 
-## 1. Crear el proyecto y copiar esta base
-```bash
-flutter create --org mx.udg --platforms=android tianguia
-# copia encima de la carpeta creada: lib/, assets/, supabase/, pubspec.yaml
-rm test/widget_test.dart          # el de ejemplo ya no aplica
-flutter pub get
-dart run flutter_launcher_icons   # ícono de la app (el de tu diseño)
-dart run flutter_native_splash:create   # pantalla de arranque azul con el logo
-```
-Nombre que ve el usuario bajo el ícono: en `android/app/src/main/AndroidManifest.xml`
-cambia `android:label="tianguia"` por `android:label="TianGuía"`.
+El backend debe permitir acceso anónimo y códigos OTP por correo. Consulta
+Toldo para aplicar sus migraciones y configurar autenticación y permisos.
 
-## 2. Permisos de Android
-En `android/app/src/main/AndroidManifest.xml`, dentro de `<manifest>`:
-```xml
-<uses-permission android:name="android.permission.INTERNET"/>
-<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-```
-En `android/app/build.gradle(.kts)` verifica `minSdk = 21` o mayor.
-Las fuentes (`google_fonts`) se descargan la primera vez con internet.
-
-## 3. Supabase
-1. **Revisa tus ENUM** (en el esquema salen como USER-DEFINED). En el SQL Editor:
-   ```sql
-   select t.typname, string_agg(e.enumlabel, ', ' order by e.enumsortorder)
-   from pg_type t join pg_enum e on e.enumtypid = t.oid group by t.typname;
-   ```
-   El código asume: `estado_puesto` = abierto/cerrado, `estado_vendedor` = activo,
-   `estado_oferta` = activa/finalizada, `contexto` de conversaciones = producto,
-   `estado_articulo` = nuevo. Si tus valores son distintos, cámbialos en
-   `supabase/01_setup.sql` y en los servicios Dart.
-2. Ejecuta `supabase/01_setup.sql`, después `supabase/02_seed.sql` y por último
-   `supabase/03_puestos_gestion.sql` (columnas de descripción/foto/cierre del puesto y trigger) y
-   `supabase/04_tratos_ofertas.sql` (responder propuestas/apartados, vencimientos, cron).
-   Si el 04 se detiene diciendo que faltan valores en un ENUM, ejecuta las líneas `alter type` que te muestra
-   (una por una) y vuelve a correrlo.
-3. Authentication > Providers > Email: activa **Email OTP**. En Email Templates (Magic Link)
-   usa `{{ .Token }}` para que el correo traiga el código de 6 dígitos.
-4. Hazte admin (después de registrarte): `insert into administradores (id_usuario)
-   select id from usuarios where correo = 'tu_correo';`
-
-## 4. Correr
-```bash
-flutter run \
-  --dart-define=SUPABASE_URL=https://TU_PROYECTO.supabase.co \
-  --dart-define=SUPABASE_KEY=TU_PUBLISHABLE_KEY
-```
-Nunca pongas la clave `service_role` en la app.
-
-## Estructura
-- `lib/config/` → tema (colores y fuentes) y datos de Supabase.
-- `lib/widgets/` → fondo con pinceladas, botón/etiquetas/chips estilo pincel, corazón, flujo de visita.
-- `lib/services/` → un servicio por módulo (auth, catálogo, inicio, puestos, vendedor, chat).
-- `lib/screens/` → bienvenida, login con código, home (menú lateral + 4 pestañas:
-  Inicio, Explorar, Mi puesto, Perfil), detalle de puesto, notificaciones, chat, diagnóstico.
-- `supabase/01_setup.sql` → trigger de alta, RLS de las 38 tablas, funciones (abrir/cerrar puesto,
-  código de visita, confirmar visita, resumen/destacado/tendencias del inicio), Realtime y Storage.
-- `assets/` → logo y archivos del ícono generados desde tu imagen.
+1. Entrar con nombre y condiciones: se crea una cuenta anónima de comprador.
+2. Mi puesto > HABILITAR PERFIL > verificar correo: se conserva la misma cuenta
+   y se habilita el perfil de vendedor.
+3. En el backend, comprobar que el identificador no cambia y que la cuenta deja
+   de ser anónima tras verificar el correo.
+4. Comprobar que un comprador anónimo no puede crear un perfil de vendedor
+   directamente sin verificar su cuenta.
+5. Ya tengo cuenta con correo permite iniciar sesión por código en otro equipo.
 
 ## Cosas que decidí y conviene revisar
 - **"15 verificados / 76 en espera"** del diseño no tiene equivalente en la base; el inicio muestra
@@ -89,7 +40,7 @@ Mapa visual (flutter_map u OSM), pantallas de propuestas/apartados (el servicio 
 favoritos, ofertas y anuncios de espacios, notificaciones push (FCM + Edge Function), panel de administración.
 
 ## Guion de prueba (con el Diagnóstico)
-1. Entrar (código por correo, o "modo desarrollo" con contraseña; desactiva "Confirm email" en Supabase).
+1. Entrar como comprador anónimo o iniciar sesión por código de correo.
 2. Perfil > **Diagnóstico de conexión**: todo en verde.
 3. Mi puesto > habilitar vendedor > crear puesto > "YA LLEGUÉ · ABRIR" (da permiso de ubicación).
 4. Mi puesto > MIS PRODUCTOS > agregar con foto y stock.

@@ -1,5 +1,5 @@
 /// Valores de los ENUM de Supabase que usa la app. Si tu base usa otros
-/// textos, cámbialos aquí y en supabase/04_tratos_ofertas.sql.
+/// textos, coordina los cambios aquí con las migraciones del backend en Toldo.
 class Est {
   static const pendiente = 'pendiente';
   // estado_propuesta

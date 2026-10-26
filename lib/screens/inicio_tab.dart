@@ -91,7 +91,7 @@ class _InicioTabState extends State<InicioTab> {
             Padding(
               padding: const EdgeInsets.all(20),
               child: Text('No se pudo cargar el inicio.\n$_error\n\n'
-                  '¿Ya ejecutaste supabase/01_setup.sql?'),
+                  'Desliza hacia abajo para volver a intentar.'),
             )
           else if (_cargando && _destacado == null && _tendencias.isEmpty)
             const Padding(

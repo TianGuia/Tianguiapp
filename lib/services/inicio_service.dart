@@ -1,7 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/modelos.dart';
 
-/// Datos de la pantalla de inicio (funciones SQL de supabase/01_setup.sql).
+/// Datos de la pantalla de inicio (funciones SQL del backend en Toldo).
 class InicioService {
   final _db = Supabase.instance.client;
 
