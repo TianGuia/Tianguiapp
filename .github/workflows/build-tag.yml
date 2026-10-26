@@ -18,8 +18,6 @@ jobs:
     name: APK Android
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    outputs:
-      artifact_name: tianguia-android-${{ steps.version.outputs.version_name }}-${{ steps.version.outputs.build_number }}
     steps:
       - uses: actions/checkout@v7
       - name: Calcular versión
@@ -110,7 +108,9 @@ jobs:
       - name: Descargar APK firmados
         uses: actions/download-artifact@v8
         with:
-          name: ${{ needs.android.outputs.artifact_name }}
+          # Evitar outputs de job: GitHub puede omitirlos si coinciden con un secreto.
+          pattern: tianguia-android-*
+          merge-multiple: true
           path: release-apks
       - name: Crear o actualizar Release
         env:
@@ -140,8 +140,6 @@ jobs:
     name: IPA iOS sin firmar
     runs-on: macos-latest
     timeout-minutes: 45
-    outputs:
-      artifact_name: tianguia-ios-${{ steps.version.outputs.version_name }}-${{ steps.version.outputs.build_number }}-unsigned
     steps:
       - uses: actions/checkout@v7
       - name: Calcular versión
@@ -198,7 +196,8 @@ jobs:
       - name: Descargar IPA sin firmar
         uses: actions/download-artifact@v8
         with:
-          name: ${{ needs.ios.outputs.artifact_name }}
+          pattern: tianguia-ios-*-unsigned
+          merge-multiple: true
           path: release-ipas
       - name: Crear o actualizar Release
         env:
