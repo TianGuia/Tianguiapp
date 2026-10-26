@@ -25,18 +25,61 @@ class ChatService {
     return r['id'];
   }
 
-  Future<List<Map<String, dynamic>>> misConversaciones() => _db
-      .from('conversaciones')
-      .select('*, productos(nombre)')
-      .or('id_iniciador.eq.$_uid,id_receptor.eq.$_uid')
-      .order('ultimo_mensaje_en', ascending: false, nullsFirst: false);
+  /// Conversaciones que no he borrado. Una borrada reaparece sola si llega
+  /// un mensaje nuevo después de borrarla.
+  Future<List<Map<String, dynamic>>> misConversaciones() async {
+    final todas = await _db
+        .from('conversaciones')
+        .select('*, productos(nombre)')
+        .or('id_iniciador.eq.$_uid,id_receptor.eq.$_uid')
+        .order('ultimo_mensaje_en', ascending: false, nullsFirst: false);
+    final ocultas = await _ocultas();
+    return [
+      for (final c in todas)
+        if (!_estaOculta(c, ocultas[c['id']])) c
+    ];
+  }
+
+  Future<Map<String, DateTime>> _ocultas() async {
+    final r = await _db
+        .from('conversaciones_ocultas')
+        .select('id_conversacion, ocultada_en')
+        .eq('id_usuario', _uid);
+    return {
+      for (final o in r)
+        o['id_conversacion'] as String: DateTime.parse(o['ocultada_en'] as String)
+    };
+  }
+
+  bool _estaOculta(Map<String, dynamic> c, DateTime? ocultadaEn) {
+    if (ocultadaEn == null) return false;
+    final ultimo = c['ultimo_mensaje_en'] as String?;
+    return ultimo == null || !DateTime.parse(ultimo).isAfter(ocultadaEn);
+  }
+
+  /// Borra la conversación SOLO para mí (la otra persona la sigue viendo y
+  /// el historial queda disponible para moderación).
+  Future<void> borrarConversacion(String idConversacion) =>
+      _db.rpc('ocultar_conversacion', params: {'p_id': idConversacion});
 
   /// Mensajes en tiempo real (Supabase Realtime).
-  Stream<List<Map<String, dynamic>>> mensajes(String idConversacion) => _db
-      .from('mensajes')
-      .stream(primaryKey: ['id'])
-      .eq('id_conversacion', idConversacion)
-      .order('enviado_en');
+  /// Llegan del más nuevo al más viejo; la pantalla usa ListView(reverse: true)
+  /// para que el más nuevo quede abajo. Si borré la conversación antes,
+  /// solo se muestran los mensajes posteriores al borrado.
+  Stream<List<Map<String, dynamic>>> mensajes(String idConversacion) async* {
+    DateTime? desde;
+    try {
+      desde = (await _ocultas())[idConversacion];
+    } catch (_) {}
+    yield* _db
+        .from('mensajes')
+        .stream(primaryKey: ['id'])
+        .eq('id_conversacion', idConversacion)
+        .order('enviado_en', ascending: false)
+        .map((l) => desde == null
+            ? l
+            : l.where((m) => DateTime.parse(m['enviado_en'] as String).isAfter(desde!)).toList());
+  }
 
   Future<void> enviar(String idConversacion, String texto) =>
       _db.from('mensajes').insert({

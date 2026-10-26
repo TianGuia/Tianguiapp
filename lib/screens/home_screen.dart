@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
-import '../services/auth_service.dart';
 import '../services/inicio_service.dart';
+import '../widgets/cerrar_sesion.dart';
 import '../widgets/fondo.dart';
 import '../widgets/pincel.dart';
 import 'catalogo_tab.dart';
@@ -156,7 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
               item(Icons.person_outline, 'Mi perfil', () => setState(() => _i = 3), activo: _i == 3),
               item(Icons.bug_report_outlined, 'Diagnóstico de conexión',
                   () => _ir(const DiagnosticoScreen())),
-              item(Icons.logout, 'Cerrar sesión', () => AuthService().cerrarSesion()),
+              item(Icons.logout, 'Cerrar sesión', () => confirmarCerrarSesion(context)),
             ]),
           ),
           Padding(

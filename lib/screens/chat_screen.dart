@@ -42,6 +42,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 final l = s.data!;
                 if (l.isEmpty) return const Center(child: Text('Escribe el primer mensaje'));
                 return ListView.builder(
+                  reverse: true, // el mensaje más nuevo queda abajo
                   padding: const EdgeInsets.all(12),
                   itemCount: l.length,
                   itemBuilder: (_, i) {

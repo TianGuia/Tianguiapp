@@ -1,22 +1,39 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../services/auth_service.dart';
+import '../widgets/cerrar_sesion.dart';
 import 'chats_screen.dart';
 import 'diagnostico_screen.dart';
 import 'tratos_screen.dart';
+import 'verificar_contacto_screen.dart';
 
 /// RF-05: perfil de la cuenta.
-class PerfilTab extends StatelessWidget {
+class PerfilTab extends StatefulWidget {
   const PerfilTab({super.key});
+  @override
+  State<PerfilTab> createState() => _PerfilTabState();
+}
+
+class _PerfilTabState extends State<PerfilTab> {
+  final _auth = AuthService();
+
+  Future<void> _verificar() async {
+    final ok = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const VerificarContactoScreen()),
+    );
+    if (ok == true && mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
-    final auth = AuthService();
+    final auth = _auth;
     return FutureBuilder<Map<String, dynamic>?>(
       future: auth.miPerfil(),
       builder: (_, s) {
         final p = s.data;
         final foto = p?['foto_url'] as String?;
+        final correo = p?['correo'] as String?;
         return ListView(padding: const EdgeInsets.all(20), children: [
           Center(
             child: Container(
@@ -33,9 +50,26 @@ class PerfilTab extends StatelessWidget {
           const SizedBox(height: 12),
           Text(p?['nombre_publico'] ?? '…',
               textAlign: TextAlign.center, style: Tg.marcador(26)),
-          Text(p?['correo'] ?? '', textAlign: TextAlign.center,
+          Text(
+              auth.esAnonimo
+                  ? 'Cuenta sin correo verificado'
+                  : (correo ?? ''),
+              textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.white70, fontSize: 16)),
           const SizedBox(height: 24),
+          if (auth.esAnonimo) ...[
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.verified_user_outlined, color: Tg.amarillo),
+                title: const Text('Verificar mi correo',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: const Text('Necesario para vender. Conservas todo lo que ya tienes.'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _verificar,
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
           Card(
             child: ListTile(
               leading: const Icon(Icons.chat_bubble_outline, color: Tg.amarillo),
@@ -68,7 +102,9 @@ class PerfilTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 22),
-          FilledButton(onPressed: auth.cerrarSesion, child: const Text('CERRAR SESIÓN')),
+          FilledButton(
+              onPressed: () => confirmarCerrarSesion(context),
+              child: const Text('CERRAR SESIÓN')),
         ]);
       },
     );

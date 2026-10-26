@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../models/modelos.dart';
+import '../services/auth_service.dart';
 import '../services/tratos_service.dart';
 import '../services/vendedor_service.dart';
 import 'mis_productos_screen.dart';
 import 'ofertas_screen.dart';
 import 'puesto_form_screen.dart';
 import 'tratos_screen.dart';
+import 'verificar_contacto_screen.dart';
 
 /// RF-19, RF-20, RF-27, RF-28, RF-41: panel del vendedor.
 class VendedorTab extends StatefulWidget {
@@ -56,6 +58,14 @@ class _VendedorTabState extends State<VendedorTab> {
 
   Future<void> _habilitar() async {
     try {
+      // RF-19: para vender hay que verificar el correo (la cuenta anónima se liga).
+      if (AuthService().esAnonimo) {
+        final ok = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(builder: (_) => const VerificarContactoScreen()),
+        );
+        if (ok != true) return;
+      }
       await _svc.habilitarPerfil();
       await _cargar();
     } catch (e) {
@@ -282,6 +292,11 @@ class _VendedorTabState extends State<VendedorTab> {
           padding: const EdgeInsets.all(24),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             const Text('¿Tienes un puesto en el tianguis?', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            if (AuthService().esAnonimo) ...[
+              const SizedBox(height: 8),
+              const Text('Te pediremos verificar tu correo para activar tu perfil de vendedor.',
+                  textAlign: TextAlign.center),
+            ],
             const SizedBox(height: 16),
             FilledButton(onPressed: _habilitar, child: const Text('HABILITAR PERFIL DE VENDEDOR')),
           ]),
