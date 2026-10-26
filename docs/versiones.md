@@ -58,9 +58,26 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-Al terminar, descarga los artefactos en **Actions → Compilar versiones
-etiquetadas → ejecución → Artifacts**. El artefacto Android contiene los tres
-APK separados y el de iOS contiene el archivo `*-unsigned.ipa`.
+La primera plataforma que termina correctamente crea un **Release** para el
+tag con notas automáticas. Android adjunta sus tres APK firmados e iOS adjunta
+su IPA sin firmar. Cada publicación depende únicamente de su propia compilación:
+si una plataforma falla, se conservan los binarios publicados por la otra.
+Los tags con sufijo como `-beta.1` se publican como **prerelease**. Si el Release
+ya existe, una nueva ejecución actualiza los binarios de esa plataforma sin
+borrar los de la otra ni cambiar las notas. Los dos jobs de publicación comparten
+un bloqueo por tag para evitar que intenten crear el mismo Release a la vez.
+Solo los jobs de publicación tienen permiso `contents: write`; utilizan el token
+automático de GitHub Actions y no necesita un token personal adicional.
+
+Ambas plataformas conservan además sus artefactos en
+**Actions → Compilar versiones etiquetadas
+→ ejecución → Artifacts**. El artefacto Android contiene los tres APK separados
+y el de iOS contiene el archivo `*-unsigned.ipa`. El IPA del Release también
+está sin firmar: necesita refirmarse para instalarse y no se envía a TestFlight
+ni a App Store.
+
+Crear un tag solo localmente no inicia el workflow: hay que subirlo a GitHub.
+El tag debe apuntar a un commit que ya incluya este workflow de publicación.
 
 Los jobs también ejecutan el análisis y las pruebas de Dart. El de iOS realiza
 una compilación real con Xcode; no crea otro proyecto de ejemplo ni utiliza un

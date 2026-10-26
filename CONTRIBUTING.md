@@ -34,7 +34,7 @@ La aplicación activa se desarrolla principalmente en `lib/`:
 - `config/`: configuración y tema visual.
 - `test/`: pruebas automatizadas.
 
-La carpeta `tianguia/` contiene una copia de referencia y **no es la ubicación de desarrollo de la aplicación activa**. Evita duplicar allí modificaciones destinadas a `lib/`.
+La aplicación activa está en la raíz del repositorio. La antigua copia `tianguia/` se retiró; evita volver a incorporar copias completas de la aplicación o paquetes ZIP de entrega.
 
 El backend, incluidas las migraciones y políticas de la base de datos, se mantiene en [Toldo](https://github.com/Tianguia/Toldo). Los cambios que afecten conjuntamente a la app y al backend deben describir las dependencias entre ambos repositorios.
 
