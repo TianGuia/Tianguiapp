@@ -109,9 +109,9 @@ escritorio. Sin un teléfono conectado, `doctor` puede indicar que no hay
 dispositivos; eso no impide analizar, probar o compilar APK.
 
 iOS requiere macOS, Xcode y Flutter nativos; Docker Linux no puede compilarlo.
-`bash scripts/dev.sh ios -d <id>` delega en ese Flutter. Actualmente el repositorio
-no incluye el directorio `ios/`: el script lo informa sin generarlo. Incorporar y
-validar ese destino es un trabajo independiente.
+`bash scripts/dev.sh ios -d <id>` delega en ese Flutter y utiliza el proyecto
+oficial de `ios/`. El [workflow por tags](versiones.md) lo compila en un runner
+macOS y genera el IPA sin firmar.
 
 ## Archivos y cachés
 

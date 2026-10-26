@@ -4,8 +4,10 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val releaseKeystore = System.getenv("TIANGUIA_ANDROID_KEYSTORE")
+
 android {
-    namespace = "mx.udg.tianguia"
+    namespace = "mx.udg.alumnos.tianguia"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -15,8 +17,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "mx.udg.tianguia"
+        applicationId = "mx.udg.alumnos.tianguia"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -29,11 +30,21 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (!releaseKeystore.isNullOrBlank()) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = providers.environmentVariable("TIANGUIA_ANDROID_STORE_PASSWORD").get()
+                keyAlias = providers.environmentVariable("TIANGUIA_ANDROID_KEY_ALIAS").get()
+                keyPassword = providers.environmentVariable("TIANGUIA_ANDROID_KEY_PASSWORD").get()
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Actions proporciona la clave estable; el desarrollo local conserva su firma de prueba.
+            signingConfig = signingConfigs.getByName(if (releaseKeystore.isNullOrBlank()) "debug" else "release")
         }
     }
 }

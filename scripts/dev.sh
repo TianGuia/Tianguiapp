@@ -7,7 +7,7 @@ case "$task" in
   ios)
     [[ $(uname -s) == Darwin ]] || { echo 'iOS requiere macOS y Xcode.' >&2; exit 1; }
     command -v flutter >/dev/null || { echo 'Instala Flutter en macOS para iOS.' >&2; exit 1; }
-    # Este repositorio aún no incluye el destino iOS. No generarlo silenciosamente.
+    # Usar el proyecto nativo versionado; no regenerarlo implícitamente.
     [[ -d ios ]] || { echo 'Falta configurar el destino iOS en el proyecto (flutter create --platforms=ios .).' >&2; exit 1; }
     exec flutter run "$@"
     ;;

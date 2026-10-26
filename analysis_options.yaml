@@ -13,6 +13,7 @@ analyzer:
   exclude:
     - build/**
     - android/**
+    - ios/**
     - web/**
     # La copia de referencia tiene su propio pubspec; la app activa está en lib/.
     - tianguia/**

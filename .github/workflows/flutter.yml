@@ -2,6 +2,7 @@ name: Verificación de Flutter
 
 on:
   push:
+    branches: ['**']
   pull_request:
 
 permissions:
@@ -12,7 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+      - name: Verificar versionado de tags
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
       - name: Preparar Flutter
         uses: subosito/flutter-action@v2
         with:

@@ -52,3 +52,6 @@ app.*.map.json
 
 # Los códigos de recuperación de cuentas nunca deben versionarse.
 github-recovery-codes*.txt
+/.signing/
+*.p12
+*.pfx

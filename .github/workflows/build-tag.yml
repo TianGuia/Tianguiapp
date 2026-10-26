@@ -1,0 +1,141 @@
+name: Compilar versiones etiquetadas
+
+on:
+  push:
+    tags: ['*']
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: '3.47.8'
+  # Base inicial: pubspec.yaml contiene 0.1.0+1. No cambiarla para cada versión.
+  RELEASE_BUILD_BASE: '1'
+  RELEASE_TAG: ${{ github.ref_name }}
+
+jobs:
+  android:
+    name: APK Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - name: Calcular versión
+        id: version
+        run: python3 .github/scripts/release_version.py
+      - name: Preparar Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+          cache-dependency-path: |
+            android/**/*.gradle*
+            android/**/gradle-wrapper.properties
+            pubspec.lock
+      - name: Preparar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Limitar memoria y activar cachés de compilación
+        run: |
+          mkdir -p "$HOME/.gradle"
+          cat >> "$HOME/.gradle/gradle.properties" <<'PROPERTIES'
+          org.gradle.jvmargs=-Xmx2G -XX:MaxMetaspaceSize=1G
+          kotlin.daemon.jvmargs=-Xmx1G
+          kotlin.incremental=true
+          org.gradle.caching=true
+          org.gradle.workers.max=2
+          PROPERTIES
+      - name: Instalar dependencias
+        run: flutter pub get --enforce-lockfile
+      - name: Verificar la app
+        run: |
+          flutter analyze --no-pub
+          flutter test --no-pub
+      - name: Preparar clave de firma
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          python3 - <<'PY'
+          import base64, os
+          from pathlib import Path
+          value = os.environ.get('KEYSTORE_BASE64', '')
+          if not value:
+              raise SystemExit('Falta el Secret ANDROID_KEYSTORE_BASE64')
+          destination = Path(os.environ['RUNNER_TEMP']) / 'tianguia-release.p12'
+          destination.write_bytes(base64.b64decode(value, validate=True))
+          destination.chmod(0o600)
+          PY
+      - name: Compilar APK firmados
+        env:
+          TIANGUIA_ANDROID_KEYSTORE: ${{ runner.temp }}/tianguia-release.p12
+          TIANGUIA_ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          TIANGUIA_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          TIANGUIA_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          VERSION_NAME: ${{ steps.version.outputs.version_name }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
+        run: |
+          flutter build apk --release --no-pub --split-per-abi \
+            --target-platform android-arm,android-arm64,android-x64 \
+            --build-name "$VERSION_NAME" --build-number "$BUILD_NUMBER" \
+            --android-project-arg=force-version-code-ignoring-abi=true
+      - name: Guardar APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: tianguia-android-${{ steps.version.outputs.version_name }}-${{ steps.version.outputs.build_number }}
+          path: build/app/outputs/flutter-apk/*.apk
+          if-no-files-found: error
+          compression-level: 0
+          overwrite: true
+      - name: Retirar clave temporal
+        if: always()
+        run: rm -f "$RUNNER_TEMP/tianguia-release.p12"
+
+  ios:
+    name: IPA iOS sin firmar
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - name: Calcular versión
+        id: version
+        run: python3 .github/scripts/release_version.py
+      - name: Preparar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Instalar dependencias
+        run: flutter pub get --enforce-lockfile
+      - name: Verificar la app
+        run: |
+          flutter analyze --no-pub
+          flutter test --no-pub
+      - name: Compilar la app iOS para dispositivo
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.ios_version }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
+        run: |
+          flutter build ios --release --no-codesign --no-pub \
+            --build-name "$VERSION_NAME" --build-number "$BUILD_NUMBER"
+      - name: Empaquetar IPA sin firmar
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.version_name }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
+        run: |
+          mkdir -p build/ios/ipa/Payload
+          ditto build/ios/iphoneos/Runner.app build/ios/ipa/Payload/Runner.app
+          cd build/ios/ipa
+          zip -qry "tianguia-${VERSION_NAME}-${BUILD_NUMBER}-unsigned.ipa" Payload
+      - name: Guardar IPA sin firmar
+        uses: actions/upload-artifact@v7
+        with:
+          name: tianguia-ios-${{ steps.version.outputs.version_name }}-${{ steps.version.outputs.build_number }}-unsigned
+          path: build/ios/ipa/*-unsigned.ipa
+          if-no-files-found: error
+          compression-level: 0
+          overwrite: true

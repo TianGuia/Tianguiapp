@@ -15,6 +15,7 @@ sync_source() {
     --exclude=local.properties --exclude=.flutter-plugins-dependencies --exclude=.flutter-plugins \
     --exclude=.pub-cache --exclude=.idea --exclude=.env --exclude='.env.*' --exclude=/web \
     --exclude=.agents --exclude=.codex --exclude=.aws --exclude=.ssh --exclude=/supabase \
+    --exclude=.signing --exclude=key.properties --exclude='*.p12' --exclude='*.pfx' --exclude='*.jks' --exclude='*.keystore' \
     /source/ /workspace/
   if [[ -d /source/web ]]; then rsync -rlt --delete /source/web/ /workspace/web/; fi
 }

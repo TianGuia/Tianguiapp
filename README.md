@@ -25,7 +25,7 @@ lo que estamos preparando.
 
 La aplicación utiliza Flutter y Dart, con Supabase para autenticación,
 datos en PostgreSQL, almacenamiento de imágenes y mensajería en tiempo real.
-Android es la plataforma móvil configurada en este repositorio.
+Android e iOS tienen su estructura nativa configurada en este repositorio.
 
 ```text
 lib/
@@ -34,6 +34,7 @@ lib/
   screens/      Pantallas y pestañas de Flutter
   services/     Autenticación y operaciones del dominio
 android/        Aplicación Android y configuración de compilación
+ios/            Aplicación iOS, proyecto de Xcode y permisos
 test/           Pruebas automatizadas de la aplicación
 ```
 
@@ -97,8 +98,19 @@ flutter build apk --release
 ```
 
 Los archivos APK se generan en `build/app/outputs/flutter-apk/`. Las compilaciones
-`release` utilizan la configuración de firma de depuración del proyecto;
-configura una firma de distribución antes de publicar en una tienda.
+locales `release` conservan la firma de depuración si no se proporciona una
+clave de distribución; el workflow por tags utiliza la clave estable de Secrets.
+
+### Versiones e iOS
+
+Al subir un tag como `v0.1.0`, Actions compila tres APK firmados y un IPA sin
+firmar en runners Linux y macOS. La versión sale del tag y el número de
+compilación aumenta automáticamente. Consulta la [guía de versiones](docs/versiones.md)
+para descargar los artefactos y conservar la clave de firma.
+
+Para trabajar con iOS localmente necesitas macOS, Xcode y Flutter. El proyecto
+oficial está en `ios/`; `bash scripts/dev.sh ios -d <id-dispositivo>` usa esa
+instalación nativa.
 
 <details>
 <summary>Notas de configuración para Windows y Android</summary>
