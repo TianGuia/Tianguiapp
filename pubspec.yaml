@@ -27,14 +27,16 @@ flutter:
   assets:
     - assets/images/
 
-# Ícono de la app (el de tu diseño). Se genera con:
-#   dart run flutter_launcher_icons
+# Ícono de la app. Desde el SVG: ./scripts/generate-icons.ps1
+# Desde los PNG ya preparados: dart run flutter_launcher_icons
 flutter_launcher_icons:
   android: true
-  ios: false
+  ios: true
+  remove_alpha_ios: true
   image_path: "assets/icon/icon.png"
-  adaptive_icon_background: "#0B2A8F"
+  adaptive_icon_background: "#0754AD"
   adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  adaptive_icon_foreground_inset: 0
 
 # Pantalla de arranque nativa (azul + logo). Se genera con:
 #   dart run flutter_native_splash:create
