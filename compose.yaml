@@ -1,0 +1,32 @@
+services:
+  dev:
+    image: tianguia-dev:local
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    platform: linux/amd64
+    init: true
+    command: ['idle']
+    cpus: '${TIANGUIA_CPUS:-4}'
+    mem_limit: 4g
+    memswap_limit: 5g
+    group_add:
+      - '${TIANGUIA_HOST_GID:-1000}'
+    volumes:
+      - .:/source:ro
+      - ./build/docker:/artifacts
+      - workspace:/workspace
+      - pub-cache:/home/dev/.pub-cache
+      - gradle-cache:/home/dev/.gradle
+  android:
+    extends: dev
+    network_mode: host
+  web:
+    extends: dev
+    ports:
+      - '127.0.0.1:8080:8080'
+
+volumes:
+  workspace:
+  pub-cache:
+  gradle-cache:

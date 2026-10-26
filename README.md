@@ -42,6 +42,11 @@ migraciones, permisos, datos de ejemplo y pruebas de base de datos.
 
 ## Ejecución local
 
+Puedes usar el [entorno opcional con Docker](docs/desarrollo-docker.md) para
+Android y web-server sin instalar Flutter ni el SDK completo en tu equipo.
+Incluye scripts para pruebas, compilación y conexión con el ADB del host.
+La instalación nativa sigue disponible con las instrucciones siguientes.
+
 ### Requisitos previos
 
 Instala Flutter en su canal estable y Android Studio con el SDK de Android.
