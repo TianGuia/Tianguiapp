@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../config/theme.dart';
 import '../services/auth_service.dart';
 import '../widgets/fondo.dart';
 

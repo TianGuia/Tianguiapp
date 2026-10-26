@@ -14,6 +14,8 @@ analyzer:
     - build/**
     - android/**
     - web/**
+    # La copia de referencia tiene su propio pubspec; la app activa está en lib/.
+    - tianguia/**
 
 linter:
   # The lint rules applied to this project can be customized in the

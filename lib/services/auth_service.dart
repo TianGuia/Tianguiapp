@@ -7,7 +7,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///    se LIGA a la misma cuenta, sin perder favoritos ni chats (RF-02, RF-19).
 ///  - Quien ya verificó su correo puede volver a entrar con código (RF-03).
 class AuthService {
-  final _db = Supabase.instance.client;
+  AuthService({SupabaseClient? client})
+      : _db = client ?? Supabase.instance.client;
+
+  final SupabaseClient _db;
 
   User? get usuario => _db.auth.currentUser;
 
@@ -23,7 +26,8 @@ class AuthService {
       await aceptarTerminosVigentes(); // RF-40
     } catch (_) {}
     try {
-      await actualizarPerfil(nombre: n); // respaldo si el trigger no tomó el nombre
+      await actualizarPerfil(
+          nombre: n); // respaldo si el trigger no tomó el nombre
     } catch (_) {}
   }
 
@@ -65,21 +69,28 @@ class AuthService {
   Future<void> aceptarTerminosVigentes() async {
     final uid = usuario?.id;
     if (uid == null) return;
-    final pendientes = await _db.rpc('terminos_pendientes') as List;
-    if (pendientes.isEmpty) return;
-    await _db.from('aceptaciones_terminos').insert([
-      for (final v in pendientes) {'id_usuario': uid, 'id_version': v['id']}
-    ]);
+    final pendientes = await _db.rpc('terminos_pendientes');
+    if (pendientes is List) {
+      if (pendientes.isEmpty) return;
+      await _db.from('aceptaciones_terminos').insert([
+        for (final v in pendientes) {'id_usuario': uid, 'id_version': v['id']}
+      ]);
+    } else if (pendientes == true) {
+      await _db.rpc('aceptar_terminos_vigentes');
+    }
   }
 
-  Future<bool> hayTerminosPendientes() async =>
-      (await _db.rpc('terminos_pendientes') as List).isNotEmpty;
+  Future<bool> hayTerminosPendientes() async {
+    final pendientes = await _db.rpc('terminos_pendientes');
+    return pendientes is List ? pendientes.isNotEmpty : pendientes == true;
+  }
 
   /// SOLO DESARROLLO: acceso con contraseña para probar sin SMTP.
   Future<void> entrarConContrasena(String correo, String clave) =>
       _db.auth.signInWithPassword(email: correo.trim(), password: clave);
 
-  Future<void> registrarConContrasena(String correo, String clave, String nombre) =>
+  Future<void> registrarConContrasena(
+          String correo, String clave, String nombre) =>
       _db.auth.signUp(
         email: correo.trim(),
         password: clave,
@@ -90,17 +101,14 @@ class AuthService {
   Future<void> cerrarSesion() => _db.auth.signOut();
 
   /// RF-05
-  Future<Map<String, dynamic>?> miPerfil() => _db
-      .from('usuarios')
-      .select()
-      .eq('id', usuario!.id)
-      .maybeSingle();
+  Future<Map<String, dynamic>?> miPerfil() =>
+      _db.from('usuarios').select().eq('id', usuario!.id).maybeSingle();
 
-  Future<void> actualizarPerfil({String? nombre, String? telefono, String? fotoUrl}) =>
+  Future<void> actualizarPerfil(
+          {String? nombre, String? telefono, String? fotoUrl}) =>
       _db.from('usuarios').update({
         if (nombre != null) 'nombre_publico': nombre,
         if (telefono != null) 'telefono': telefono,
         if (fotoUrl != null) 'foto_url': fotoUrl,
-        'actualizado_en': DateTime.now().toUtc().toIso8601String(),
       }).eq('id', usuario!.id);
 }
