@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/theme.dart';
 import '../services/chat_service.dart';
 import '../models/mensajeria.dart';
+import '../widgets/moderacion.dart';
 
 /// RF-37: mensajes en tiempo real entre los participantes.
 class ChatScreen extends StatefulWidget {
@@ -24,6 +25,63 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
+  String? _otro;
+  bool _bloqueado = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarOtro();
+  }
+
+  Future<void> _cargarOtro() async {
+    try {
+      final id = await _svc.otroParticipante(widget.idConversacion);
+      final b = id == null ? false : await _svc.estaBloqueado(id);
+      if (mounted) {
+        setState(() {
+          _otro = id;
+          _bloqueado = b;
+        });
+      }
+    } catch (_) {/* el menú simplemente no aparece */}
+  }
+
+  Future<void> _reportar() async {
+    final otro = _otro;
+    if (otro == null) return;
+    await reportarContenido(
+      context,
+      tipoObjetivo: TipoReporte.perfil,
+      idObjetivo: otro,
+      idUsuarioReportado: otro,
+    );
+  }
+
+  Future<void> _alternarBloqueo() async {
+    final otro = _otro;
+    if (otro == null) return;
+    try {
+      if (_bloqueado) {
+        await _svc.desbloquear(otro);
+      } else {
+        final ok = await confirmarBloqueo(context, widget.titulo);
+        if (ok != true) return;
+        await _svc.bloquear(otro);
+      }
+      if (!mounted) return;
+      setState(() => _bloqueado = !_bloqueado);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:
+              Text(_bloqueado ? 'Usuario bloqueado' : 'Usuario desbloqueado')));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('No se pudo: $e')));
+      }
+    }
+  }
+
   Future<void> _enviar() async {
     final t = _txt.text.trim();
     if (t.isEmpty) return;
@@ -40,7 +98,25 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(widget.titulo)),
+        appBar: AppBar(
+          title: Text(widget.titulo),
+          actions: [
+            if (_otro != null)
+              PopupMenuButton<String>(
+                onSelected: (v) =>
+                    v == 'reportar' ? _reportar() : _alternarBloqueo(),
+                itemBuilder: (_) => [
+                  const PopupMenuItem(
+                      value: 'reportar', child: Text('Reportar')),
+                  PopupMenuItem(
+                      value: 'bloquear',
+                      child: Text(_bloqueado
+                          ? 'Desbloquear usuario'
+                          : 'Bloquear usuario')),
+                ],
+              ),
+          ],
+        ),
         body: Column(children: [
           Expanded(
             child: StreamBuilder<List<Mensaje>>(
@@ -94,25 +170,35 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Row(children: [
-                Expanded(
-                  child: TextField(
-                    controller: _txt,
-                    style: const TextStyle(color: Colors.black),
-                    onSubmitted: (_) => _enviar(),
-                    decoration:
-                        const InputDecoration(hintText: 'Escribe un mensaje…'),
+          if (_bloqueado)
+            const SafeArea(
+              child: Padding(
+                padding: EdgeInsets.all(14),
+                child: Text(
+                    'Bloqueaste a este usuario. Desbloquéalo para enviar mensajes.',
+                    textAlign: TextAlign.center),
+              ),
+            )
+          else
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Row(children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _txt,
+                      style: const TextStyle(color: Colors.black),
+                      onSubmitted: (_) => _enviar(),
+                      decoration: const InputDecoration(
+                          hintText: 'Escribe un mensaje…'),
+                    ),
                   ),
-                ),
-                IconButton(
-                    onPressed: _enviar,
-                    icon: const Icon(Icons.send, color: Tg.amarillo)),
-              ]),
+                  IconButton(
+                      onPressed: _enviar,
+                      icon: const Icon(Icons.send, color: Tg.amarillo)),
+                ]),
+              ),
             ),
-          ),
         ]),
       );
 }

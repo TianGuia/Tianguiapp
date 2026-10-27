@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../services/inicio_service.dart';
+import '../widgets/aviso_conexion.dart';
 import '../widgets/cerrar_sesion.dart';
 import '../widgets/fondo.dart';
 import '../widgets/pincel.dart';
@@ -48,10 +49,15 @@ class _HomeScreenState extends State<HomeScreen> {
         body: const PuestosTab(),
       ));
 
+  void _abrirMapa() => _ir(Scaffold(
+        appBar: AppBar(title: const Text('Mapa de puestos')),
+        body: const PuestosTab(iniciaEnMapa: true),
+      ));
+
   @override
   Widget build(BuildContext context) {
     final tabs = <Widget>[
-      InicioTab(onVerPuestos: _abrirPuestos),
+      InicioTab(onVerPuestos: _abrirPuestos, onVerMapa: _abrirMapa),
       const CatalogoTab(),
       const VendedorTab(),
       const PerfilTab(),
@@ -72,6 +78,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           title: const Wordmark(tam: 26),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.map_outlined, size: 28),
+              tooltip: 'Mapa de puestos',
+              onPressed: _abrirMapa,
+            ),
             IconButton(
               icon: const Icon(Icons.search, size: 28),
               tooltip: 'Buscar',
@@ -95,7 +106,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         drawer: _menu(),
-        body: IndexedStack(index: _i, children: tabs),
+        body: Column(children: [
+          const AvisoConexion(),
+          Expanded(child: IndexedStack(index: _i, children: tabs)),
+        ]),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _i,
           onDestinationSelected: (v) => setState(() => _i = v),
@@ -150,6 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
               item(Icons.home_rounded, 'Inicio', () => setState(() => _i = 0), activo: _i == 0),
               item(Icons.search, 'Explorar productos', () => setState(() => _i = 1), activo: _i == 1),
               item(Icons.storefront, 'Puestos abiertos', _abrirPuestos),
+              item(Icons.map_outlined, 'Mapa de puestos', _abrirMapa),
               item(Icons.chat_bubble_outline, 'Mis mensajes', () => _ir(const ChatsScreen())),
               item(Icons.notifications_none, 'Notificaciones', () => _ir(const NotificacionesScreen())),
               item(Icons.store_mall_directory, 'Mi puesto', () => setState(() => _i = 2), activo: _i == 2),

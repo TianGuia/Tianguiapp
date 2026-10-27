@@ -135,7 +135,7 @@ class ImagenProducto {
 
 class Producto {
   final String id, idVendedor, idPuesto, nombre, estadoArticulo;
-  final String? descripcion, categoria, puestoNombre;
+  final String? descripcion, categoria, puestoNombre, puestoEstado;
   final num? precio;
   final int? cantidad;
   final bool disponible;
@@ -189,6 +189,7 @@ class Producto {
         disponible = m['disponible'] ?? true,
         categoria = (m['categorias'] as Map?)?['nombre'],
         puestoNombre = (m['puestos'] as Map?)?['nombre'],
+        puestoEstado = (m['puestos'] as Map?)?['estado'],
         fotos = _fotos(m['producto_imagenes']),
         imagenes = _urls(m['producto_imagenes']);
 

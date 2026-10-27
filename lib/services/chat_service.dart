@@ -4,6 +4,7 @@ import '../models/tratos.dart';
 import '../models/operaciones.dart';
 import '../models/confianza.dart';
 import 'confianza_service.dart';
+import '../config/enums.dart';
 
 /// RF-16, RF-17, RF-18, RF-37, RF-38.
 class ChatService implements OperacionesChat {
@@ -13,7 +14,7 @@ class ChatService implements OperacionesChat {
   String get _uid => _db.auth.currentUser!.id;
 
   static const _select =
-      '*, productos(nombre), participantes(id_conversacion, id_usuario)';
+      '*, productos(nombre), anuncios_espacio(titulo), participantes(id_conversacion, id_usuario)';
 
   @override
   Future<Conversacion> iniciarConversacion(
@@ -160,11 +161,84 @@ class ChatService implements OperacionesChat {
         .single());
   }
 
-  /// RF-38
-  Future<void> bloquear(String idUsuario) => _db.from('bloqueos').insert({
-        'id_bloqueador': _uid,
-        'id_bloqueado': idUsuario,
-      });
+  /// Id del otro participante de la conversación (para bloquear o reportar).
+  Future<String?> otroParticipante(String idConversacion) async {
+    final miembros = await participantes(idConversacion);
+    if (miembros.length != 2 || !miembros.any((p) => p.idUsuario == _uid)) {
+      return null;
+    }
+    return miembros.firstWhere((p) => p.idUsuario != _uid).idUsuario;
+  }
+
+  /// RF-38: ¿ya bloqueé a este usuario? (solo cuenta el bloqueo activo)
+  Future<bool> estaBloqueado(String idUsuario) async {
+    final r = await _db
+        .from('bloqueos')
+        .select('id')
+        .eq('id_bloqueador', _uid)
+        .eq('id_bloqueado', idUsuario)
+        .eq('activo', true)
+        .limit(1);
+    return (r as List).isNotEmpty;
+  }
+
+  /// RF-38: quita el bloqueo (queda registrado como inactivo).
+  Future<void> desbloquear(String idUsuario) => _db
+      .from('bloqueos')
+      .update({'activo': false})
+      .eq('id_bloqueador', _uid)
+      .eq('id_bloqueado', idUsuario);
+
+  /// RF-38: bloquea; si ya hubo un bloqueo previo lo reactiva.
+  Future<void> bloquear(String idUsuario) async {
+    final ya = await _db
+        .from('bloqueos')
+        .select('id')
+        .eq('id_bloqueador', _uid)
+        .eq('id_bloqueado', idUsuario)
+        .limit(1);
+    if ((ya as List).isNotEmpty) {
+      await _db
+          .from('bloqueos')
+          .update({'activo': true}).eq('id', ya.first['id']);
+    } else {
+      await _db
+          .from('bloqueos')
+          .insert({'id_bloqueador': _uid, 'id_bloqueado': idUsuario});
+    }
+  }
+
+  /// RF-35: abre (o reutiliza) la conversación de un anuncio de espacio.
+  Future<String> conversacionDeAnuncio(
+      String idAnuncio, String idUsuarioDueno) async {
+    if (idUsuarioDueno == _uid) {
+      throw ArgumentError('No puedes iniciar un chat contigo mismo');
+    }
+    final ya = await _db
+        .from('conversaciones')
+        .select('id')
+        .eq('id_anuncio_espacio', idAnuncio)
+        .eq('id_iniciador', _uid)
+        .eq('id_receptor', idUsuarioDueno)
+        .maybeSingle();
+    if (ya != null) return ya['id'];
+    await _db.from('conversaciones').insert({
+      'contexto': Enums.contextoEspacio,
+      'id_anuncio_espacio': idAnuncio,
+      'id_iniciador': _uid,
+      'id_receptor': idUsuarioDueno,
+    });
+    final r = await _db
+        .from('conversaciones')
+        .select('id')
+        .eq('id_anuncio_espacio', idAnuncio)
+        .eq('id_iniciador', _uid)
+        .eq('id_receptor', idUsuarioDueno)
+        .order('creada_en', ascending: false)
+        .limit(1)
+        .single();
+    return r['id'];
+  }
 
   /// RF-17
   @override

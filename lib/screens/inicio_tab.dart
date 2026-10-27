@@ -11,7 +11,8 @@ import 'puesto_screen.dart';
 class InicioTab extends StatefulWidget {
   /// Se llama al tocar el contador de puestos abiertos.
   final VoidCallback onVerPuestos;
-  const InicioTab({super.key, required this.onVerPuestos});
+  final VoidCallback? onVerMapa;
+  const InicioTab({super.key, required this.onVerPuestos, this.onVerMapa});
   @override
   State<InicioTab> createState() => _InicioTabState();
 }
@@ -86,6 +87,8 @@ class _InicioTabState extends State<InicioTab> {
           _chips(),
           const SizedBox(height: 14),
           _resumen(),
+          const SizedBox(height: 12),
+          if (widget.onVerMapa != null) _botonMapa(),
           const SizedBox(height: 16),
           if (_error != null)
             Padding(
@@ -177,6 +180,34 @@ class _InicioTabState extends State<InicioTab> {
       ]),
     );
   }
+
+  /// Acceso directo y visible al mapa de puestos abiertos.
+  Widget _botonMapa() => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Material(
+          color: Tg.amarillo,
+          borderRadius: BorderRadius.circular(22),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(22),
+            onTap: widget.onVerMapa,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              child: Row(children: [
+                const Icon(Icons.map, color: Tg.azulOscuro, size: 32),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('VER MAPA DE PUESTOS', style: Tg.marcador(17, color: Tg.azulOscuro)),
+                    const Text('Encuentra qué puestos están abiertos y dónde',
+                        style: TextStyle(color: Tg.azulOscuro, fontWeight: FontWeight.w700, fontSize: 13)),
+                  ]),
+                ),
+                const Icon(Icons.chevron_right, color: Tg.azulOscuro, size: 28),
+              ]),
+            ),
+          ),
+        ),
+      );
 
   Widget _tarjetaDestacado(PuestoResumen p) {
     return Container(

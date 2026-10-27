@@ -5,10 +5,13 @@ import '../models/identidad.dart';
 import '../services/auth_service.dart';
 import '../services/tratos_service.dart';
 import '../services/vendedor_service.dart';
+import 'horarios_screen.dart';
 import 'mis_productos_screen.dart';
 import 'ofertas_screen.dart';
+import 'espacios_screen.dart';
 import 'puesto_form_screen.dart';
 import 'tratos_screen.dart';
+import 'valoraciones_screen.dart';
 import 'verificar_contacto_screen.dart';
 
 /// RF-19, RF-20, RF-27, RF-28, RF-41: panel del vendedor.
@@ -394,6 +397,29 @@ class _VendedorTabState extends State<VendedorTab> {
                     _ir(OfertasScreen(idVendedor: _perfil!.idVendedor)),
                 icon: const Icon(Icons.bolt),
                 label: const Text('OFERTAS RELÁMPAGO'),
+              ),
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                onPressed: () => _ir(HorariosScreen(
+                  idVendedor: _perfil!.idVendedor,
+                  tianguis: {for (final p in _puestos) p.idTianguis: p.nombre},
+                )),
+                icon: const Icon(Icons.event_busy),
+                label: const Text('HORARIO Y AUSENCIAS'),
+              ),
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                onPressed: () =>
+                    _ir(EspaciosScreen(idVendedor: _perfil!.idVendedor)),
+                icon: const Icon(Icons.crop_free),
+                label: const Text('ESPACIOS'),
+              ),
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                onPressed: () =>
+                    _ir(ValoracionesScreen(idVendedor: _perfil!.idVendedor)),
+                icon: const Icon(Icons.star_outline),
+                label: const Text('MIS VALORACIONES'),
               ),
               const SizedBox(height: 8),
               if (_puestos.isEmpty)

@@ -69,6 +69,27 @@ class VendedorService implements OperacionesVendedor {
         'motivo': motivo,
       });
 
+  /// RF-21: horarios habituales del vendedor.
+  Future<List<Map<String, dynamic>>> horarios(String idVendedor) => _db
+      .from('vendedor_horarios')
+      .select()
+      .eq('id_vendedor', idVendedor)
+      .order('dia_semana');
+
+  Future<void> eliminarHorario(dynamic id) =>
+      _db.from('vendedor_horarios').delete().eq('id', id);
+
+  /// RF-22: ausencias programadas próximas.
+  Future<List<Map<String, dynamic>>> ausencias(String idVendedor) => _db
+      .from('ausencias_programadas')
+      .select()
+      .eq('id_vendedor', idVendedor)
+      .gte('fecha', DateTime.now().toIso8601String().substring(0, 10))
+      .order('fecha');
+
+  Future<void> eliminarAusencia(dynamic id) =>
+      _db.from('ausencias_programadas').delete().eq('id', id);
+
   // ---- Puestos ----
   Future<List<Puesto>> misPuestos(String idVendedor) async {
     final r = await _db

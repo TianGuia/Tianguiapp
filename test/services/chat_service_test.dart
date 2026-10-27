@@ -72,4 +72,40 @@ void main() {
     await servicio.agregarParticipante('conversacion', 'persona');
     await servicio.retirarParticipante('conversacion', 'persona');
   });
+  test('chat de anuncio inserta sin RETURNING y consulta después', () async {
+    var creado = false;
+    backend = BackendFake((r) {
+      expect(r.url.path, '/rest/v1/conversaciones');
+      if (r.method == 'POST') {
+        expect(r.url.queryParameters.containsKey('select'), isFalse);
+        expect(jsonDecode(r.body), {
+          'contexto': 'anuncio_espacio',
+          'id_anuncio_espacio': 'anuncio',
+          'id_iniciador': usuarioId,
+          'id_receptor': 'dueno',
+        });
+        creado = true;
+        return jsonResponse(null, status: 201);
+      }
+      return jsonResponse(creado ? {'id': 'chat-anuncio'} : null);
+    });
+    await backend.login();
+    expect(
+        await ChatService(client: backend.client)
+            .conversacionDeAnuncio('anuncio', 'dueno'),
+        'chat-anuncio');
+    expect(creado, isTrue);
+  });
+
+  test('moderación de una persona no elige arbitrariamente en grupos',
+      () async {
+    backend = BackendFake((r) => jsonResponse([
+          {'id_conversacion': 'grupo', 'id_usuario': usuarioId},
+          {'id_conversacion': 'grupo', 'id_usuario': 'uno'},
+          {'id_conversacion': 'grupo', 'id_usuario': 'dos'},
+        ]));
+    await backend.login();
+    expect(await ChatService(client: backend.client).otroParticipante('grupo'),
+        isNull);
+  });
 }

@@ -9,7 +9,7 @@ class Participante {
 
 class Conversacion {
   final String idConversacion, estado;
-  final String? idProducto, productoNombre;
+  final String? idProducto, productoNombre, anuncioTitulo;
   final DateTime fechaCreacion;
   final DateTime? ultimoMensajeEn;
   final List<Participante> participantes;
@@ -18,6 +18,7 @@ class Conversacion {
         estado = m['estado'],
         idProducto = m['id_producto'],
         productoNombre = (m['productos'] as Map?)?['nombre'],
+        anuncioTitulo = (m['anuncios_espacio'] as Map?)?['titulo'],
         fechaCreacion = DateTime.parse(m['creada_en']),
         ultimoMensajeEn = m['ultimo_mensaje_en'] == null
             ? null

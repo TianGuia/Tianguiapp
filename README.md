@@ -72,7 +72,7 @@ pública de cliente (`publishable` o `anon`) y mantén las claves privilegiadas
 
 Los flujos de datos requieren una base de datos compatible en Supabase.
 Esta versión requiere el esquema ER de Toldo y la migración de retiro de puestos
-`20261026020000_retire_stall.sql`. Ofertas, compradores, participantes y productos
+`20261027000300_client_operations.sql`. Ofertas, compradores, participantes y productos
 ya utilizan esas relaciones; coordina la actualización de la app con el backend.
 La [matriz del contrato de dominio](docs/contrato-dominio.md) documenta las clases,
 operaciones, equivalencias con los diagramas y pruebas.

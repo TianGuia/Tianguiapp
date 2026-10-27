@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/modelos.dart';
+import 'favoritos_cambios.dart';
 
 /// Datos de la pantalla de inicio (funciones SQL del backend en Toldo).
 class InicioService {
@@ -53,11 +54,45 @@ class InicioService {
         .maybeSingle();
     if (ya != null) {
       await _db.from('favoritos').delete().eq('id', ya['id']);
+      FavoritosCambios.avisar();
       return false;
     }
     await _db
         .from('favoritos')
         .insert({'id_usuario': uid, 'id_puesto': idPuesto});
+    FavoritosCambios.avisar();
+    return true;
+  }
+
+  /// RF-11: favorito de tianguis.
+  Future<bool> esFavoritoTianguis(String idTianguis) async {
+    final r = await _db
+        .from('favoritos')
+        .select('id')
+        .eq('id_usuario', _db.auth.currentUser!.id)
+        .eq('id_tianguis', idTianguis)
+        .limit(1);
+    return (r as List).isNotEmpty;
+  }
+
+  /// Devuelve el nuevo estado (true = quedó guardado).
+  Future<bool> alternarFavoritoTianguis(String idTianguis) async {
+    final uid = _db.auth.currentUser!.id;
+    final ya = await _db
+        .from('favoritos')
+        .select('id')
+        .eq('id_usuario', uid)
+        .eq('id_tianguis', idTianguis)
+        .limit(1);
+    if ((ya as List).isNotEmpty) {
+      await _db.from('favoritos').delete().eq('id', ya.first['id']);
+      FavoritosCambios.avisar();
+      return false;
+    }
+    await _db
+        .from('favoritos')
+        .insert({'id_usuario': uid, 'id_tianguis': idTianguis});
+    FavoritosCambios.avisar();
     return true;
   }
 

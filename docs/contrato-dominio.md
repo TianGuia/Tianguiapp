@@ -2,9 +2,10 @@
 
 Fuentes: `Diagrama_Clases_TianGuia.pdf` y `Diagrama_ER_TianGuia.pdf`, proporcionados
 en la raíz. El esquema objetivo es la secuencia de migraciones de Toldo hasta
-`20261026020000_retire_stall.sql`; `schema-reference.sql` documenta una exportación
-anterior y no sustituye esa secuencia. Esta adaptación no acredita un despliegue
-en el Supabase compartido.
+`20261027000300_client_operations.sql`; `schema-reference.sql` documenta una exportación
+de la baseline y no sustituye esa secuencia. Las cuatro migraciones quedaron
+registradas en el Supabase compartido; falta validar los recorridos completos
+con la aplicación.
 
 ## Clases, identidad y operaciones
 

@@ -245,6 +245,16 @@ class TarjetaProducto extends StatelessWidget {
                 Text(p.precio == null ? 'Precio a tratar' : '\$${p.precio}',
                     style: const TextStyle(
                         color: Tg.azulOscuro, fontWeight: FontWeight.w900, fontSize: 18)),
+                if (p.puestoNombre != null)
+                  Text(
+                    '📍 ${p.puestoNombre} · ${p.puestoEstado == 'abierto' ? 'ABIERTO' : 'CERRADO'}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: p.puestoEstado == 'abierto' ? Tg.verde : Tg.rojo),
+                  ),
               ]),
             ),
             const SizedBox(width: 8),

@@ -1,13 +1,26 @@
+import 'dart:io';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/identidad.dart';
 import '../models/operaciones.dart';
 
+import '../config/supabase_config.dart';
+
 /// RF-01 a RF-05, RF-40.
 ///
-///  - Todos entran SIN iniciar sesión: signInAnonymously (RF-01).
+///  - Los compradores entran SIN correo: signInAnonymously con un nombre de
+///    usuario único (RF-01). Su cuenta vive en el dispositivo: si borran la
+///    app sin verificar el correo, pierden favoritos y mensajes.
 ///  - Para ser vendedor se verifica el correo con un código de un solo uso y
 ///    se LIGA a la misma cuenta, sin perder favoritos ni chats (RF-02, RF-19).
 ///  - Quien ya verificó su correo puede volver a entrar con código (RF-03).
+/// El nombre de usuario ya lo usa otra persona.
+class NombreEnUsoException implements Exception {
+  const NombreEnUsoException();
+  @override
+  String toString() => 'Este nombre de usuario ya existe, elige otro';
+}
+
 class AuthService implements OperacionesUsuario {
   AuthService({SupabaseClient? client})
       : _db = client ?? Supabase.instance.client;
@@ -24,6 +37,7 @@ class AuthService implements OperacionesUsuario {
   @override
   Future<void> entrarAnonimo(String nombre) async {
     final n = nombre.trim();
+    if (!await nombreDisponible(n)) throw const NombreEnUsoException();
     await _db.auth.signInAnonymously(data: {'nombre_publico': n});
     try {
       await aceptarTerminosVigentes(); // RF-40
@@ -89,17 +103,35 @@ class AuthService implements OperacionesUsuario {
     return pendientes is List ? pendientes.isNotEmpty : pendientes == true;
   }
 
-  /// SOLO DESARROLLO: acceso con contraseña para probar sin SMTP.
-  Future<void> entrarConContrasena(String correo, String clave) =>
-      _db.auth.signInWithPassword(email: correo.trim(), password: clave);
+  /// RF-01: los nombres de usuario son únicos (sin distinguir mayúsculas).
+  /// Si la función SQL `nombre_disponible` aún no existe en el backend, no
+  /// bloquea la entrada (ver la migración nombre_publico_unico).
+  Future<bool> nombreDisponible(String nombre) async {
+    try {
+      final r = await _db
+          .rpc('nombre_disponible', params: {'p_nombre': nombre.trim()});
+      return r != false;
+    } catch (_) {
+      return true;
+    }
+  }
 
-  Future<void> registrarConContrasena(
-          String correo, String clave, String nombre) =>
-      _db.auth.signUp(
-        email: correo.trim(),
-        password: clave,
-        data: {'nombre_publico': nombre.trim()},
-      );
+  /// RF-05: sube la foto de perfil y devuelve su URL pública.
+  Future<String> subirFotoPerfil(File archivo) async {
+    final ruta =
+        '${usuario!.id}/perfil/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final bucket = _db.storage.from(SupabaseConfig.bucketPerfiles);
+    await bucket.upload(ruta, archivo);
+    return bucket.getPublicUrl(ruta);
+  }
+
+  /// RF-53: versiones de términos vigentes que el usuario aún no acepta.
+  Future<List<Map<String, dynamic>>> terminosPendientes() async {
+    final r = await _db.rpc('terminos_pendientes');
+    return r is List
+        ? [for (final v in r) Map<String, dynamic>.from(v as Map)]
+        : <Map<String, dynamic>>[];
+  }
 
   /// RF-04
   Future<void> cerrarSesion() => _db.auth.signOut();
