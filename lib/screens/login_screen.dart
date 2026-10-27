@@ -4,8 +4,7 @@ import '../widgets/fondo.dart';
 import '../services/auth_service.dart';
 
 /// RF-01, RF-02, RF-03, RF-40.
-/// Modo normal: correo -> código de 6 dígitos.
-/// Modo desarrollo: correo + contraseña (para probar sin SMTP).
+/// Correo -> código de un solo uso. Es la única vía de acceso con correo.
 class LoginScreen extends StatefulWidget {
   /// Para regresar a la pantalla de bienvenida.
   final VoidCallback? onVolver;
@@ -18,9 +17,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _auth = AuthService();
   final _correo = TextEditingController();
   final _nombre = TextEditingController();
-  final _clave = TextEditingController();
   final _codigo = TextEditingController();
-  bool _codigoEnviado = false, _acepta = false, _cargando = false, _modoClave = false;
+  bool _codigoEnviado = false, _acepta = false, _cargando = false;
 
   static const _negro = TextStyle(color: Colors.black);
 
@@ -48,33 +46,6 @@ class _LoginScreenState extends State<LoginScreen> {
       await _auth.aceptarTerminosVigentes();
     } catch (e) {
       _msg('Código incorrecto o vencido: $e');
-    } finally {
-      if (mounted) setState(() => _cargando = false);
-    }
-  }
-
-  Future<void> _entrarConClave() async {
-    if (_correo.text.trim().isEmpty || _clave.text.length < 6) {
-      return _msg('Escribe tu correo y una contraseña de al menos 6 caracteres');
-    }
-    if (!_acepta) return _msg('Debes aceptar las condiciones de uso y el aviso de privacidad');
-    setState(() => _cargando = true);
-    try {
-      try {
-        await _auth.entrarConContrasena(_correo.text, _clave.text);
-      } catch (_) {
-        final nombre = _nombre.text.trim().isEmpty
-            ? _correo.text.split('@').first
-            : _nombre.text;
-        await _auth.registrarConContrasena(_correo.text, _clave.text, nombre);
-      }
-      if (_auth.usuario == null) {
-        _msg('Cuenta creada. Desactiva "Confirm email" en Supabase o confirma el correo.');
-      } else {
-        await _auth.aceptarTerminosVigentes();
-      }
-    } catch (e) {
-      _msg('No se pudo entrar: $e');
     } finally {
       if (mounted) setState(() => _cargando = false);
     }
@@ -114,15 +85,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: _negro,
                   decoration: const InputDecoration(hintText: 'Nombre público (solo si eres nuevo)'),
                 ),
-                if (_modoClave) ...[
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _clave,
-                    obscureText: true,
-                    style: _negro,
-                    decoration: const InputDecoration(hintText: 'Contraseña (modo desarrollo)'),
-                  ),
-                ],
                 CheckboxListTile(
                   value: _acepta,
                   onChanged: (v) => setState(() => _acepta = v ?? false),
@@ -132,14 +94,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 FilledButton(
-                  onPressed: _cargando ? null : (_modoClave ? _entrarConClave : _enviar),
-                  child: Text(_modoClave ? 'ENTRAR / CREAR CUENTA' : 'ENVIAR CÓDIGO'),
-                ),
-                TextButton(
-                  onPressed: () => setState(() => _modoClave = !_modoClave),
-                  child: Text(_modoClave
-                      ? 'Usar código por correo'
-                      : 'Modo desarrollo: entrar con contraseña'),
+                  onPressed: _cargando ? null : _enviar,
+                  child: const Text('ENVIAR CÓDIGO'),
                 ),
               ] else ...[
                 Text('Enviamos un código a ${_correo.text}', textAlign: TextAlign.center),

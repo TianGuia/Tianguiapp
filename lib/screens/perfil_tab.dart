@@ -4,6 +4,10 @@ import '../services/auth_service.dart';
 import '../widgets/cerrar_sesion.dart';
 import 'chats_screen.dart';
 import 'diagnostico_screen.dart';
+import 'editar_perfil_screen.dart';
+import 'favoritos_screen.dart';
+import 'medidas_screen.dart';
+import 'preferencias_notificacion_screen.dart';
 import 'tratos_screen.dart';
 import 'verificar_contacto_screen.dart';
 
@@ -21,6 +25,14 @@ class _PerfilTabState extends State<PerfilTab> {
     final ok = await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (_) => const VerificarContactoScreen()),
+    );
+    if (ok == true && mounted) setState(() {});
+  }
+
+  Future<void> _editar() async {
+    final ok = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const EditarPerfilScreen()),
     );
     if (ok == true && mounted) setState(() {});
   }
@@ -57,13 +69,24 @@ class _PerfilTabState extends State<PerfilTab> {
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.white70, fontSize: 16)),
           const SizedBox(height: 24),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.edit_outlined, color: Tg.amarillo),
+              title: const Text('Editar perfil', style: TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: const Text('Nombre público y fotografía'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _editar,
+            ),
+          ),
+          const SizedBox(height: 10),
           if (auth.esAnonimo) ...[
             Card(
               child: ListTile(
                 leading: const Icon(Icons.verified_user_outlined, color: Tg.amarillo),
                 title: const Text('Verificar mi correo',
                     style: TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: const Text('Necesario para vender. Conservas todo lo que ya tienes.'),
+                subtitle: const Text(
+                    'Necesario para vender y para no perder tus favoritos y mensajes si borras la app.'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: _verificar,
               ),
@@ -82,12 +105,44 @@ class _PerfilTabState extends State<PerfilTab> {
           const SizedBox(height: 10),
           Card(
             child: ListTile(
+              leading: const Icon(Icons.favorite_border, color: Tg.amarillo),
+              title: const Text('Mis favoritos', style: TextStyle(fontWeight: FontWeight.w700)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                  context, MaterialPageRoute(builder: (_) => const FavoritosScreen())),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Card(
+            child: ListTile(
               leading: const Icon(Icons.handshake_outlined, color: Tg.amarillo),
               title: const Text('Mis propuestas y apartados',
                   style: TextStyle(fontWeight: FontWeight.w700)),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.push(
                   context, MaterialPageRoute(builder: (_) => const TratosScreen())),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.tune, color: Tg.amarillo),
+              title: const Text('Preferencias de notificación',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const PreferenciasNotificacionScreen())),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.gavel, color: Tg.amarillo),
+              title: const Text('Avisos de moderación',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(
+                  context, MaterialPageRoute(builder: (_) => const MedidasScreen())),
             ),
           ),
           const SizedBox(height: 10),

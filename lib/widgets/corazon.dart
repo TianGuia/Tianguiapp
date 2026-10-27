@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
+import '../services/favoritos_cambios.dart';
 import '../services/inicio_service.dart';
 
 /// Botón de corazón que guarda/quita un puesto de favoritos.
@@ -17,6 +18,17 @@ class _BotonCorazonState extends State<BotonCorazon> {
   @override
   void initState() {
     super.initState();
+    _refrescar();
+    FavoritosCambios.version.addListener(_refrescar);
+  }
+
+  @override
+  void dispose() {
+    FavoritosCambios.version.removeListener(_refrescar);
+    super.dispose();
+  }
+
+  void _refrescar() {
     _svc.esFavoritoPuesto(widget.idPuesto).then((v) {
       if (mounted) setState(() => _fav = v);
     }).catchError((_) {});

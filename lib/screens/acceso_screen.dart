@@ -17,6 +17,7 @@ class _AccesoScreenState extends State<AccesoScreen> {
   final _auth = AuthService();
   final _nombre = TextEditingController();
   bool _acepta = false, _cargando = false;
+  String? _errorNombre;
 
   void _msg(String t) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
@@ -25,10 +26,15 @@ class _AccesoScreenState extends State<AccesoScreen> {
     final n = _nombre.text.trim();
     if (n.isEmpty) return _msg('Elige un nombre de usuario');
     if (!_acepta) return _msg('Debes aceptar las condiciones de uso y el aviso de privacidad');
-    setState(() => _cargando = true);
+    setState(() {
+      _cargando = true;
+      _errorNombre = null;
+    });
     try {
       await _auth.entrarAnonimo(n);
       // AuthGate detecta la sesión y muestra el Home.
+    } on NombreEnUsoException {
+      if (mounted) setState(() => _errorNombre = 'Este nombre de usuario ya existe, elige otro');
     } catch (e) {
       _msg('No se pudo entrar: $e');
     } finally {
@@ -72,9 +78,13 @@ class _AccesoScreenState extends State<AccesoScreen> {
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) => _entrar(),
                     style: const TextStyle(color: Colors.black),
-                    decoration: const InputDecoration(
+                    onChanged: (_) {
+                      if (_errorNombre != null) setState(() => _errorNombre = null);
+                    },
+                    decoration: InputDecoration(
                       hintText: 'Nombre de usuario',
                       counterText: '',
+                      errorText: _errorNombre,
                     ),
                   ),
                   CheckboxListTile(
@@ -85,6 +95,13 @@ class _AccesoScreenState extends State<AccesoScreen> {
                         style: TextStyle(fontSize: 13)),
                   ),
                   const SizedBox(height: 8),
+                  const Text(
+                    'Tu cuenta se guarda en este teléfono. Si borras la app perderás tus '
+                    'favoritos y mensajes, salvo que verifiques tu correo en el Perfil.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 12, color: Colors.white70),
+                  ),
+                  const SizedBox(height: 12),
                   BotonPincel(texto: 'ENTRAR', cargando: _cargando, onPressed: _cargando ? null : _entrar),
                   const SizedBox(height: 16),
                   TextButton(

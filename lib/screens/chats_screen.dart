@@ -57,7 +57,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
               itemCount: l.length,
               itemBuilder: (_, i) {
                 final c = l[i];
-                final nombre = '${(c['productos'] as Map?)?['nombre'] ?? 'Conversación'}';
+                final nombre = '${(c['productos'] as Map?)?['nombre'] ?? (c['anuncios_espacio'] as Map?)?['titulo'] ?? 'Conversación'}';
                 return ListTile(
                   leading: const Icon(Icons.chat_bubble_outline),
                   title: Text(nombre),

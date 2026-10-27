@@ -5,6 +5,8 @@ import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
 import '../models/tratos.dart';
 import '../services/chat_service.dart';
+import '../services/favoritos_cambios.dart';
+import '../widgets/ubicacion_producto.dart';
 import 'chat_screen.dart';
 
 /// RF-08, RF-11, RF-16, RF-17, RF-18.
@@ -27,6 +29,17 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
   @override
   void initState() {
     super.initState();
+    _refrescarFav();
+    FavoritosCambios.version.addListener(_refrescarFav);
+  }
+
+  @override
+  void dispose() {
+    FavoritosCambios.version.removeListener(_refrescarFav);
+    super.dispose();
+  }
+
+  void _refrescarFav() {
     _cat.esFavorito(p.id).then((v) {
       if (mounted) setState(() => _fav = v);
     }).catchError((_) {});
@@ -155,6 +168,8 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
           if (p.cantidad != null) Text('Disponibles: ${p.cantidad}'),
           const SizedBox(height: 12),
           Text(p.descripcion ?? 'Sin descripción'),
+          const SizedBox(height: 14),
+          UbicacionProducto(idPuesto: p.idPuesto),
           const SizedBox(height: 8),
           const Text('TianGuía no procesa pagos: el trato es directo con el vendedor.',
               style: TextStyle(fontSize: 12, color: Colors.white70)),
