@@ -1,20 +1,23 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/estados.dart';
 import '../models/tratos.dart';
+import '../models/operaciones.dart';
 
 /// RF-17, RF-18, RF-31, RF-32: propuestas de precio y apartados.
 /// Los cambios de estado pasan por funciones SQL (responder_propuesta,
 /// responder_apartado) para que sean atómicos y validados.
-class TratosService {
-  final _db = Supabase.instance.client;
+class TratosService implements OperacionesTratos {
+  TratosService({SupabaseClient? client})
+      : _db = client ?? Supabase.instance.client;
+  final SupabaseClient _db;
   String get _uid => _db.auth.currentUser!.id;
 
   static const _selProp = '*, productos(nombre, precio_referencia), '
-      'comprador:usuarios!propuestas_precio_id_comprador_fkey(nombre_publico), '
+      'comprador:compradores!propuestas_precio_id_comprador_fkey(usuarios!compradores_id_usuario_fkey(nombre_publico)), '
       'vendedor:perfiles_vendedor(nombre_negocio, usuarios(nombre_publico))';
 
   static const _selApart = '*, productos(nombre), '
-      'comprador:usuarios!apartados_id_comprador_fkey(nombre_publico), '
+      'comprador:compradores!apartados_id_comprador_fkey(usuarios!compradores_id_usuario_fkey(nombre_publico)), '
       'vendedor:perfiles_vendedor(nombre_negocio, usuarios(nombre_publico))';
 
   /// Marca como vencidos los apartados/ofertas pasados de fecha. Si no hay
@@ -46,23 +49,30 @@ class TratosService {
     return r.map<Apartado>(Apartado.fromMap).toList();
   }
 
-  Future<void> aceptarPropuesta(String id) =>
-      _db.rpc('responder_propuesta', params: {'p_id': id, 'p_accion': 'aceptar'});
+  Future<void> aceptarPropuesta(String id) => _db
+      .rpc('responder_propuesta', params: {'p_id': id, 'p_accion': 'aceptar'});
 
-  Future<void> rechazarPropuesta(String id) =>
-      _db.rpc('responder_propuesta', params: {'p_id': id, 'p_accion': 'rechazar'});
+  Future<void> rechazarPropuesta(String id) => _db
+      .rpc('responder_propuesta', params: {'p_id': id, 'p_accion': 'rechazar'});
 
-  Future<void> contraofertar(String id, num monto) => _db.rpc('responder_propuesta',
-      params: {'p_id': id, 'p_accion': 'contraofertar', 'p_monto': monto});
+  Future<void> contraofertar(String id, num monto) =>
+      _db.rpc('responder_propuesta',
+          params: {'p_id': id, 'p_accion': 'contraofertar', 'p_monto': monto});
 
-  Future<void> aceptarApartado(String id) =>
-      _db.rpc('responder_apartado', params: {'p_id': id, 'p_accion': 'aceptar'});
+  @override
+  Future<void> aceptarApartado(String id) => _db
+      .rpc('responder_apartado', params: {'p_id': id, 'p_accion': 'aceptar'});
 
-  Future<void> rechazarApartado(String id) =>
-      _db.rpc('responder_apartado', params: {'p_id': id, 'p_accion': 'rechazar'});
+  @override
+  Future<Apartado> apartadoPorId(String id) async => Apartado.fromMap(
+      await _db.from('apartados').select(_selApart).eq('id', id).single());
 
-  Future<void> cancelarApartado(String id) =>
-      _db.rpc('responder_apartado', params: {'p_id': id, 'p_accion': 'cancelar'});
+  @override
+  Future<void> rechazarApartado(String id) => _db
+      .rpc('responder_apartado', params: {'p_id': id, 'p_accion': 'rechazar'});
+
+  Future<void> cancelarApartado(String id) => _db
+      .rpc('responder_apartado', params: {'p_id': id, 'p_accion': 'cancelar'});
 
   /// Pendientes por atender del vendedor (para el número en el botón).
   Future<int> pendientes(String idVendedor) async {
@@ -76,7 +86,8 @@ class TratosService {
         .select('id')
         .eq('id_vendedor', idVendedor)
         .eq('estado', Est.pendiente);
-    final porResponder = (props as List).where((p) => p['id_emisor'] != _uid).length;
+    final porResponder =
+        (props as List).where((p) => p['id_emisor'] != _uid).length;
     return porResponder + (aps as List).length;
   }
 }

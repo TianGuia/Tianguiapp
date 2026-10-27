@@ -8,13 +8,14 @@ import '../services/vendedor_service.dart';
 /// RF-29 / RF-30: ofertas relámpago del vendedor.
 class OfertasScreen extends StatefulWidget {
   final String idVendedor;
-  const OfertasScreen({super.key, required this.idVendedor});
+  final VendedorService? service;
+  const OfertasScreen({super.key, required this.idVendedor, this.service});
   @override
   State<OfertasScreen> createState() => _OfertasScreenState();
 }
 
 class _OfertasScreenState extends State<OfertasScreen> {
-  final _svc = VendedorService();
+  late final _svc = widget.service ?? VendedorService();
   late Future<List<Oferta>> _futuro = _svc.misOfertas(widget.idVendedor);
 
   void _recargar() {
@@ -29,7 +30,9 @@ class _OfertasScreenState extends State<OfertasScreen> {
   Future<void> _nueva() async {
     final ok = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(builder: (_) => OfertaFormScreen(idVendedor: widget.idVendedor)),
+      MaterialPageRoute(
+          builder: (_) =>
+              OfertaFormScreen(idVendedor: widget.idVendedor, service: _svc)),
     );
     if (ok == true) _recargar();
   }
@@ -39,10 +42,15 @@ class _OfertasScreenState extends State<OfertasScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('¿Terminar oferta?'),
-        content: const Text('Dejará de mostrarse a los compradores de inmediato.'),
+        content:
+            const Text('Dejará de mostrarse a los compradores de inmediato.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Terminar')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('No')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Terminar')),
         ],
       ),
     );
@@ -69,10 +77,15 @@ class _OfertasScreenState extends State<OfertasScreen> {
             future: _futuro,
             builder: (_, s) {
               if (s.connectionState != ConnectionState.done) {
-                return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
+                return const Center(
+                    child: CircularProgressIndicator(color: Tg.amarillo));
               }
               if (s.hasError) {
-                return ListView(children: [Padding(padding: const EdgeInsets.all(24), child: Text('Error: ${s.error}'))]);
+                return ListView(children: [
+                  Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text('Error: ${s.error}'))
+                ]);
               }
               final l = s.data!;
               if (l.isEmpty) {
@@ -89,40 +102,51 @@ class _OfertasScreenState extends State<OfertasScreen> {
                   return Opacity(
                     opacity: o.vigente ? 1 : 0.6,
                     child: Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       child: Padding(
                         padding: const EdgeInsets.all(14),
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Row(children: [
-                            Expanded(
-                              child: Text(o.titulo ?? 'Oferta',
-                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                              decoration: BoxDecoration(
-                                  color: o.vigente ? Tg.verde : Colors.grey,
-                                  borderRadius: BorderRadius.circular(10)),
-                              child: Text(o.vigente ? 'VIGENTE' : 'TERMINADA',
-                                  style: const TextStyle(
-                                      color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
-                            ),
-                          ]),
-                          const SizedBox(height: 4),
-                          Text(o.vigente ? 'Termina: ${fmtFecha(o.fin)}' : 'Terminó: ${fmtFecha(o.fin)}'),
-                          const SizedBox(height: 6),
-                          for (final it in o.items)
-                            Text('• ${it.producto}: '
-                                '${it.ref != null ? '\$${it.ref} → ' : ''}'
-                                '${it.precioFinal != null ? '\$${it.precioFinal}' : '—'}'
-                                '${it.descuento != null ? '  (-${it.descuento}%)' : ''}'),
-                          if (o.vigente)
-                            TextButton.icon(
-                              onPressed: () => _terminar(o),
-                              icon: const Icon(Icons.stop_circle_outlined),
-                              label: const Text('Terminar ahora'),
-                            ),
-                        ]),
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(children: [
+                                Expanded(
+                                  child: Text(o.titulo ?? 'Oferta',
+                                      style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800)),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 3),
+                                  decoration: BoxDecoration(
+                                      color: o.vigente ? Tg.verde : Colors.grey,
+                                      borderRadius: BorderRadius.circular(10)),
+                                  child: Text(
+                                      o.vigente ? 'VIGENTE' : 'TERMINADA',
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 12)),
+                                ),
+                              ]),
+                              const SizedBox(height: 4),
+                              Text(o.vigente
+                                  ? 'Termina: ${fmtFecha(o.fin)}'
+                                  : 'Terminó: ${fmtFecha(o.fin)}'),
+                              const SizedBox(height: 6),
+                              for (final it in [o.item])
+                                Text('• ${it.producto}: '
+                                    '${it.ref != null ? '\$${it.ref} → ' : ''}'
+                                    '${it.precioFinal != null ? '\$${it.precioFinal}' : '—'}'
+                                    '${it.descuento != null ? '  (-${it.descuento}%)' : ''}'),
+                              if (o.vigente)
+                                TextButton.icon(
+                                  onPressed: () => _terminar(o),
+                                  icon: const Icon(Icons.stop_circle_outlined),
+                                  label: const Text('Terminar ahora'),
+                                ),
+                            ]),
                       ),
                     ),
                   );
@@ -137,21 +161,23 @@ class _OfertasScreenState extends State<OfertasScreen> {
 /// Crear una oferta: título, hora de fin, productos y descuento o precio fijo.
 class OfertaFormScreen extends StatefulWidget {
   final String idVendedor;
-  const OfertaFormScreen({super.key, required this.idVendedor});
+  final VendedorService? service;
+  const OfertaFormScreen({super.key, required this.idVendedor, this.service});
   @override
   State<OfertaFormScreen> createState() => _OfertaFormScreenState();
 }
 
 class _OfertaFormScreenState extends State<OfertaFormScreen> {
   static const _negro = TextStyle(color: Colors.black);
-  final _svc = VendedorService();
+  late final _svc = widget.service ?? VendedorService();
   final _titulo = TextEditingController();
   DateTime _fin = DateTime.now().add(const Duration(hours: 3));
   bool _porcentaje = true; // true = % de descuento, false = precio fijo
   List<Producto> _productos = [];
   bool _cargando = true;
   bool _guardando = false;
-  final Map<String, TextEditingController> _valores = {}; // id producto -> valor (solo seleccionados)
+  final Map<String, TextEditingController> _valores =
+      {}; // id producto -> valor (solo seleccionados)
   final List<TextEditingController> _todos = []; // para liberarlos al salir
 
   @override
@@ -190,7 +216,8 @@ class _OfertaFormScreenState extends State<OfertaFormScreen> {
       lastDate: hoy.add(const Duration(days: 60)),
     );
     if (d == null || !mounted) return;
-    final t = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(_fin));
+    final t = await showTimePicker(
+        context: context, initialTime: TimeOfDay.fromDateTime(_fin));
     if (t == null) return;
     setState(() => _fin = DateTime(d.year, d.month, d.day, t.hour, t.minute));
   }
@@ -198,21 +225,29 @@ class _OfertaFormScreenState extends State<OfertaFormScreen> {
   Future<void> _guardar() async {
     final titulo = _titulo.text.trim();
     if (titulo.isEmpty) return _msg('Ponle un título a la oferta');
-    if (!_fin.isAfter(DateTime.now())) return _msg('La hora de fin debe ser futura');
+    if (!_fin.isAfter(DateTime.now())) {
+      return _msg('La hora de fin debe ser futura');
+    }
     if (_valores.isEmpty) return _msg('Elige al menos un producto');
 
     final items = <({String idProducto, num? precioPromo, num? descuento})>[];
     for (final p in _productos.where((p) => _valores.containsKey(p.id))) {
       final txt = _valores[p.id]!.text.trim().replaceAll(',', '.');
       final v = num.tryParse(txt);
-      if (v == null) return _msg('Escribe el ${_porcentaje ? 'descuento' : 'precio'} de "${p.nombre}"');
+      if (v == null) {
+        return _msg(
+            'Escribe el ${_porcentaje ? 'descuento' : 'precio'} de "${p.nombre}"');
+      }
       if (_porcentaje) {
-        if (v <= 0 || v > 100) return _msg('El descuento de "${p.nombre}" debe ser de 1 a 100%');
+        if (v <= 0 || v > 100) {
+          return _msg('El descuento de "${p.nombre}" debe ser de 1 a 100%');
+        }
         items.add((idProducto: p.id, precioPromo: null, descuento: v));
       } else {
         if (v < 0) return _msg('Precio no válido en "${p.nombre}"');
         if (p.precio != null && v >= p.precio!) {
-          return _msg('El precio de oferta de "${p.nombre}" debe ser menor a \$${p.precio}');
+          return _msg(
+              'El precio de oferta de "${p.nombre}" debe ser menor a \$${p.precio}');
         }
         items.add((idProducto: p.id, precioPromo: v, descuento: null));
       }
@@ -221,7 +256,10 @@ class _OfertaFormScreenState extends State<OfertaFormScreen> {
     setState(() => _guardando = true);
     try {
       await _svc.publicarOferta(
-          idVendedor: widget.idVendedor, titulo: titulo, fin: _fin, productos: items);
+          idVendedor: widget.idVendedor,
+          titulo: titulo,
+          fin: _fin,
+          productos: items);
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       _msg('No se publicó: ${e is PostgrestException ? e.message : e}');
@@ -239,7 +277,8 @@ class _OfertaFormScreenState extends State<OfertaFormScreen> {
                   controller: _titulo,
                   style: _negro,
                   textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(hintText: 'Título: Todo a mitad de precio…'),
+                  decoration: const InputDecoration(
+                      hintText: 'Título: Todo a mitad de precio…'),
                 ),
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
@@ -264,14 +303,16 @@ class _OfertaFormScreenState extends State<OfertaFormScreen> {
                 if (_productos.isEmpty)
                   const Padding(
                     padding: EdgeInsets.all(20),
-                    child: Text('No tienes productos disponibles. Agrega productos primero.'),
+                    child: Text(
+                        'No tienes productos disponibles. Agrega productos primero.'),
                   ),
                 for (final p in _productos) ...[
                   CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
                     value: _valores.containsKey(p.id),
                     title: Text(p.nombre),
-                    subtitle: Text(p.precio == null ? 'Sin precio' : '\$${p.precio}'),
+                    subtitle:
+                        Text(p.precio == null ? 'Sin precio' : '\$${p.precio}'),
                     onChanged: (v) => setState(() {
                       if (v == true) {
                         final c = TextEditingController();
@@ -288,9 +329,12 @@ class _OfertaFormScreenState extends State<OfertaFormScreen> {
                       child: TextField(
                         controller: _valores[p.id],
                         style: _negro,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
                         decoration: InputDecoration(
-                            hintText: _porcentaje ? '% de descuento (1 a 100)' : 'Precio de oferta en pesos'),
+                            hintText: _porcentaje
+                                ? '% de descuento (1 a 100)'
+                                : 'Precio de oferta en pesos'),
                       ),
                     ),
                 ],

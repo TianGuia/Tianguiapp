@@ -2,22 +2,46 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/estados.dart';
 import '../models/modelos.dart';
 import '../models/tratos.dart';
+import '../models/operaciones.dart';
 
 /// RF-06, RF-07, RF-08: búsqueda, filtros y consulta de productos.
-class CatalogoService {
-  final _db = Supabase.instance.client;
+class CatalogoService implements OperacionesCatalogo {
+  CatalogoService({SupabaseClient? client})
+      : _db = client ?? Supabase.instance.client;
+  final SupabaseClient _db;
 
   static const _select =
-      '*, categorias(nombre), puestos(nombre, estado), producto_imagenes(ruta_storage, orden)';
+      '*, categorias(nombre), puestos!productos_id_puesto_fkey(nombre, estado), producto_imagenes(id, ruta_storage, orden)';
 
   Future<List<Map<String, dynamic>>> categorias() =>
       _db.from('categorias').select().eq('activa', true).order('nombre');
 
   Future<List<Tianguis>> tianguis() async {
-    final r = await _db.from('tianguis').select().eq('activo', true).order('nombre');
+    final r = await _db
+        .from('tianguis')
+        .select('*, tianguis_horarios(*)')
+        .eq('activo', true)
+        .order('nombre');
     return r.map<Tianguis>(Tianguis.fromMap).toList();
   }
 
+  @override
+  Future<MapaTianguis> consultarMapa(String idTianguis) async {
+    final t = await _db
+        .from('tianguis')
+        .select('*, tianguis_horarios(*)')
+        .eq('id', idTianguis)
+        .single();
+    final zonas = await _db
+        .from('tianguis_zonas')
+        .select()
+        .eq('id_tianguis', idTianguis)
+        .order('orden');
+    return MapaTianguis(
+        Tianguis.fromMap(t), zonas.map(ZonaTianguis.fromMap).toList());
+  }
+
+  @override
   Future<List<Producto>> buscar({
     String? texto,
     String? idCategoria,
@@ -25,7 +49,12 @@ class CatalogoService {
     num? precioMin,
     num? precioMax,
   }) async {
-    var q = _db.from('productos').select(_select).eq('activo', true).eq('moderado', false).eq('disponible', true);
+    var q = _db
+        .from('productos')
+        .select(_select)
+        .eq('activo', true)
+        .eq('moderado', false)
+        .eq('disponible', true);
 
     if (texto != null && texto.trim().isNotEmpty) {
       q = q.textSearch('busqueda', texto.trim(),
@@ -37,7 +66,8 @@ class CatalogoService {
 
     if (idTianguis != null) {
       // productos cuyo puesto pertenece al tianguis elegido
-      final ps = await _db.from('puestos').select('id').eq('id_tianguis', idTianguis);
+      final ps =
+          await _db.from('puestos').select('id').eq('id_tianguis', idTianguis);
       final ids = ps.map((p) => p['id'] as String).toList();
       if (ids.isEmpty) return [];
       q = q.inFilter('id_puesto', ids);
@@ -48,18 +78,26 @@ class CatalogoService {
   }
 
   Future<Producto?> porId(String id) async {
-    final r = await _db.from('productos').select(_select).eq('id', id).maybeSingle();
+    final r =
+        await _db.from('productos').select(_select).eq('id', id).maybeSingle();
     return r == null ? null : Producto.fromMap(r);
   }
 
   // ---- Favoritos (RF-11) ----
   Future<void> alternarFavoritoProducto(String idProducto) async {
     final uid = _db.auth.currentUser!.id;
-    final ya = await _db.from('favoritos').select('id').eq('id_usuario', uid).eq('id_producto', idProducto).maybeSingle();
+    final ya = await _db
+        .from('favoritos')
+        .select('id')
+        .eq('id_usuario', uid)
+        .eq('id_producto', idProducto)
+        .maybeSingle();
     if (ya != null) {
       await _db.from('favoritos').delete().eq('id', ya['id']);
     } else {
-      await _db.from('favoritos').insert({'id_usuario': uid, 'id_producto': idProducto});
+      await _db
+          .from('favoritos')
+          .insert({'id_usuario': uid, 'id_producto': idProducto});
     }
   }
 
@@ -85,20 +123,24 @@ class CatalogoService {
   }
 
   /// RF-29: oferta activa (no vencida) de un producto, con su precio final.
-  Future<OfertaVigente?> ofertaVigente(String idProducto, num? precioRef) async {
+  Future<OfertaVigente?> ofertaVigente(
+      String idProducto, num? precioRef) async {
     final r = await _db
-        .from('oferta_productos')
-        .select('precio_promocional, descuento_porcentaje, ofertas!inner(titulo, estado, fecha_fin)')
+        .from('ofertas')
+        .select(
+            'precio_promocional, descuento, titulo, estado, fecha_inicio, fecha_fin')
         .eq('id_producto', idProducto)
-        .eq('ofertas.estado', Est.ofertaActiva)
-        .gt('ofertas.fecha_fin', DateTime.now().toUtc().toIso8601String())
+        .eq('estado', Est.ofertaActiva)
+        .lte('fecha_inicio', DateTime.now().toUtc().toIso8601String())
+        .gt('fecha_fin', DateTime.now().toUtc().toIso8601String())
+        .order('fecha_fin', ascending: true)
         .limit(1);
     if ((r as List).isEmpty) return null;
     final f = r.first;
     final precio = precioPromo(
-        precioRef, f['precio_promocional'] as num?, f['descuento_porcentaje'] as num?);
+        precioRef, f['precio_promocional'] as num?, f['descuento'] as num?);
     if (precio == null) return null;
-    final o = f['ofertas'] as Map;
-    return OfertaVigente(o['titulo'] as String?, DateTime.parse(o['fecha_fin']).toLocal(), precio);
+    return OfertaVigente(f['titulo'] as String?,
+        DateTime.parse(f['fecha_fin']).toLocal(), precio);
   }
 }

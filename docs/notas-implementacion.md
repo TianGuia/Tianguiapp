@@ -52,7 +52,9 @@ favoritos, ofertas y anuncios de espacios, notificaciones push (FCM + Edge Funct
 2. ⋮ > **Cerrar temporalmente** (motivo y fecha de regreso) o **Cerrar hasta nuevo aviso**.
    Con otra cuenta, abre el puesto desde Inicio: debe verse el estado, el motivo y la fecha.
 3. "YA LLEGUÉ · ABRIR" quita el cierre especial (lo limpia el trigger).
-4. ⋮ > **Eliminar puesto**: desaparece; sus productos siguen en MIS PRODUCTOS sin puesto.
+4. ⋮ > **Eliminar puesto**: la confirmación advierte que también retira sus productos
+   y finaliza sus ofertas. Se conservan puesto, relaciones e historial; nunca se
+   asigna NULL al puesto de un producto. Requiere `retirar_puesto` de Toldo.
 5. MIS PRODUCTOS > toca un producto: edita datos, agrega hasta 6 fotos, quita fotos, cambia stock.
 
 ## Prueba del paso 2 (necesitas DOS cuentas: vendedor y comprador)
@@ -62,6 +64,15 @@ favoritos, ofertas y anuncios de espacios, notificaciones push (FCM + Edge Funct
 3. Comprador: Perfil > **Mis propuestas y apartados**. Si el vendedor contraofertó, el comprador
    puede aceptar, rechazar o contraofertar de vuelta. Un apartado aceptado se puede cancelar (libera piezas).
 4. Vendedor: **OFERTAS RELÁMPAGO** > Oferta: título, hora de fin, productos y % o precio fijo.
+   Cada producto genera una oferta independiente; terminar una no termina las demás.
    El comprador ve el precio tachado y el de oferta en el detalle del producto.
 5. Vencimiento: pon una oferta que termine en 2 minutos; la app la marca como terminada al abrir
    la lista (y pg_cron lo hace cada 10 min si está disponible).
+
+## Contrato y esquema objetivo
+
+La [matriz de dominio](contrato-dominio.md) relaciona las 15 clases entregadas con
+sus atributos, métodos, servicios, tablas y pruebas. La validación automatizada
+distingue HTTP simulado, widgets y PostgreSQL local. El recorrido con OTP,
+Storage, GPS y Realtime requiere un entorno configurado y sigue siendo una
+verificación manual separada.

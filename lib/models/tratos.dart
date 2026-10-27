@@ -1,4 +1,5 @@
 import '../config/estados.dart';
+import 'operaciones.dart';
 
 /// "25/10 16:30"
 String fmtFecha(DateTime? d) {
@@ -34,7 +35,8 @@ class Propuesta {
         monto = m['monto'] as num,
         precioRef = (m['productos'] as Map?)?['precio_referencia'] as num?,
         productoNombre = (m['productos'] as Map?)?['nombre'] as String?,
-        compradorNombre = (m['comprador'] as Map?)?['nombre_publico'] as String?,
+        compradorNombre = ((m['comprador'] as Map?)?['usuarios']
+            as Map?)?['nombre_publico'] as String?,
         vendedorNombre = _nombreVendedor(m['vendedor']),
         creada = DateTime.parse(m['creada_en']).toLocal();
 
@@ -48,6 +50,31 @@ class Apartado {
   final String? productoNombre, compradorNombre, vendedorNombre;
   final int cantidad;
   final DateTime? expira;
+  final DateTime fechaInicio;
+  String get idApartado => id;
+  DateTime? get fechaExpiracion => expira;
+  static Future<Apartado> solicitarApartado(
+    OperacionesChat operaciones, {
+    required String idProducto,
+    required String idVendedor,
+    int cantidad = 1,
+    Duration vigencia = const Duration(hours: 24),
+  }) =>
+      operaciones.solicitarApartado(
+        idProducto: idProducto,
+        idVendedor: idVendedor,
+        cantidad: cantidad,
+        vigencia: vigencia,
+      );
+  Future<Apartado> aceptarApartado(OperacionesTratos operaciones) async {
+    await operaciones.aceptarApartado(id);
+    return operaciones.apartadoPorId(id);
+  }
+
+  Future<Apartado> rechazarApartado(OperacionesTratos operaciones) async {
+    await operaciones.rechazarApartado(id);
+    return operaciones.apartadoPorId(id);
+  }
 
   Apartado.fromMap(Map<String, dynamic> m)
       : id = m['id'],
@@ -57,8 +84,10 @@ class Apartado {
         estado = m['estado'],
         cantidad = (m['cantidad'] as num).toInt(),
         productoNombre = (m['productos'] as Map?)?['nombre'] as String?,
-        compradorNombre = (m['comprador'] as Map?)?['nombre_publico'] as String?,
+        compradorNombre = ((m['comprador'] as Map?)?['usuarios']
+            as Map?)?['nombre_publico'] as String?,
         vendedorNombre = _nombreVendedor(m['vendedor']),
+        fechaInicio = DateTime.parse(m['fecha_inicio']),
         expira = m['fecha_expiracion'] == null
             ? null
             : DateTime.parse(m['fecha_expiracion']).toLocal();
@@ -88,27 +117,63 @@ num? precioPromo(num? ref, num? promo, num? descuento) {
 
 /// RF-29 / RF-30
 class Oferta {
-  final String id, estado;
+  final String id, idProducto, estado;
   final String? titulo;
-  final DateTime fin;
-  final List<OfertaItem> items;
+  final DateTime inicio, fin;
+  final num? precioPromocional, descuento;
+  final OfertaItem item;
+  String get idOferta => id;
+  DateTime get fechaInicio => inicio;
+  DateTime get fechaFin => fin;
+  static Future<Oferta> publicarOferta(
+    OperacionesVendedor operaciones, {
+    required String idVendedor,
+    required String idProducto,
+    required String titulo,
+    required DateTime fin,
+    num? precioPromocional,
+    num? descuento,
+  }) async =>
+      (await operaciones.publicarOferta(
+        idVendedor: idVendedor,
+        titulo: titulo,
+        fin: fin,
+        productos: [
+          (
+            idProducto: idProducto,
+            precioPromo: precioPromocional,
+            descuento: descuento,
+          ),
+        ],
+      ))
+          .single;
+  Future<Oferta> finalizarOferta(OperacionesVendedor operaciones) async {
+    await operaciones.terminarOferta(id);
+    return operaciones.ofertaPorId(id);
+  }
 
   Oferta.fromMap(Map<String, dynamic> m)
       : id = m['id'],
+        idProducto = m['id_producto'],
         estado = m['estado'],
         titulo = m['titulo'] as String?,
+        inicio = DateTime.parse(m['fecha_inicio']),
         fin = DateTime.parse(m['fecha_fin']).toLocal(),
-        items = [
-          for (final f in (m['oferta_productos'] as List? ?? const []))
-            OfertaItem(
-              (f['productos'] as Map?)?['nombre'] as String? ?? 'Producto',
-              (f['productos'] as Map?)?['precio_referencia'] as num?,
-              f['precio_promocional'] as num?,
-              f['descuento_porcentaje'] as num?,
-            )
-        ];
+        precioPromocional = m['precio_promocional'] as num?,
+        descuento = m['descuento'] as num?,
+        item = OfertaItem(
+          (m['productos'] as Map?)?['nombre'] as String? ?? 'Producto',
+          (m['productos'] as Map?)?['precio_referencia'] as num?,
+          m['precio_promocional'] as num?,
+          m['descuento'] as num?,
+        );
 
-  bool get vigente => estado == Est.ofertaActiva && fin.isAfter(DateTime.now());
+  bool get vigente {
+    final ahora = DateTime.now();
+    return estado == Est.ofertaActiva &&
+        !inicio.isAfter(ahora) &&
+        fin.isAfter(ahora);
+  }
 }
 
 /// Oferta que se muestra al comprador en el detalle del producto.

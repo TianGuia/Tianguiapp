@@ -1,4 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/identidad.dart';
+import '../models/operaciones.dart';
 
 /// RF-01 a RF-05, RF-40.
 ///
@@ -6,7 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///  - Para ser vendedor se verifica el correo con un código de un solo uso y
 ///    se LIGA a la misma cuenta, sin perder favoritos ni chats (RF-02, RF-19).
 ///  - Quien ya verificó su correo puede volver a entrar con código (RF-03).
-class AuthService {
+class AuthService implements OperacionesUsuario {
   AuthService({SupabaseClient? client})
       : _db = client ?? Supabase.instance.client;
 
@@ -19,6 +21,7 @@ class AuthService {
 
   // ---------------- Entrada anónima (RF-01) ----------------
 
+  @override
   Future<void> entrarAnonimo(String nombre) async {
     final n = nombre.trim();
     await _db.auth.signInAnonymously(data: {'nombre_publico': n});
@@ -57,6 +60,7 @@ class AuthService {
         data: nombre == null ? null : {'nombre_publico': nombre.trim()},
       );
 
+  @override
   Future<void> verificarCodigo(String correo, String codigo) =>
       _db.auth.verifyOTP(
         email: correo.trim(),
@@ -101,9 +105,20 @@ class AuthService {
   Future<void> cerrarSesion() => _db.auth.signOut();
 
   /// RF-05
-  Future<Map<String, dynamic>?> miPerfil() =>
-      _db.from('usuarios').select().eq('id', usuario!.id).maybeSingle();
+  @override
+  Future<Usuario?> miPerfil() async {
+    final r =
+        await _db.from('usuarios').select().eq('id', usuario!.id).maybeSingle();
+    return r == null ? null : Usuario.fromMap(r);
+  }
 
+  Future<Comprador> miComprador() async => Comprador.fromMap(await _db
+      .from('compradores')
+      .select('*, usuarios!compradores_id_usuario_fkey(*)')
+      .eq('id_usuario', usuario!.id)
+      .single());
+
+  @override
   Future<void> actualizarPerfil(
           {String? nombre, String? telefono, String? fotoUrl}) =>
       _db.from('usuarios').update({

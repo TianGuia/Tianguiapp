@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../models/modelos.dart';
+import '../models/identidad.dart';
 import '../services/auth_service.dart';
 import '../services/tratos_service.dart';
 import '../services/vendedor_service.dart';
@@ -21,7 +22,7 @@ enum _Accion { editar, temporal, indefinido, eliminar }
 
 class _VendedorTabState extends State<VendedorTab> {
   final _svc = VendedorService();
-  Map<String, dynamic>? _perfil;
+  Vendedor? _perfil;
   List<Puesto> _puestos = [];
   bool _cargando = true;
   int _pendientes = 0; // propuestas y apartados por atender
@@ -32,18 +33,22 @@ class _VendedorTabState extends State<VendedorTab> {
     _cargar();
   }
 
-  void _msg(String t) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+  void _msg(String t) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
 
   Future<void> _cargar() async {
     setState(() => _cargando = true);
     try {
       _perfil = await _svc.miPerfil();
-      _puestos = _perfil == null ? [] : await _svc.misPuestos(_perfil!['id']);
+      _puestos =
+          _perfil == null ? [] : await _svc.misPuestos(_perfil!.idVendedor);
     } catch (e) {
       _msg('$e');
     }
     try {
-      _pendientes = _perfil == null ? 0 : await TratosService().pendientes(_perfil!['id'] as String);
+      _pendientes = _perfil == null
+          ? 0
+          : await TratosService().pendientes(_perfil!.idVendedor);
     } catch (_) {
       _pendientes = 0; // el número simplemente no se muestra
     }
@@ -77,7 +82,8 @@ class _VendedorTabState extends State<VendedorTab> {
     final ok = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) => PuestoFormScreen(idVendedor: _perfil!['id'] as String, puesto: puesto),
+        builder: (_) =>
+            PuestoFormScreen(idVendedor: _perfil!.idVendedor, puesto: puesto),
       ),
     );
     if (ok == true) await _cargar();
@@ -104,8 +110,11 @@ class _VendedorTabState extends State<VendedorTab> {
         context: context,
         builder: (_) => AlertDialog(
           title: const Text('Código de visita'),
-          content: Text('${c['codigo']}\n\nVálido hasta ${DateTime.parse(c['expira_en']).toLocal().toString().substring(11, 16)}',
-              textAlign: TextAlign.center, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+          content: Text(
+              '${c['codigo']}\n\nVálido hasta ${DateTime.parse(c['expira_en']).toLocal().toString().substring(11, 16)}',
+              textAlign: TextAlign.center,
+              style:
+                  const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
         ),
       );
     } catch (e) {
@@ -116,48 +125,57 @@ class _VendedorTabState extends State<VendedorTab> {
   // ---- Cierres con aviso y eliminación ----
 
   /// Pide motivo (y fecha de regreso si es temporal). Devuelve null si cancela.
-  Future<({String? motivo, DateTime? fecha})?> _preguntarCierre(Puesto p, {required bool temporal}) {
+  Future<({String? motivo, DateTime? fecha})?> _preguntarCierre(Puesto p,
+      {required bool temporal}) {
     final motivo = TextEditingController();
     DateTime? fecha;
     return showDialog<({String? motivo, DateTime? fecha})>(
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (ctx, set) => AlertDialog(
-          title: Text(temporal ? 'Cerrar temporalmente' : 'Cerrar hasta nuevo aviso'),
-          content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(temporal
-                ? 'Los compradores verán "${p.nombre}" como cerrado temporalmente.'
-                : 'Los compradores verán "${p.nombre}" cerrado hasta nuevo aviso. '
-                    'Lo abres cuando quieras con "YA LLEGUÉ · ABRIR".'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: motivo,
-              style: const TextStyle(color: Colors.black),
-              maxLength: 80,
-              decoration: const InputDecoration(hintText: 'Motivo (opcional): vacaciones, lluvia…'),
-            ),
-            if (temporal)
-              TextButton.icon(
-                icon: const Icon(Icons.event),
-                label: Text(fecha == null
-                    ? 'Fecha en que regresas (opcional)'
-                    : 'Regreso: ${fecha!.day.toString().padLeft(2, '0')}/${fecha!.month.toString().padLeft(2, '0')}/${fecha!.year}'),
-                onPressed: () async {
-                  final hoy = DateTime.now();
-                  final f = await showDatePicker(
-                    context: ctx,
-                    initialDate: fecha ?? hoy.add(const Duration(days: 1)),
-                    firstDate: hoy,
-                    lastDate: hoy.add(const Duration(days: 365)),
-                  );
-                  if (f != null) set(() => fecha = f);
-                },
-              ),
-          ]),
+          title: Text(
+              temporal ? 'Cerrar temporalmente' : 'Cerrar hasta nuevo aviso'),
+          content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(temporal
+                    ? 'Los compradores verán "${p.nombre}" como cerrado temporalmente.'
+                    : 'Los compradores verán "${p.nombre}" cerrado hasta nuevo aviso. '
+                        'Lo abres cuando quieras con "YA LLEGUÉ · ABRIR".'),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: motivo,
+                  style: const TextStyle(color: Colors.black),
+                  maxLength: 80,
+                  decoration: const InputDecoration(
+                      hintText: 'Motivo (opcional): vacaciones, lluvia…'),
+                ),
+                if (temporal)
+                  TextButton.icon(
+                    icon: const Icon(Icons.event),
+                    label: Text(fecha == null
+                        ? 'Fecha en que regresas (opcional)'
+                        : 'Regreso: ${fecha!.day.toString().padLeft(2, '0')}/${fecha!.month.toString().padLeft(2, '0')}/${fecha!.year}'),
+                    onPressed: () async {
+                      final hoy = DateTime.now();
+                      final f = await showDatePicker(
+                        context: ctx,
+                        initialDate: fecha ?? hoy.add(const Duration(days: 1)),
+                        firstDate: hoy,
+                        lastDate: hoy.add(const Duration(days: 365)),
+                      );
+                      if (f != null) set(() => fecha = f);
+                    },
+                  ),
+              ]),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
             TextButton(
-              onPressed: () => Navigator.pop(ctx, (motivo: motivo.text, fecha: fecha)),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancelar')),
+            TextButton(
+              onPressed: () =>
+                  Navigator.pop(ctx, (motivo: motivo.text, fecha: fecha)),
               child: const Text('Cerrar'),
             ),
           ],
@@ -172,10 +190,12 @@ class _VendedorTabState extends State<VendedorTab> {
       builder: (ctx) => AlertDialog(
         title: const Text('¿Eliminar puesto?'),
         content: Text('"${p.nombre}" dejará de mostrarse a los compradores. '
-            'Tus productos se conservan en tu catálogo, sin puesto asignado.\n\n'
+            'También se retirarán sus productos y finalizarán sus ofertas. Se conservará el historial.\n\n'
             'Si solo te ausentas un tiempo, mejor usa "Cerrar temporalmente".'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
           TextButton(
             style: TextButton.styleFrom(foregroundColor: Tg.rojo),
             onPressed: () => Navigator.pop(ctx, true),
@@ -202,7 +222,8 @@ class _VendedorTabState extends State<VendedorTab> {
         case _Accion.temporal:
           final r = await _preguntarCierre(p, temporal: true);
           if (r == null) return;
-          await _svc.cerrarTemporalmente(p.id, reabreEn: r.fecha, motivo: r.motivo);
+          await _svc.cerrarTemporalmente(p.id,
+              reabreEn: r.fecha, motivo: r.motivo);
           await _cargar();
         case _Accion.indefinido:
           final r = await _preguntarCierre(p, temporal: false);
@@ -219,7 +240,8 @@ class _VendedorTabState extends State<VendedorTab> {
 
   Widget _tarjetaPuesto(Puesto p) {
     final cierreEspecial = !p.abierto && p.cierreTipo != null;
-    final colorPunto = p.abierto ? Tg.verde : (cierreEspecial ? Tg.naranja : Colors.grey);
+    final colorPunto =
+        p.abierto ? Tg.verde : (cierreEspecial ? Tg.naranja : Colors.grey);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -230,40 +252,69 @@ class _VendedorTabState extends State<VendedorTab> {
                 padding: const EdgeInsets.only(right: 10),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: Image.network(p.fotoUrl!, width: 48, height: 48, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const SizedBox(width: 48, height: 48)),
+                  child: Image.network(p.fotoUrl!,
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          const SizedBox(width: 48, height: 48)),
                 ),
               ),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(p.nombre, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                Row(children: [
-                  Icon(Icons.circle, size: 12, color: colorPunto),
-                  const SizedBox(width: 6),
-                  Flexible(child: Text(p.textoEstado, style: const TextStyle(fontSize: 13))),
-                ]),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(p.nombre,
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    Row(children: [
+                      Icon(Icons.circle, size: 12, color: colorPunto),
+                      const SizedBox(width: 6),
+                      Flexible(
+                          child: Text(p.textoEstado,
+                              style: const TextStyle(fontSize: 13))),
+                    ]),
+                  ]),
             ),
             PopupMenuButton<_Accion>(
               tooltip: 'Opciones del puesto',
               onSelected: (a) => _accion(a, p),
               itemBuilder: (_) => const [
-                PopupMenuItem(value: _Accion.editar, child: ListTile(leading: Icon(Icons.edit), title: Text('Editar puesto'))),
-                PopupMenuItem(value: _Accion.temporal, child: ListTile(leading: Icon(Icons.schedule), title: Text('Cerrar temporalmente'))),
-                PopupMenuItem(value: _Accion.indefinido, child: ListTile(leading: Icon(Icons.pause_circle_outline), title: Text('Cerrar hasta nuevo aviso'))),
-                PopupMenuItem(value: _Accion.eliminar, child: ListTile(leading: Icon(Icons.delete_outline, color: Tg.rojo), title: Text('Eliminar puesto'))),
+                PopupMenuItem(
+                    value: _Accion.editar,
+                    child: ListTile(
+                        leading: Icon(Icons.edit),
+                        title: Text('Editar puesto'))),
+                PopupMenuItem(
+                    value: _Accion.temporal,
+                    child: ListTile(
+                        leading: Icon(Icons.schedule),
+                        title: Text('Cerrar temporalmente'))),
+                PopupMenuItem(
+                    value: _Accion.indefinido,
+                    child: ListTile(
+                        leading: Icon(Icons.pause_circle_outline),
+                        title: Text('Cerrar hasta nuevo aviso'))),
+                PopupMenuItem(
+                    value: _Accion.eliminar,
+                    child: ListTile(
+                        leading: Icon(Icons.delete_outline, color: Tg.rojo),
+                        title: Text('Eliminar puesto'))),
               ],
             ),
           ]),
           if ((p.descripcion ?? '').isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Text(p.descripcion!, maxLines: 2, overflow: TextOverflow.ellipsis),
+              child: Text(p.descripcion!,
+                  maxLines: 2, overflow: TextOverflow.ellipsis),
             ),
           if (p.detalleCierre != null)
             Padding(
               padding: const EdgeInsets.only(top: 6),
-              child: Text(p.detalleCierre!, style: const TextStyle(color: Tg.naranja, fontWeight: FontWeight.w700)),
+              child: Text(p.detalleCierre!,
+                  style: const TextStyle(
+                      color: Tg.naranja, fontWeight: FontWeight.w700)),
             ),
           const SizedBox(height: 12),
           FilledButton(
@@ -291,14 +342,18 @@ class _VendedorTabState extends State<VendedorTab> {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text('¿Tienes un puesto en el tianguis?', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const Text('¿Tienes un puesto en el tianguis?',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             if (AuthService().esAnonimo) ...[
               const SizedBox(height: 8),
-              const Text('Te pediremos verificar tu correo para activar tu perfil de vendedor.',
+              const Text(
+                  'Te pediremos verificar tu correo para activar tu perfil de vendedor.',
                   textAlign: TextAlign.center),
             ],
             const SizedBox(height: 16),
-            FilledButton(onPressed: _habilitar, child: const Text('HABILITAR PERFIL DE VENDEDOR')),
+            FilledButton(
+                onPressed: _habilitar,
+                child: const Text('HABILITAR PERFIL DE VENDEDOR')),
           ]),
         ),
       );
@@ -306,37 +361,51 @@ class _VendedorTabState extends State<VendedorTab> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _abrirFormulario(), icon: const Icon(Icons.add), label: const Text('Puesto'),
+        onPressed: () => _abrirFormulario(),
+        icon: const Icon(Icons.add),
+        label: const Text('Puesto'),
       ),
       body: RefreshIndicator(
         onRefresh: _cargar,
-        child: ListView(padding: const EdgeInsets.fromLTRB(12, 12, 12, 90), children: [
-          FilledButton.icon(
-            onPressed: () => _ir(MisProductosScreen(idVendedor: _perfil!['id'] as String)),
-            icon: const Icon(Icons.inventory_2),
-            label: const Text('MIS PRODUCTOS'),
-          ),
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: () => _ir(TratosScreen(idVendedor: _perfil!['id'] as String)),
-            icon: Badge(
-              isLabelVisible: _pendientes > 0,
-              backgroundColor: Tg.rosa,
-              label: Text('$_pendientes'),
-              child: const Icon(Icons.handshake_outlined),
-            ),
-            label: const Text('PROPUESTAS Y APARTADOS'),
-          ),
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: () => _ir(OfertasScreen(idVendedor: _perfil!['id'] as String)),
-            icon: const Icon(Icons.bolt),
-            label: const Text('OFERTAS RELÁMPAGO'),
-          ),
-          const SizedBox(height: 8),
-          if (_puestos.isEmpty) const Padding(padding: EdgeInsets.all(24), child: Text('Aún no tienes puestos. Crea uno con el botón +.')),
-          for (final p in _puestos) Padding(padding: const EdgeInsets.only(bottom: 8), child: _tarjetaPuesto(p)),
-        ]),
+        child: ListView(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
+            children: [
+              FilledButton.icon(
+                onPressed: () =>
+                    _ir(MisProductosScreen(idVendedor: _perfil!.idVendedor)),
+                icon: const Icon(Icons.inventory_2),
+                label: const Text('MIS PRODUCTOS'),
+              ),
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                onPressed: () =>
+                    _ir(TratosScreen(idVendedor: _perfil!.idVendedor)),
+                icon: Badge(
+                  isLabelVisible: _pendientes > 0,
+                  backgroundColor: Tg.rosa,
+                  label: Text('$_pendientes'),
+                  child: const Icon(Icons.handshake_outlined),
+                ),
+                label: const Text('PROPUESTAS Y APARTADOS'),
+              ),
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                onPressed: () =>
+                    _ir(OfertasScreen(idVendedor: _perfil!.idVendedor)),
+                icon: const Icon(Icons.bolt),
+                label: const Text('OFERTAS RELÁMPAGO'),
+              ),
+              const SizedBox(height: 8),
+              if (_puestos.isEmpty)
+                const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                        'Aún no tienes puestos. Crea uno con el botón +.')),
+              for (final p in _puestos)
+                Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _tarjetaPuesto(p)),
+            ]),
       ),
     );
   }

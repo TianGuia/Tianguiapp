@@ -3,7 +3,9 @@ import '../models/modelos.dart';
 
 /// Datos de la pantalla de inicio (funciones SQL del backend en Toldo).
 class InicioService {
-  final _db = Supabase.instance.client;
+  InicioService({SupabaseClient? client})
+      : _db = client ?? Supabase.instance.client;
+  final SupabaseClient _db;
 
   /// {abiertos: n, en_espera: n}
   Future<Map<String, dynamic>> resumen() async {
@@ -12,14 +14,20 @@ class InicioService {
   }
 
   Future<PuestoResumen?> destacado({String? idCategoria}) async {
-    final r = await _db.rpc('puesto_destacado', params: {'p_categoria': idCategoria}) as List;
-    return r.isEmpty ? null : PuestoResumen.fromMap(Map<String, dynamic>.from(r.first));
+    final r = await _db
+        .rpc('puesto_destacado', params: {'p_categoria': idCategoria}) as List;
+    return r.isEmpty
+        ? null
+        : PuestoResumen.fromMap(Map<String, dynamic>.from(r.first));
   }
 
-  Future<List<PuestoResumen>> tendencias({String? idCategoria, int limite = 12}) async {
+  Future<List<PuestoResumen>> tendencias(
+      {String? idCategoria, int limite = 12}) async {
     final r = await _db.rpc('puestos_tendencia',
         params: {'p_categoria': idCategoria, 'p_limite': limite}) as List;
-    return r.map((e) => PuestoResumen.fromMap(Map<String, dynamic>.from(e))).toList();
+    return r
+        .map((e) => PuestoResumen.fromMap(Map<String, dynamic>.from(e)))
+        .toList();
   }
 
   // ---- Favoritos de puestos (RF-11) ----
@@ -47,13 +55,16 @@ class InicioService {
       await _db.from('favoritos').delete().eq('id', ya['id']);
       return false;
     }
-    await _db.from('favoritos').insert({'id_usuario': uid, 'id_puesto': idPuesto});
+    await _db
+        .from('favoritos')
+        .insert({'id_usuario': uid, 'id_puesto': idPuesto});
     return true;
   }
 
   /// Fila completa del puesto (estado, tipo de cierre, motivo, fecha de regreso).
   Future<Puesto?> puestoPorId(String idPuesto) async {
-    final r = await _db.from('puestos').select().eq('id', idPuesto).maybeSingle();
+    final r =
+        await _db.from('puestos').select().eq('id', idPuesto).maybeSingle();
     return r == null ? null : Puesto.fromMap(r);
   }
 
@@ -61,7 +72,8 @@ class InicioService {
   Future<List<Producto>> productosDePuesto(String idPuesto) async {
     final r = await _db
         .from('productos')
-        .select('*, categorias(nombre), puestos(nombre, estado), producto_imagenes(id, ruta_storage, orden)')
+        .select(
+            '*, categorias(nombre), puestos!productos_id_puesto_fkey(nombre, estado), producto_imagenes(id, ruta_storage, orden)')
         .eq('id_puesto', idPuesto)
         .eq('activo', true)
         .eq('moderado', false)
@@ -73,7 +85,11 @@ class InicioService {
   Future<int> noLeidas() async {
     final uid = _db.auth.currentUser?.id;
     if (uid == null) return 0;
-    final r = await _db.from('notificaciones').select('id').eq('id_usuario', uid).eq('leida', false);
+    final r = await _db
+        .from('notificaciones')
+        .select('id')
+        .eq('id_usuario', uid)
+        .eq('leida', false);
     return (r as List).length;
   }
 

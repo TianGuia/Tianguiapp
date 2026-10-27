@@ -20,26 +20,32 @@ Future<void> confirmarVisita(BuildContext context) async {
         controller: c,
         keyboardType: TextInputType.number,
         style: _negro,
-        decoration: const InputDecoration(hintText: 'Código que te muestra el vendedor'),
+        decoration: const InputDecoration(
+            hintText: 'Código que te muestra el vendedor'),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirmar')),
+        TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar')),
+        TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Confirmar')),
       ],
     ),
   );
   if (ok != true || c.text.trim().isEmpty || !context.mounted) return;
   try {
-    final idVisita = await svc.verificarVisita(c.text);
+    final visita = await svc.verificarVisita(c.text);
     if (!context.mounted) return;
     _msg(context, '¡Visita confirmada!');
-    await _calificar(context, svc, idVisita);
+    await _calificar(context, svc, visita.idVisita);
   } catch (e) {
     if (context.mounted) _msg(context, '$e');
   }
 }
 
-Future<void> _calificar(BuildContext context, PuestosService svc, String idVisita) async {
+Future<void> _calificar(
+    BuildContext context, PuestosService svc, String idVisita) async {
   int estrellas = 5;
   final com = TextEditingController();
   final ok = await showDialog<bool>(
@@ -59,11 +65,16 @@ Future<void> _calificar(BuildContext context, PuestosService svc, String idVisit
           TextField(
               controller: com,
               style: _negro,
-              decoration: const InputDecoration(hintText: 'Comentario (opcional)')),
+              decoration:
+                  const InputDecoration(hintText: 'Comentario (opcional)')),
         ]),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Después')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Enviar')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Después')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Enviar')),
         ],
       ),
     ),
