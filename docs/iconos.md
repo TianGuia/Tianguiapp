@@ -29,5 +29,6 @@ Con Flutter también se pueden regenerar los recursos nativos desde las imágene
 ya preparadas de `assets/icon/` con `dart run flutter_launcher_icons`.
 
 Compila e instala de nuevo la app para ver el cambio. La compilación de iOS
-requiere macOS y Xcode. Este proceso solo actualiza los iconos de lanzamiento;
-el logo dentro de la interfaz y la pantalla de arranque tienen recursos propios.
+requiere macOS y Xcode. La interfaz usa `assets/icon/icon.png`. La pantalla de arranque usa la misma
+imagen; regenera sus recursos con `dart run flutter_native_splash:create`.
+`dart run flutter_launcher_icons` también genera el favicon y los iconos web.

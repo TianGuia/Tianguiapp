@@ -64,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(30),
-                    child: Image.asset('assets/images/logo.png', width: 150, height: 150),
+                    child: Image.asset('assets/icon/icon.png', width: 150, height: 150),
                   ),
                   const SizedBox(height: 10),
                   Transform.rotate(

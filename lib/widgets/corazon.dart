@@ -77,7 +77,7 @@ class ImagenPuesto extends StatelessWidget {
           opacity: 0.55,
           child: Padding(
             padding: const EdgeInsets.all(18),
-            child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
+            child: Image.asset('assets/icon/icon.png', fit: BoxFit.contain),
           ),
         ),
       );

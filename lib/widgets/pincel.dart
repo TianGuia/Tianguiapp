@@ -2,42 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/theme.dart';
 
-/// Logotipo de texto "TIANGUIA" con contorno y barra tricolor.
-class Wordmark extends StatelessWidget {
-  final double tam;
-  const Wordmark({super.key, this.tam = 28});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      Stack(children: [
-        Text('TIANGUIA',
-            style: GoogleFonts.permanentMarker(
-              fontSize: tam,
-              foreground: Paint()
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = tam * 0.2
-                ..strokeJoin = StrokeJoin.round
-                ..color = const Color(0xFF111111),
-            )),
-        Text('TIANGUIA', style: Tg.marcador(tam)),
-      ]),
-      SizedBox(
-        width: tam * 4.3,
-        height: 4,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: const Row(children: [
-            Expanded(child: ColoredBox(color: Color(0xFF1E8E3E), child: SizedBox.expand())),
-            Expanded(child: ColoredBox(color: Colors.white, child: SizedBox.expand())),
-            Expanded(child: ColoredBox(color: Color(0xFFE8232F), child: SizedBox.expand())),
-          ]),
-        ),
-      ),
-    ]);
-  }
-}
-
 /// Botón amarillo estilo pincel con flecha (COMENZAR →, Ver puesto destacado →).
 class BotonPincel extends StatelessWidget {
   final String texto;

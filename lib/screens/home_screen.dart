@@ -4,7 +4,6 @@ import '../services/inicio_service.dart';
 import '../widgets/aviso_conexion.dart';
 import '../widgets/cerrar_sesion.dart';
 import '../widgets/fondo.dart';
-import '../widgets/pincel.dart';
 import 'catalogo_tab.dart';
 import 'chats_screen.dart';
 import 'diagnostico_screen.dart';
@@ -76,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.menu, size: 32),
             onPressed: () => _llave.currentState?.openDrawer(),
           ),
-          title: const Wordmark(tam: 26),
+          title: Image.asset('assets/icon/icon.png', height: 48, fit: BoxFit.contain),
           actions: [
             IconButton(
               icon: const Icon(Icons.map_outlined, size: 28),
@@ -158,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: Tg.azul,
       child: SafeArea(
         child: Column(children: [
-          const Padding(padding: EdgeInsets.fromLTRB(0, 22, 0, 18), child: Wordmark(tam: 34)),
+          Padding(padding: const EdgeInsets.fromLTRB(0, 22, 0, 18), child: Image.asset('assets/icon/icon.png', height: 140, fit: BoxFit.contain)),
           Expanded(
             child: ListView(children: [
               item(Icons.home_rounded, 'Inicio', () => setState(() => _i = 0), activo: _i == 0),

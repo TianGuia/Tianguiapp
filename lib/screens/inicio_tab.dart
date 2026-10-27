@@ -352,7 +352,7 @@ class _InicioTabState extends State<InicioTab> {
                   color: Tg.azulOscuro,
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: Image.asset('assets/images/logo.png', fit: BoxFit.cover),
+                child: Image.asset('assets/icon/icon.png', fit: BoxFit.cover),
               ),
             ),
           ]),
