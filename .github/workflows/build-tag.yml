@@ -1,28 +1,70 @@
-name: Compilar versiones etiquetadas
+name: Compilar releases
 
 on:
   push:
     tags: ['*']
+    branches: ['**']
+    paths: ['pubspec.yaml']
 
 permissions:
   contents: read
 
 env:
   FLUTTER_VERSION: '3.47.8'
-  # Base inicial: pubspec.yaml contiene 0.1.0+1. No cambiarla para cada versión.
-  RELEASE_BUILD_BASE: '1'
-  RELEASE_TAG: ${{ github.ref_name }}
+  APP_NAME: tianguia
 
 jobs:
+  version:
+    name: Guardar versión de la release
+    if: github.ref_type == 'tag' || github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    outputs:
+      should_build: ${{ steps.prepare.outputs.should_build }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: version-state
+          fetch-depth: 0
+      - name: Validar y guardar versión de la release
+        id: prepare
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          python3 .github/scripts/release_version.py prepare \
+            --repo version-state --branch "$DEFAULT_BRANCH" \
+            --output release-metadata/version.json
+      - name: Compartir versión con ambas plataformas
+        if: steps.prepare.outputs.should_build == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-version
+          path: release-metadata/version.json
+          if-no-files-found: error
+          overwrite: true
+
   android:
     name: APK Android
+    needs: version
+    if: needs.version.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
-      - name: Calcular versión
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-version
+          path: release-metadata
+      - name: Aplicar versión guardada
         id: version
-        run: python3 .github/scripts/release_version.py
+        run: python3 .github/scripts/release_version.py apply --metadata release-metadata/version.json
       - name: Preparar Java
         uses: actions/setup-java@v6
         with:
@@ -78,15 +120,17 @@ jobs:
           VERSION_NAME: ${{ steps.version.outputs.version_name }}
           BUILD_NUMBER: ${{ steps.version.outputs.build_number }}
         run: |
-          flutter build apk --release --no-pub --split-per-abi \
+          flutter build apk --release --no-pub \
             --target-platform android-arm,android-arm64,android-x64 \
-            --build-name "$VERSION_NAME" --build-number "$BUILD_NUMBER" \
-            --android-project-arg=force-version-code-ignoring-abi=true
+            --build-name "$VERSION_NAME" --build-number "$BUILD_NUMBER"
+          mkdir -p build/release-apks
+          cp build/app/outputs/flutter-apk/app-release.apk \
+            "build/release-apks/${APP_NAME}-${VERSION_NAME}+${BUILD_NUMBER}.apk"
       - name: Guardar APK
         uses: actions/upload-artifact@v7
         with:
-          name: tianguia-android-${{ steps.version.outputs.version_name }}-${{ steps.version.outputs.build_number }}
-          path: build/app/outputs/flutter-apk/*.apk
+          name: tianguia-android-${{ steps.version.outputs.version_name }}+${{ steps.version.outputs.build_number }}
+          path: build/release-apks/*.apk
           if-no-files-found: error
           compression-level: 0
           overwrite: true
@@ -102,9 +146,13 @@ jobs:
     permissions:
       contents: write
     concurrency:
-      group: release-${{ github.ref }}
+      group: release-${{ github.run_id }}
       cancel-in-progress: false
     steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-version
+          path: release-metadata
       - name: Descargar APK firmados
         uses: actions/download-artifact@v8
         with:
@@ -119,10 +167,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          RELEASE_TAG="$(python3 -c 'import json; print(json.load(open("release-metadata/version.json"))["release_tag"])')"
           shopt -s nullglob
           apks=(release-apks/*.apk)
-          if [[ ${#apks[@]} -ne 3 ]]; then
-            echo "Se esperaban los tres APK firmados de Android." >&2
+          if [[ ${#apks[@]} -ne 1 ]]; then
+            echo "Se esperaba un APK universal firmado de Android." >&2
             exit 1
           fi
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
@@ -138,13 +187,19 @@ jobs:
 
   ios:
     name: IPA iOS sin firmar
+    needs: version
+    if: needs.version.outputs.should_build == 'true'
     runs-on: macos-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
-      - name: Calcular versión
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-version
+          path: release-metadata
+      - name: Aplicar versión guardada
         id: version
-        run: python3 .github/scripts/release_version.py
+        run: python3 .github/scripts/release_version.py apply --metadata release-metadata/version.json
       - name: Preparar Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -172,12 +227,12 @@ jobs:
           mkdir -p build/ios/ipa/Payload
           ditto build/ios/iphoneos/Runner.app build/ios/ipa/Payload/Runner.app
           cd build/ios/ipa
-          zip -qry "tianguia-${VERSION_NAME}-${BUILD_NUMBER}-unsigned.ipa" Payload
+          zip -qry "${APP_NAME}-${VERSION_NAME}+${BUILD_NUMBER}.ipa" Payload
       - name: Guardar IPA sin firmar
         uses: actions/upload-artifact@v7
         with:
-          name: tianguia-ios-${{ steps.version.outputs.version_name }}-${{ steps.version.outputs.build_number }}-unsigned
-          path: build/ios/ipa/*-unsigned.ipa
+          name: tianguia-ios-${{ steps.version.outputs.version_name }}+${{ steps.version.outputs.build_number }}
+          path: build/ios/ipa/*.ipa
           if-no-files-found: error
           compression-level: 0
           overwrite: true
@@ -190,13 +245,17 @@ jobs:
     permissions:
       contents: write
     concurrency:
-      group: release-${{ github.ref }}
+      group: release-${{ github.run_id }}
       cancel-in-progress: false
     steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-version
+          path: release-metadata
       - name: Descargar IPA sin firmar
         uses: actions/download-artifact@v8
         with:
-          pattern: tianguia-ios-*-unsigned
+          pattern: tianguia-ios-*
           merge-multiple: true
           path: release-ipas
       - name: Crear o actualizar Release
@@ -206,8 +265,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          RELEASE_TAG="$(python3 -c 'import json; print(json.load(open("release-metadata/version.json"))["release_tag"])')"
           shopt -s nullglob
-          ipas=(release-ipas/*-unsigned.ipa)
+          ipas=(release-ipas/*.ipa)
           if [[ ${#ipas[@]} -ne 1 ]]; then
             echo "Se esperaba un IPA sin firmar de iOS." >&2
             exit 1

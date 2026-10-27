@@ -117,9 +117,11 @@ clave de distribución; el workflow por tags utiliza la clave estable de Secrets
 
 ### Versiones e iOS
 
-Al subir un tag como `v0.1.0`, Actions compila tres APK firmados y un IPA sin
+Al subir un tag como `v0.1.0`, Actions compila un APK universal firmado y un IPA sin
 firmar en runners Linux y macOS. La versión sale del tag y el número de
-compilación aumenta automáticamente. Consulta la [guía de versiones](docs/versiones.md)
+compilación aumenta automáticamente. También puedes publicar aumentando el
+código de `pubspec.yaml` en la rama predeterminada. Los archivos se llaman
+`tianguia-<version>+<codigo>.apk` y `.ipa`. Consulta la [guía de versiones](docs/versiones.md)
 para descargar los artefactos y conservar la clave de firma.
 
 Para trabajar con iOS localmente necesitas macOS, Xcode y Flutter. El proyecto
