@@ -50,7 +50,17 @@ try {
 </adaptive-icon>
 '@
     [System.IO.File]::WriteAllText((Join-Path $adaptiveDirectory 'ic_launcher.xml'), $adaptiveXml)
-    [System.IO.File]::WriteAllText((Join-Path $repoRoot 'android/app/src/main/res/values/ic_launcher_background.xml'), '<resources><color name="ic_launcher_background">#0754AD</color></resources>')
+    # flutter_launcher_icons usa colors.xml; comparte su definicion para evitar duplicados.
+    $colorsPath = Join-Path $repoRoot 'android/app/src/main/res/values/colors.xml'
+    [xml] $colorsXml = if (Test-Path $colorsPath) { Get-Content $colorsPath -Raw } else { '<resources />' }
+    $launcherColor = $colorsXml.SelectSingleNode('/resources/color[@name="ic_launcher_background"]')
+    if ($null -eq $launcherColor) {
+        $launcherColor = $colorsXml.CreateElement('color')
+        $launcherColor.SetAttribute('name', 'ic_launcher_background')
+        $colorsXml.DocumentElement.AppendChild($launcherColor) | Out-Null
+    }
+    $launcherColor.InnerText = '#0754AD'
+    $colorsXml.Save($colorsPath)
     $catalog = 'ios/Runner/Assets.xcassets/AppIcon.appiconset'
     $contents = Get-Content (Join-Path $repoRoot "$catalog/Contents.json") -Raw | ConvertFrom-Json
     foreach ($entry in $contents.images) {

@@ -52,7 +52,16 @@ La instalación nativa sigue disponible con las instrucciones siguientes.
 
 Instala Flutter en su canal estable y Android Studio con el SDK de Android.
 Agrega el directorio `bin` de Flutter a tu `PATH`. Para compilar en Android,
-Flutter utiliza el JDK incluido en Android Studio.
+Flutter utiliza por defecto el JDK incluido en Android Studio. Para este proyecto
+puedes seleccionar Temurin 21 (compatible con Gradle 9.3.1) y evitar los avisos
+de acceso nativo restringido de JDK 24 o posterior:
+
+```powershell
+flutter config --jdk-dir='C:/Program Files/Eclipse Adoptium/jdk-21.0.11.10-hotspot'
+```
+
+Sustituye la ruta por tu instalación de JDK 21. Esta preferencia se aplica a todos
+los proyectos de Flutter del usuario; reinicia el IDE después de cambiarla.
 
 ```sh
 git clone https://github.com/Tianguia/Tianguiapp.git
