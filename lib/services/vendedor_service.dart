@@ -159,7 +159,7 @@ class VendedorService {
   Future<List<Producto>> misProductos(String idVendedor) async {
     final r = await _db
         .from('productos')
-        .select('*, categorias(nombre), puestos(nombre, estado), producto_imagenes(id, ruta_storage, orden)')
+        .select('*, categorias(nombre), puestos!productos_id_puesto_fkey(nombre, estado), producto_imagenes(id, ruta_storage, orden)')
         .eq('id_vendedor', idVendedor)
         .eq('activo', true)
         .order('creado_en', ascending: false);

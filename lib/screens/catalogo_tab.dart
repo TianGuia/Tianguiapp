@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
+import '../widgets/entradas.dart';
 import '../widgets/pincel.dart';
 import 'producto_detalle_screen.dart';
 import 'puesto_screen.dart' show TarjetaProducto;
@@ -61,15 +62,23 @@ class _CatalogoTabState extends State<CatalogoTab> {
     });
   }
 
+  static const _negro = TextStyle(color: Colors.black);
+  static const _etiquetaCampo = TextStyle(color: Colors.black54);
+
   /// RF-07: filtros por tianguis, día de operación y rango de precio.
   Future<void> _filtros() async {
-    var idT = _idTianguis;
+    FocusScope.of(context).unfocus();
+    // Si el tianguis elegido ya no está activo, no se ofrece como valor del menú.
+    var idT = _tianguis.any((t) => t.id == _idTianguis) ? _idTianguis : null;
     var dia = _dia;
     final min = TextEditingController(text: _precioMin?.toString() ?? '');
     final max = TextEditingController(text: _precioMax?.toString() ?? '');
     final aplicar = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Tg.azulOscuro,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, set) => Padding(
           padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
@@ -78,10 +87,20 @@ class _CatalogoTabState extends State<CatalogoTab> {
               const Text('Filtrar productos',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
               const SizedBox(height: 14),
+              // Los campos del tema tienen fondo blanco: el texto se fuerza a negro
+              // (si no, lo escrito o elegido queda blanco sobre blanco).
               DropdownButtonFormField<String?>(
                 value: idT,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Tianguis'),
+                dropdownColor: Tg.azulOscuro,
+                iconEnabledColor: Colors.black54,
+                selectedItemBuilder: (_) => [
+                  const Text('Todos los tianguis', style: _negro),
+                  for (final t in _tianguis)
+                    Text(t.nombre, style: _negro, overflow: TextOverflow.ellipsis),
+                ],
+                decoration:
+                    const InputDecoration(labelText: 'Tianguis', labelStyle: _etiquetaCampo),
                 items: [
                   const DropdownMenuItem(value: null, child: Text('Todos los tianguis')),
                   for (final t in _tianguis) DropdownMenuItem(value: t.id, child: Text(t.nombre)),
@@ -109,16 +128,28 @@ class _CatalogoTabState extends State<CatalogoTab> {
                 Expanded(
                   child: TextField(
                     controller: min,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Precio mínimo', prefixText: '\$ '),
+                    style: _negro,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: Entradas.formatoDinero,
+                    decoration: const InputDecoration(
+                        labelText: 'Precio mínimo',
+                        labelStyle: _etiquetaCampo,
+                        prefixText: r'$ ',
+                        prefixStyle: _negro),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextField(
                     controller: max,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Precio máximo', prefixText: '\$ '),
+                    style: _negro,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: Entradas.formatoDinero,
+                    decoration: const InputDecoration(
+                        labelText: 'Precio máximo',
+                        labelStyle: _etiquetaCampo,
+                        prefixText: r'$ ',
+                        prefixStyle: _negro),
                   ),
                 ),
               ]),
@@ -134,24 +165,88 @@ class _CatalogoTabState extends State<CatalogoTab> {
                   },
                   child: const Text('LIMPIAR'),
                 ),
-                const Spacer(),
-                FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('APLICAR')),
+                const SizedBox(width: 12),
+                // El FilledButton del tema ocupa todo el ancho (Size.fromHeight):
+                // dentro de un Row necesita Expanded o el layout falla.
+                Expanded(
+                  child: FilledButton(
+                      onPressed: () => Navigator.pop(ctx, true), child: const Text('APLICAR')),
+                ),
               ]),
             ]),
           ),
         ),
       ),
     );
-    final pMin = num.tryParse(min.text.trim().replaceAll(',', '.'));
-    final pMax = num.tryParse(max.text.trim().replaceAll(',', '.'));
+    final pMin = Entradas.leerDinero(min.text);
+    final pMax = Entradas.leerDinero(max.text);
     min.dispose();
     max.dispose();
-    if (aplicar != true) return;
+    if (aplicar != true || !mounted) return;
+    if (pMin != null && pMax != null && pMin > pMax) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('El precio mínimo no puede ser mayor al máximo')));
+      return;
+    }
     _idTianguis = idT;
     _dia = dia;
     _precioMin = pMin;
     _precioMax = pMax;
     _buscar();
+  }
+
+  void _quitarFiltros() {
+    _idTianguis = null;
+    _dia = null;
+    _precioMin = null;
+    _precioMax = null;
+    _buscar();
+  }
+
+  String _textoPrecio() {
+    String f(num v) => '\$${v == v.truncate() ? v.toInt() : v}';
+    if (_precioMin != null && _precioMax != null) return '${f(_precioMin!)} – ${f(_precioMax!)}';
+    if (_precioMin != null) return 'Desde ${f(_precioMin!)}';
+    return 'Hasta ${f(_precioMax!)}';
+  }
+
+  /// Resumen de lo que está filtrando; cada chip se quita con su «x».
+  Widget _chipsFiltros() {
+    if (_filtrosActivos == 0) return const SizedBox.shrink();
+    final tianguis = _tianguis.where((t) => t.id == _idTianguis).firstOrNull?.nombre;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Wrap(spacing: 8, runSpacing: 4, children: [
+          if (_idTianguis != null)
+            InputChip(
+              label: Text(tianguis ?? 'Tianguis'),
+              onDeleted: () {
+                _idTianguis = null;
+                _buscar();
+              },
+            ),
+          if (_dia != null)
+            InputChip(
+              label: Text(_dias[_dia!]),
+              onDeleted: () {
+                _dia = null;
+                _buscar();
+              },
+            ),
+          if (_precioMin != null || _precioMax != null)
+            InputChip(
+              label: Text(_textoPrecio()),
+              onDeleted: () {
+                _precioMin = null;
+                _precioMax = null;
+                _buscar();
+              },
+            ),
+        ]),
+      ),
+    );
   }
 
   @override
@@ -184,6 +279,7 @@ class _CatalogoTabState extends State<CatalogoTab> {
             ),
           ),
         ),
+        _chipsFiltros(),
         SizedBox(
           height: 46,
           child: ListView(
@@ -228,7 +324,17 @@ class _CatalogoTabState extends State<CatalogoTab> {
               }
               if (s.hasError) return Center(child: Text('Error: ${s.error}'));
               final l = s.data!;
-              if (l.isEmpty) return const Center(child: Text('Sin resultados'));
+              if (l.isEmpty) {
+                return Center(
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    Text(_filtrosActivos > 0
+                        ? 'Sin resultados con estos filtros'
+                        : 'Sin resultados'),
+                    if (_filtrosActivos > 0)
+                      TextButton(onPressed: _quitarFiltros, child: const Text('QUITAR FILTROS')),
+                  ]),
+                );
+              }
               return ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                 itemCount: l.length,

@@ -4,6 +4,7 @@ import '../config/estados.dart';
 import '../config/theme.dart';
 import '../models/tratos.dart';
 import '../services/tratos_service.dart';
+import '../widgets/entradas.dart';
 
 /// Bandeja de propuestas de precio y apartados (RF-17, 18, 31, 32).
 /// [idVendedor] != null → lo que recibe el vendedor; null → lo que envié como comprador.
@@ -66,6 +67,7 @@ class _TratosScreenState extends State<TratosScreen> {
           controller: c,
           autofocus: true,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: Entradas.formatoDinero,
           style: const TextStyle(color: Colors.black),
           decoration: InputDecoration(
               hintText: p.precioRef == null ? 'Monto en pesos' : 'Monto (precio: \$${p.precioRef})'),
@@ -76,9 +78,9 @@ class _TratosScreenState extends State<TratosScreen> {
         ],
       ),
     );
-    final monto = num.tryParse(c.text.trim().replaceAll(',', '.'));
     if (ok != true) return;
-    if (monto == null || monto < 0) return _msg('Escribe un monto válido');
+    final monto = Entradas.leerDinero(c.text);
+    if (monto == null || monto <= 0) return _msg('Escribe un monto válido (solo números, mayor a 0)');
     await _hacer(() => _svc.contraofertar(p.id, monto), 'Contraoferta enviada');
   }
 

@@ -15,9 +15,10 @@ class Enums {
   static const anuncioAbierto = 'abierto';
   static const anuncioCerrado = 'cerrado';
 
-  // reportes.tipo_objetivo
+  // reportes.tipo_objetivo (mismos valores que interpreta el panel de admin)
   static const repPerfil = 'perfil';
-  static const repPublicacion = 'publicacion';
+  static const repProducto = 'producto';
+  static const repAnuncioEspacio = 'anuncio_espacio';
   static const repMensaje = 'mensaje';
-  static const repValoracion = 'valoracion';
+  static const repCalificacion = 'calificacion';
 }

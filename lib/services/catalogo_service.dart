@@ -9,7 +9,7 @@ class CatalogoService {
   final _db = Supabase.instance.client;
 
   static const _select =
-      '*, categorias(nombre), puestos(nombre, estado), producto_imagenes(ruta_storage, orden)';
+      '*, categorias(nombre), puestos!productos_id_puesto_fkey(nombre, estado), producto_imagenes(ruta_storage, orden)';
 
   Future<List<Map<String, dynamic>>> categorias() =>
       _db.from('categorias').select().eq('activa', true).order('nombre');

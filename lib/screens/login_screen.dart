@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../widgets/fondo.dart';
 import '../services/auth_service.dart';
+import '../widgets/entradas.dart';
 
 /// RF-01, RF-02, RF-03, RF-40.
 /// Correo -> código de un solo uso. Es la única vía de acceso con correo.
@@ -26,11 +27,16 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
 
   Future<void> _enviar() async {
-    if (_correo.text.trim().isEmpty) return _msg('Escribe tu correo');
+    if (!Entradas.correoValido(_correo.text)) return _msg('Escribe un correo válido');
+    final nombre = _nombre.text.trim();
+    if (nombre.isNotEmpty) {
+      final errNombre = Entradas.errorNombre(nombre);
+      if (errNombre != null) return _msg(errNombre);
+    }
     if (!_acepta) return _msg('Debes aceptar las condiciones de uso y el aviso de privacidad');
     setState(() => _cargando = true);
     try {
-      await _auth.enviarCodigo(_correo.text, nombre: _nombre.text.isEmpty ? null : _nombre.text);
+      await _auth.enviarCodigo(_correo.text, nombre: nombre.isEmpty ? null : nombre);
       setState(() => _codigoEnviado = true);
     } catch (e) {
       _msg('No se pudo enviar el código: $e');
@@ -40,6 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _verificar() async {
+    if (_codigo.text.trim().length < 6) return _msg('Escribe el código que llegó a tu correo');
     setState(() => _cargando = true);
     try {
       await _auth.verificarCodigo(_correo.text, _codigo.text);
@@ -76,12 +83,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextField(
                   controller: _correo,
                   keyboardType: TextInputType.emailAddress,
+                  inputFormatters: Entradas.formatoCorreo,
                   style: _negro,
                   decoration: const InputDecoration(hintText: 'Correo electrónico'),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _nombre,
+                  inputFormatters: Entradas.formatoNombre,
                   style: _negro,
                   decoration: const InputDecoration(hintText: 'Nombre público (solo si eres nuevo)'),
                 ),
@@ -103,6 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextField(
                   controller: _codigo,
                   keyboardType: TextInputType.number,
+                  inputFormatters: Entradas.formatoCodigoOtp,
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.black, fontSize: 24, letterSpacing: 6),
                   decoration: const InputDecoration(hintText: '000000'),

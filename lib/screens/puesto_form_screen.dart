@@ -5,6 +5,7 @@ import '../config/theme.dart';
 import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
 import '../services/vendedor_service.dart';
+import '../widgets/entradas.dart';
 
 /// RF-20 / RF-27: crear o editar un puesto (nombre, descripción, foto).
 /// Si [puesto] viene, se edita; si no, se crea uno nuevo.
@@ -124,6 +125,7 @@ class _PuestoFormScreenState extends State<PuestoFormScreen> {
         TextField(
             controller: _nombre,
             style: _negro,
+            inputFormatters: Entradas.texto(60),
             textCapitalization: TextCapitalization.sentences,
             decoration: const InputDecoration(hintText: 'Nombre del puesto')),
         const SizedBox(height: 10),
@@ -137,6 +139,7 @@ class _PuestoFormScreenState extends State<PuestoFormScreen> {
         TextField(
             controller: _codigo,
             style: _negro,
+            inputFormatters: Entradas.texto(10),
             decoration: const InputDecoration(hintText: 'Número o letra de tu lugar (opcional)')),
         const SizedBox(height: 10),
         if (_edita)

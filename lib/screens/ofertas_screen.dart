@@ -4,6 +4,7 @@ import '../config/theme.dart';
 import '../models/modelos.dart';
 import '../models/tratos.dart';
 import '../services/vendedor_service.dart';
+import '../widgets/entradas.dart';
 
 /// RF-29 / RF-30: ofertas relámpago del vendedor.
 class OfertasScreen extends StatefulWidget {
@@ -203,14 +204,16 @@ class _OfertaFormScreenState extends State<OfertaFormScreen> {
 
     final items = <({String idProducto, num? precioPromo, num? descuento})>[];
     for (final p in _productos.where((p) => _valores.containsKey(p.id))) {
-      final txt = _valores[p.id]!.text.trim().replaceAll(',', '.');
-      final v = num.tryParse(txt);
-      if (v == null) return _msg('Escribe el ${_porcentaje ? 'descuento' : 'precio'} de "${p.nombre}"');
+      final txt = _valores[p.id]!.text.trim();
+      final v = _porcentaje ? Entradas.leerPorcentaje(txt) : Entradas.leerDinero(txt);
+      if (v == null) {
+        return _msg('Escribe un ${_porcentaje ? 'descuento' : 'precio'} válido (solo números) para "${p.nombre}"');
+      }
       if (_porcentaje) {
         if (v <= 0 || v > 100) return _msg('El descuento de "${p.nombre}" debe ser de 1 a 100%');
         items.add((idProducto: p.id, precioPromo: null, descuento: v));
       } else {
-        if (v < 0) return _msg('Precio no válido en "${p.nombre}"');
+        if (v <= 0) return _msg('El precio de "${p.nombre}" debe ser mayor a 0');
         if (p.precio != null && v >= p.precio!) {
           return _msg('El precio de oferta de "${p.nombre}" debe ser menor a \$${p.precio}');
         }
@@ -238,6 +241,7 @@ class _OfertaFormScreenState extends State<OfertaFormScreen> {
                 TextField(
                   controller: _titulo,
                   style: _negro,
+                  inputFormatters: Entradas.texto(60),
                   textCapitalization: TextCapitalization.sentences,
                   decoration: const InputDecoration(hintText: 'Título: Todo a mitad de precio…'),
                 ),
@@ -289,6 +293,8 @@ class _OfertaFormScreenState extends State<OfertaFormScreen> {
                         controller: _valores[p.id],
                         style: _negro,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters:
+                            _porcentaje ? Entradas.formatoPorcentaje : Entradas.formatoDinero,
                         decoration: InputDecoration(
                             hintText: _porcentaje ? '% de descuento (1 a 100)' : 'Precio de oferta en pesos'),
                       ),

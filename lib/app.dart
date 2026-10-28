@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/theme.dart';
 import 'screens/acceso_screen.dart';
+import 'screens/admin_home_screen.dart';
 import 'screens/bienvenida_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
@@ -33,24 +34,82 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   bool _revisarTerminos = Supabase.instance.client.auth.currentSession != null;
+  final Future<void> _carga = AuthService.cargarSesionOculta();
 
   @override
   Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: _carga,
+      builder: (context, s) {
+        if (s.connectionState != ConnectionState.done) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        return ValueListenableBuilder<String?>(
+          valueListenable: AuthService.sesionOculta,
+          builder: (context, oculta, _) => ValueListenableBuilder<bool>(
+            valueListenable: AuthService.entrandoAdmin,
+            builder: (context, entrandoAdmin, _) => _contenido(entrandoAdmin, oculta != null),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _contenido(bool entrandoAdmin, bool sesionOculta) {
     return StreamBuilder<AuthState>(
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, _) {
         final sesion = Supabase.instance.client.auth.currentSession;
-        if (sesion == null) {
+        // Sin sesión, o con la sesión anónima "cerrada" en este teléfono.
+        if (sesion == null || sesionOculta) {
           _revisarTerminos = false;
           return const _Entrada();
+        }
+        // Validando el acceso de administrador: no mostrar la app de comprador.
+        if (entrandoAdmin) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
         // La llave por usuario reinicia las pestañas si cambia de usuario
         // (al verificar el correo el id NO cambia, así que no se reinicia).
         final home = HomeScreen(key: ValueKey(sesion.user.id));
-        if (!_revisarTerminos) return home;
-        return _PuertaTerminos(
-          key: ValueKey('terminos-${sesion.user.id}'),
-          child: home,
+        final Widget destino = !_revisarTerminos
+            ? home
+            : _PuertaTerminos(key: ValueKey('terminos-${sesion.user.id}'), child: home);
+        return _PuertaRol(key: ValueKey('rol-${sesion.user.id}'), usuario: destino);
+      },
+    );
+  }
+}
+
+/// Administradores -> panel de administración; los demás -> la app de usuario.
+class _PuertaRol extends StatefulWidget {
+  final Widget usuario;
+  const _PuertaRol({super.key, required this.usuario});
+  @override
+  State<_PuertaRol> createState() => _PuertaRolState();
+}
+
+class _PuertaRolState extends State<_PuertaRol> {
+  int _version = -1;
+  Future<bool>? _futuro;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: AuthService.cambioRol,
+      builder: (_, v, __) {
+        if (v != _version || _futuro == null) {
+          _version = v;
+          _futuro = AuthService().esAdmin();
+        }
+        return FutureBuilder<bool>(
+          future: _futuro,
+          builder: (_, s) {
+            if (s.connectionState != ConnectionState.done) {
+              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            }
+            return s.data == true ? const AdminHomeScreen() : widget.usuario;
+          },
         );
       },
     );
@@ -89,7 +148,9 @@ class _PuertaTerminosState extends State<_PuertaTerminos> {
         if (pendientes.isEmpty) return widget.child;
         return TerminosScreen(
           pendientes: pendientes,
-          onAceptado: () => setState(() => _futuro = _consultar()),
+          onAceptado: () => setState(() {
+            _futuro = _consultar();
+          }),
         );
       },
     );

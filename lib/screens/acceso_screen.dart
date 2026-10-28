@@ -3,6 +3,8 @@ import '../config/theme.dart';
 import '../services/auth_service.dart';
 import '../widgets/fondo.dart';
 import '../widgets/pincel.dart';
+import 'admin_entrada_screen.dart';
+import '../widgets/entradas.dart';
 
 /// RF-01 / RF-40: entrar SIN iniciar sesión. Solo se elige un nombre público.
 class AccesoScreen extends StatefulWidget {
@@ -25,7 +27,25 @@ class _AccesoScreenState extends State<AccesoScreen> {
   Future<void> _entrar() async {
     final n = _nombre.text.trim();
     if (n.isEmpty) return _msg('Elige un nombre de usuario');
+    final errNombre = Entradas.errorNombre(n);
+    if (errNombre != null) return _msg(errNombre);
     if (!_acepta) return _msg('Debes aceptar las condiciones de uso y el aviso de privacidad');
+    final oculta = AuthService.sesionOculta.value;
+    if (oculta != null && oculta.toLowerCase() != n.toLowerCase()) {
+      final seguir = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('¿Cerrar la cuenta anterior?'),
+          content: Text('En este teléfono sigue guardada la cuenta "$oculta". Si entras con '
+              'otro nombre, se cierra definitivamente y no podrás recuperarla.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCELAR')),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('CONTINUAR')),
+          ],
+        ),
+      );
+      if (seguir != true) return;
+    }
     setState(() {
       _cargando = true;
       _errorNombre = null;
@@ -75,6 +95,7 @@ class _AccesoScreenState extends State<AccesoScreen> {
                   TextField(
                     controller: _nombre,
                     maxLength: 30,
+                    inputFormatters: Entradas.formatoNombre,
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) => _entrar(),
                     style: const TextStyle(color: Colors.black),
@@ -96,8 +117,9 @@ class _AccesoScreenState extends State<AccesoScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Tu cuenta se guarda en este teléfono. Si borras la app perderás tus '
-                    'favoritos y mensajes, salvo que verifiques tu correo en el Perfil.',
+                    'Tu cuenta se guarda en este teléfono: si cierras sesión, escribe el mismo '
+                    'nombre para volver a entrar. Si borras la app perderás tus favoritos y '
+                    'mensajes, salvo que verifiques tu correo en el Perfil.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 12, color: Colors.white70),
                   ),
@@ -107,6 +129,14 @@ class _AccesoScreenState extends State<AccesoScreen> {
                   TextButton(
                     onPressed: _cargando ? null : widget.onTengoCuenta,
                     child: const Text('Ya tengo cuenta con correo'),
+                  ),
+                  TextButton(
+                    onPressed: _cargando
+                        ? null
+                        : () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const AdminEntradaScreen())),
+                    child: const Text('Acceso de administrador',
+                        style: TextStyle(fontSize: 12, color: Colors.white70)),
                   ),
                 ]),
               ),

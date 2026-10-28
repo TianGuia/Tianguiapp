@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../services/catalogo_service.dart';
 import '../services/vendedor_service.dart';
+import '../widgets/entradas.dart';
 
 /// RF-21 y RF-22: horario habitual y ausencias programadas del vendedor.
 class HorariosScreen extends StatefulWidget {
@@ -125,7 +126,7 @@ class _HorariosScreenState extends State<HorariosScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Motivo (opcional)'),
-        content: TextField(controller: motivo, decoration: const InputDecoration(hintText: 'Vacaciones, lluvia…')),
+        content: TextField(controller: motivo, maxLength: 80, decoration: const InputDecoration(hintText: 'Vacaciones, lluvia…')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
           FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Guardar')),

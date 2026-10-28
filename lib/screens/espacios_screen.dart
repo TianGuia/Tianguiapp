@@ -5,7 +5,9 @@ import '../config/theme.dart';
 import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
 import '../services/chat_service.dart';
+import '../widgets/moderacion.dart';
 import 'chat_screen.dart';
+import '../widgets/entradas.dart';
 
 /// RF-33 a RF-36: anuncios de espacios (renta, préstamo o traspaso) entre vendedores.
 class EspaciosScreen extends StatefulWidget {
@@ -62,6 +64,17 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
     }
   }
 
+  /// RF-44: reportar un anuncio de espacio.
+  Future<void> _reportar(Map<String, dynamic> a) async {
+    final dueno = (a['perfiles_vendedor'] as Map?)?['id_usuario'] as String?;
+    await reportarContenido(
+      context,
+      tipoObjetivo: TipoReporte.anuncioEspacio,
+      idObjetivo: a['id'] as String,
+      idUsuarioReportado: dueno,
+    );
+  }
+
   /// RF-33 (nuevo) y RF-36 (editar).
   Future<void> _formulario({Map<String, dynamic>? anuncio}) async {
     if (_tianguis.isEmpty) {
@@ -102,7 +115,7 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
                 onChanged: (v) => set(() => idT = v ?? idT),
               ),
               TextField(controller: titulo, maxLength: 80, decoration: const InputDecoration(hintText: 'Título')),
-              TextField(controller: desc, maxLines: 3, decoration: const InputDecoration(hintText: 'Detalles (opcional)')),
+              TextField(controller: desc, maxLines: 3, maxLength: 300, decoration: const InputDecoration(hintText: 'Detalles (opcional)')),
             ]),
           ),
           actions: [
@@ -212,11 +225,19 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
                                   PopupMenuItem(value: 'cerrar', child: Text('Cerrar anuncio')),
                                 ],
                               )
-                            : IconButton(
-                                icon: const Icon(Icons.chat_bubble_outline),
-                                tooltip: 'Contactar',
-                                onPressed: () => _contactar(a),
-                              ),
+                            : Row(mainAxisSize: MainAxisSize.min, children: [
+                                IconButton(
+                                  icon: const Icon(Icons.chat_bubble_outline),
+                                  tooltip: 'Contactar',
+                                  onPressed: () => _contactar(a),
+                                ),
+                                PopupMenuButton<String>(
+                                  onSelected: (_) => _reportar(a),
+                                  itemBuilder: (_) => const [
+                                    PopupMenuItem(value: 'reportar', child: Text('Reportar anuncio')),
+                                  ],
+                                ),
+                              ]),
                       ),
                     );
                   },

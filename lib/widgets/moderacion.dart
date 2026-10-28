@@ -6,9 +6,10 @@ import '../services/chat_service.dart';
 /// Valores de `reportes.tipo_objetivo` (ver lib/config/enums.dart).
 class TipoReporte {
   static const perfil = Enums.repPerfil;
-  static const publicacion = Enums.repPublicacion;
+  static const producto = Enums.repProducto;
+  static const anuncioEspacio = Enums.repAnuncioEspacio;
   static const mensaje = Enums.repMensaje;
-  static const valoracion = Enums.repValoracion;
+  static const calificacion = Enums.repCalificacion;
 }
 
 /// RF-44: pide un motivo y registra el reporte.

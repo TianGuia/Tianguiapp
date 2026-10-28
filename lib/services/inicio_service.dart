@@ -94,7 +94,7 @@ class InicioService {
   Future<List<Producto>> productosDePuesto(String idPuesto) async {
     final r = await _db
         .from('productos')
-        .select('*, categorias(nombre), puestos(nombre, estado), producto_imagenes(id, ruta_storage, orden)')
+        .select('*, categorias(nombre), puestos!productos_id_puesto_fkey(nombre, estado), producto_imagenes(id, ruta_storage, orden)')
         .eq('id_puesto', idPuesto)
         .eq('activo', true)
         .eq('moderado', false)

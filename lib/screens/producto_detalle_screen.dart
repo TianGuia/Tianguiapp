@@ -6,6 +6,8 @@ import '../services/catalogo_service.dart';
 import '../models/tratos.dart';
 import '../services/chat_service.dart';
 import '../services/favoritos_cambios.dart';
+import '../widgets/moderacion.dart';
+import '../widgets/entradas.dart';
 import '../widgets/ubicacion_producto.dart';
 import 'chat_screen.dart';
 
@@ -77,6 +79,26 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
     if (mounted) setState(() => _ocupado = false);
   }
 
+  /// RF-44: reportar la publicación (el reporte apunta al dueño del producto).
+  Future<void> _reportar() async {
+    try {
+      final uidV = await _cat.usuarioDeVendedor(p.idVendedor);
+      if (uidV == null) throw 'Vendedor no encontrado';
+      if (uidV == Supabase.instance.client.auth.currentUser!.id) {
+        throw 'Este producto es tuyo';
+      }
+      if (!mounted) return;
+      await reportarContenido(
+        context,
+        tipoObjetivo: TipoReporte.producto,
+        idObjetivo: p.id,
+        idUsuarioReportado: uidV,
+      );
+    } catch (e) {
+      if (mounted) _msg('$e');
+    }
+  }
+
   Future<void> _proponer() async {
     final c = TextEditingController();
     final ok = await showDialog<bool>(
@@ -85,7 +107,8 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
         title: const Text('Proponer precio'),
         content: TextField(
           controller: c,
-          keyboardType: TextInputType.number,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: Entradas.formatoDinero,
           style: const TextStyle(color: Colors.black),
           decoration: const InputDecoration(hintText: 'Monto en pesos'),
         ),
@@ -95,8 +118,9 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
         ],
       ),
     );
-    final monto = num.tryParse(c.text);
-    if (ok != true || monto == null || !mounted) return;
+    if (ok != true || !mounted) return;
+    final monto = Entradas.leerDinero(c.text);
+    if (monto == null || monto <= 0) return _msg('Escribe un monto válido (solo números, mayor a 0)');
     await _run(
       () => _chat.proponerPrecio(idProducto: p.id, idVendedor: p.idVendedor, monto: monto),
       'Propuesta enviada',
@@ -118,6 +142,12 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
                   if (mounted) _msg('Error: $e');
                 }
               },
+            ),
+            PopupMenuButton<String>(
+              onSelected: (_) => _reportar(),
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'reportar', child: Text('Reportar publicación')),
+              ],
             ),
           ],
         ),

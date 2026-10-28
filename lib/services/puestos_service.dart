@@ -22,6 +22,22 @@ class PuestosService {
       await _db.rpc('confirmar_visita', params: {'p_codigo': codigo.trim()})
           as String;
 
+  /// RF-42: etiquetas descriptivas que el comprador puede elegir al calificar.
+  /// Si la columna `activa` no existe o la lectura falla, devuelve lista vacía
+  /// y la calificación sigue funcionando solo con estrellas y comentario.
+  Future<List<Map<String, dynamic>>> etiquetasValoracion() async {
+    try {
+      final r = await _db
+          .from('etiquetas_valoracion')
+          .select('id, nombre')
+          .eq('activa', true)
+          .order('nombre');
+      return List<Map<String, dynamic>>.from(r);
+    } catch (_) {
+      return const [];
+    }
+  }
+
   /// RF-42: calificar una visita verificada. El trigger calificacion_desde_visita
   /// completa id_puesto e id_vendedor.
   Future<void> calificar({

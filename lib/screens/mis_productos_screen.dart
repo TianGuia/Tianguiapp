@@ -5,6 +5,7 @@ import '../config/theme.dart';
 import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
 import '../services/vendedor_service.dart';
+import '../widgets/entradas.dart';
 
 /// RF-23 a RF-26: catálogo del vendedor con stock, fotos, edición y retiro.
 class MisProductosScreen extends StatefulWidget {
@@ -218,13 +219,15 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
 
   Future<void> _guardar() async {
     if (_nombre.text.trim().isEmpty) return _msg('Escribe el nombre del producto');
-    final precioTxt = _precio.text.trim().replaceAll(',', '.');
-    final precio = precioTxt.isEmpty ? null : num.tryParse(precioTxt);
-    if (precioTxt.isNotEmpty && (precio == null || precio < 0)) return _msg('Precio no válido');
+    final precioTxt = _precio.text.trim();
+    final precio = precioTxt.isEmpty ? null : Entradas.leerDinero(precioTxt);
+    if (precioTxt.isNotEmpty && (precio == null || precio <= 0)) {
+      return _msg('Precio no válido. Usa solo números, por ejemplo 150 o 150.50');
+    }
     final cantTxt = _cant.text.trim();
-    final cantidad = cantTxt.isEmpty ? null : int.tryParse(cantTxt);
-    if (cantTxt.isNotEmpty && (cantidad == null || cantidad < 0)) {
-      return _msg('La cantidad debe ser 0 o más');
+    final cantidad = cantTxt.isEmpty ? null : Entradas.leerEntero(cantTxt);
+    if (cantTxt.isNotEmpty && cantidad == null) {
+      return _msg('La cantidad debe ser un número entero de 0 a 99999');
     }
     final desc = _desc.text.trim().isEmpty ? null : _desc.text.trim();
     final disponible = _disponible && (cantidad == null || cantidad > 0);
@@ -346,15 +349,25 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
           ]),
         ),
         const SizedBox(height: 12),
-        TextField(controller: _nombre, style: _negro, decoration: const InputDecoration(hintText: 'Nombre')),
+        TextField(
+            controller: _nombre,
+            style: _negro,
+            inputFormatters: Entradas.texto(80),
+            decoration: const InputDecoration(hintText: 'Nombre')),
         const SizedBox(height: 10),
-        TextField(controller: _desc, style: _negro, maxLines: 3, decoration: const InputDecoration(hintText: 'Descripción')),
+        TextField(
+            controller: _desc,
+            style: _negro,
+            maxLines: 3,
+            maxLength: 500,
+            decoration: const InputDecoration(hintText: 'Descripción')),
         const SizedBox(height: 10),
         Row(children: [
           Expanded(
             child: TextField(
               controller: _precio, style: _negro,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: Entradas.formatoDinero,
               decoration: const InputDecoration(hintText: 'Precio'),
             ),
           ),
@@ -362,6 +375,7 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
           Expanded(
             child: TextField(
               controller: _cant, style: _negro, keyboardType: TextInputType.number,
+              inputFormatters: Entradas.formatoEntero(5),
               decoration: const InputDecoration(hintText: 'Cantidad'),
             ),
           ),

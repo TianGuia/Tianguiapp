@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../services/puestos_service.dart';
+import 'entradas.dart';
 
 const _negro = TextStyle(color: Colors.black);
 
@@ -19,6 +20,7 @@ Future<void> confirmarVisita(BuildContext context) async {
       content: TextField(
         controller: c,
         keyboardType: TextInputType.number,
+        inputFormatters: Entradas.formatoCodigoVisita,
         style: _negro,
         decoration: const InputDecoration(hintText: 'Código que te muestra el vendedor'),
       ),
@@ -42,25 +44,49 @@ Future<void> confirmarVisita(BuildContext context) async {
 Future<void> _calificar(BuildContext context, PuestosService svc, String idVisita) async {
   int estrellas = 5;
   final com = TextEditingController();
+  final etiquetas = await svc.etiquetasValoracion();
+  if (!context.mounted) return;
+  final elegidas = <String>{};
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, set) => AlertDialog(
         title: const Text('Califica tu visita'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            for (var i = 1; i <= 5; i++)
-              IconButton(
-                icon: Icon(i <= estrellas ? Icons.star : Icons.star_border,
-                    color: Tg.amarillo, size: 32),
-                onPressed: () => set(() => estrellas = i),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              for (var i = 1; i <= 5; i++)
+                IconButton(
+                  icon: Icon(i <= estrellas ? Icons.star : Icons.star_border,
+                      color: Tg.amarillo, size: 32),
+                  onPressed: () => set(() => estrellas = i),
+                ),
+            ]),
+            if (etiquetas.isNotEmpty) ...[
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text('¿Cómo fue? (opcional)'),
               ),
+              const SizedBox(height: 6),
+              Wrap(spacing: 6, runSpacing: 6, children: [
+                for (final e in etiquetas)
+                  FilterChip(
+                    label: Text('${e['nombre']}'),
+                    selected: elegidas.contains(e['id']),
+                    onSelected: (v) => set(() {
+                      v ? elegidas.add(e['id'] as String) : elegidas.remove(e['id']);
+                    }),
+                  ),
+              ]),
+              const SizedBox(height: 10),
+            ],
+            TextField(
+                controller: com,
+                style: _negro,
+                inputFormatters: Entradas.texto(300),
+                decoration: const InputDecoration(hintText: 'Comentario (opcional)')),
           ]),
-          TextField(
-              controller: com,
-              style: _negro,
-              decoration: const InputDecoration(hintText: 'Comentario (opcional)')),
-        ]),
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Después')),
           TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Enviar')),
@@ -74,6 +100,7 @@ Future<void> _calificar(BuildContext context, PuestosService svc, String idVisit
       idVisita: idVisita,
       puntuacion: estrellas,
       comentario: com.text.trim().isEmpty ? null : com.text.trim(),
+      idEtiquetas: elegidas.toList(),
     );
     if (context.mounted) _msg(context, 'Gracias por calificar');
   } catch (e) {

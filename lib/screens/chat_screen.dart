@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/theme.dart';
 import '../services/chat_service.dart';
 import '../widgets/moderacion.dart';
+import '../widgets/entradas.dart';
 
 /// RF-37: mensajes en tiempo real entre los dos participantes.
 class ChatScreen extends StatefulWidget {
@@ -42,6 +43,18 @@ class _ChatScreenState extends State<ChatScreen> {
       tipoObjetivo: TipoReporte.perfil,
       idObjetivo: otro,
       idUsuarioReportado: otro,
+    );
+  }
+
+  /// RF-44: reportar un mensaje recibido.
+  Future<void> _reportarMensaje(Map<String, dynamic> m) async {
+    final id = m['id'];
+    if (id == null) return;
+    await reportarContenido(
+      context,
+      tipoObjetivo: TipoReporte.mensaje,
+      idObjetivo: '$id',
+      idUsuarioReportado: m['id_remitente'] as String?,
     );
   }
 
@@ -113,19 +126,35 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemBuilder: (_, i) {
                     final m = l[i];
                     final mio = m['id_remitente'] == _yo;
+                    final burbuja = Container(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.70),
+                      decoration: BoxDecoration(
+                        color: mio ? Tg.amarillo : Tg.azulOscuro,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(m['contenido'],
+                          style: TextStyle(color: mio ? Tg.azulOscuro : Colors.white)),
+                    );
                     return Align(
                       alignment: mio ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-                        decoration: BoxDecoration(
-                          color: mio ? Tg.amarillo : Tg.azulOscuro,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(m['contenido'],
-                            style: TextStyle(color: mio ? Tg.azulOscuro : Colors.white)),
-                      ),
+                      child: mio
+                          ? burbuja
+                          : GestureDetector(
+                              onLongPress: () => _reportarMensaje(m),
+                              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                Flexible(child: burbuja),
+                                IconButton(
+                                  tooltip: 'Reportar mensaje',
+                                  visualDensity: VisualDensity.compact,
+                                  iconSize: 18,
+                                  color: Colors.white38,
+                                  icon: const Icon(Icons.flag_outlined),
+                                  onPressed: () => _reportarMensaje(m),
+                                ),
+                              ]),
+                            ),
                     );
                   },
                 );
@@ -148,6 +177,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: TextField(
                     controller: _txt,
+                    inputFormatters: Entradas.texto(1000),
                     style: const TextStyle(color: Colors.black),
                     onSubmitted: (_) => _enviar(),
                     decoration: const InputDecoration(hintText: 'Escribe un mensaje…'),

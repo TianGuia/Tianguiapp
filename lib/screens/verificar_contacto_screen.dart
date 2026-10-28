@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../widgets/fondo.dart';
+import '../widgets/entradas.dart';
 
 /// RF-02 / RF-19: verifica el correo y lo liga a la cuenta anónima actual.
 /// Hace pop(true) cuando la cuenta quedó verificada.
@@ -21,7 +22,7 @@ class _VerificarContactoScreenState extends State<VerificarContactoScreen> {
 
   Future<void> _enviar() async {
     final c = _correo.text.trim();
-    if (!c.contains('@')) return _msg('Escribe un correo válido');
+    if (!Entradas.correoValido(c)) return _msg('Escribe un correo válido');
     setState(() => _cargando = true);
     try {
       await _auth.enviarCodigoVinculacion(c);
@@ -37,6 +38,7 @@ class _VerificarContactoScreenState extends State<VerificarContactoScreen> {
   }
 
   Future<void> _confirmar() async {
+    if (_codigo.text.trim().length < 6) return _msg('Escribe el código que llegó a tu correo');
     setState(() => _cargando = true);
     try {
       await _auth.confirmarVinculacion(_correo.text, _codigo.text);
@@ -80,6 +82,7 @@ class _VerificarContactoScreenState extends State<VerificarContactoScreen> {
                   TextField(
                     controller: _correo,
                     keyboardType: TextInputType.emailAddress,
+                    inputFormatters: Entradas.formatoCorreo,
                     style: const TextStyle(color: Colors.black),
                     decoration: const InputDecoration(hintText: 'Correo electrónico'),
                   ),
@@ -94,6 +97,7 @@ class _VerificarContactoScreenState extends State<VerificarContactoScreen> {
                   TextField(
                     controller: _codigo,
                     keyboardType: TextInputType.number,
+                    inputFormatters: Entradas.formatoCodigoOtp,
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: Colors.black, fontSize: 24, letterSpacing: 6),
                     decoration: const InputDecoration(hintText: '000000'),

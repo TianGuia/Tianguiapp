@@ -19,7 +19,7 @@ class _ValoracionesScreenState extends State<ValoracionesScreen> {
   Future<List<Map<String, dynamic>>> _cargar() async {
     final r = await _db
         .from('calificaciones')
-        .select('id, puntuacion, comentario, creada_en, puestos(nombre), '
+        .select('id, id_usuario, puntuacion, comentario, creada_en, puestos(nombre), '
             'calificacion_etiquetas(etiquetas_valoracion(nombre))')
         .eq('id_vendedor', widget.idVendedor)
         .eq('moderado', false)
@@ -67,13 +67,21 @@ class _ValoracionesScreenState extends State<ValoracionesScreen> {
                           padding: const EdgeInsets.only(top: 8),
                           child: Wrap(spacing: 6, children: [for (final e in _etiquetas(c)) Chip(label: Text(e))]),
                         ),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
+                      Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                        TextButton(
+                          onPressed: () => reportarContenido(
+                            context,
+                            tipoObjetivo: TipoReporte.calificacion,
+                            idObjetivo: c['id'] as String,
+                            idUsuarioReportado: c['id_usuario'] as String?,
+                          ),
+                          child: const Text('Reportar'),
+                        ),
+                        TextButton(
                           onPressed: () => solicitarRevision(context, idCalificacion: c['id'] as String),
                           child: const Text('Solicitar revisión'),
                         ),
-                      ),
+                      ]),
                     ]),
                   ),
                 ),

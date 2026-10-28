@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/theme.dart';
 import '../services/auth_service.dart';
 import '../widgets/fondo.dart';
+import '../widgets/entradas.dart';
 
 /// RF-05: consultar y modificar el perfil básico (nombre público y fotografía).
 class EditarPerfilScreen extends StatefulWidget {
@@ -63,7 +64,11 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
   Future<void> _guardar() async {
     final n = _nombre.text.trim();
     final tel = _telefono.text.trim();
-    if (n.isEmpty) return setState(() => _errorNombre = 'Escribe un nombre');
+    final errNombre = Entradas.errorNombre(n);
+    if (errNombre != null) return setState(() => _errorNombre = errNombre);
+    if (tel.isNotEmpty && !Entradas.telefonoValido(tel)) {
+      return _msg('Teléfono no válido. Escribe de 10 a 15 dígitos');
+    }
     setState(() {
       _guardando = true;
       _errorNombre = null;
@@ -137,6 +142,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
                 TextField(
                   controller: _nombre,
                   maxLength: 30,
+                  inputFormatters: Entradas.formatoNombre,
                   style: negro,
                   onChanged: (_) {
                     if (_errorNombre != null) setState(() => _errorNombre = null);
@@ -151,6 +157,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
                 TextField(
                   controller: _telefono,
                   keyboardType: TextInputType.phone,
+                  inputFormatters: Entradas.formatoTelefono,
                   style: negro,
                   decoration: const InputDecoration(hintText: 'Teléfono (opcional)'),
                 ),
