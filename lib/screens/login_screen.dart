@@ -3,6 +3,7 @@ import '../config/theme.dart';
 import '../widgets/fondo.dart';
 import '../services/auth_service.dart';
 import '../widgets/entradas.dart';
+import '../widgets/enlaces_legales.dart';
 
 /// RF-01, RF-02, RF-03, RF-40.
 /// Correo -> código de un solo uso. Es la única vía de acceso con correo.
@@ -49,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_codigo.text.trim().length < 6) return _msg('Escribe el código que llegó a tu correo');
     setState(() => _cargando = true);
     try {
-      await _auth.verificarCodigo(_correo.text, _codigo.text);
+      await _auth.iniciarSesion(_correo.text, _codigo.text);
       await _auth.aceptarTerminosVigentes();
     } catch (e) {
       _msg('Código incorrecto o vencido: $e');
@@ -71,12 +72,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(30),
-                    child: Image.asset('assets/images/logo.png', width: 150, height: 150),
+                    child: Image.asset('assets/images/icono_app.png', width: 150, height: 150),
                   ),
                   const SizedBox(height: 10),
                   Transform.rotate(
                     angle: -0.05,
-                    child: Text('COMIDA, ANTOJITOS Y MÁS…', style: Tg.marcador(15)),
+                    child: Text('VÁMONOS DE TIANGUIS', style: Tg.marcador(15)),
                   ),
                   const SizedBox(height: 26),
               if (!_codigoEnviado) ...[
@@ -101,6 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   title: const Text('Acepto las condiciones de uso y el aviso de privacidad',
                       style: TextStyle(fontSize: 13)),
                 ),
+                const EnlacesLegales(),
                 const SizedBox(height: 8),
                 FilledButton(
                   onPressed: _cargando ? null : _enviar,

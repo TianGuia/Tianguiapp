@@ -67,7 +67,7 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
       final uidV = await _cat.usuarioDeVendedor(p.idVendedor);
       if (uidV == null) throw 'Vendedor no encontrado';
       if (uidV == Supabase.instance.client.auth.currentUser!.id) throw 'Este producto es tuyo';
-      final id = await _chat.conversacionDeProducto(p.id, uidV);
+      final id = await _chat.iniciarConversacion(idProducto: p.id, idUsuarioReceptor: uidV);
       if (!mounted) return;
       await Navigator.push(
         context,

@@ -31,7 +31,7 @@ class _MisProductosScreenState extends State<MisProductosScreen> {
   Future<void> _stock(Producto p, int delta) async {
     final n = ((p.cantidad ?? 0) + delta).clamp(0, 100000);
     try {
-      await _svc.actualizarProducto(p.id, {'cantidad_disponible': n, 'disponible': n > 0});
+      await _svc.actualizarStock(p.id, n);
       _recargar();
     } catch (e) {
       _msg('Error: $e');

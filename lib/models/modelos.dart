@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/supabase_config.dart';
+import '../services/puestos_service.dart';
+import '../services/vendedor_service.dart';
 
 class Tianguis {
   final String id, nombre;
@@ -12,6 +14,9 @@ class Tianguis {
         descripcion = m['descripcion'],
         lat = (m['latitud'] as num?)?.toDouble(),
         lng = (m['longitud'] as num?)?.toDouble();
+
+  /// RF-09 / RF-10: puestos abiertos de este tianguis con su última ubicación.
+  Future<List<Puesto>> consultarMapa() => PuestosService().consultarMapa(idTianguis: id);
 }
 
 class Puesto {
@@ -20,6 +25,12 @@ class Puesto {
   final double? lat, lng;
   final DateTime? fechaApertura, reabreEn;
   bool get abierto => estado == 'abierto';
+
+  /// RF-27 / RF-28: abre el puesto y registra la ubicación de la jornada.
+  Future<String> marcarAbierto() => VendedorService().marcarAbierto(id);
+
+  /// RF-27: cierra el puesto y termina la jornada.
+  Future<void> marcarCerrado() => VendedorService().marcarCerrado(id);
 
   Puesto.fromMap(Map<String, dynamic> m)
       : id = m['id'],
@@ -101,6 +112,31 @@ class Producto {
         puestoEstado = (m['puestos'] as Map?)?['estado'],
         fotos = _fotos(m['producto_imagenes']),
         imagenes = _urls(m['producto_imagenes']);
+
+  /// RF-23
+  static Future<String> crearProducto({
+    required String idVendedor,
+    String? idPuesto,
+    String? idCategoria,
+    required String nombre,
+    String? descripcion,
+    String estadoArticulo = 'nuevo',
+    num? precio,
+    int? cantidad,
+  }) =>
+      VendedorService().crearProducto(
+        idVendedor: idVendedor,
+        idPuesto: idPuesto,
+        idCategoria: idCategoria,
+        nombre: nombre,
+        descripcion: descripcion,
+        estadoArticulo: estadoArticulo,
+        precio: precio,
+        cantidad: cantidad,
+      );
+
+  /// RF-26
+  Future<void> actualizarStock(int cantidad) => VendedorService().actualizarStock(id, cantidad);
 
   static List<ImagenProducto> _fotos(dynamic filas) {
     if (filas is! List) return [];

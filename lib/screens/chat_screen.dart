@@ -85,7 +85,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (t.isEmpty) return;
     _txt.clear();
     try {
-      await _svc.enviar(widget.idConversacion, t);
+      await _svc.enviarMensaje(widget.idConversacion, t);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No se envió: $e')));

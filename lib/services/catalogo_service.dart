@@ -19,7 +19,13 @@ class CatalogoService {
     return r.map<Tianguis>(Tianguis.fromMap).toList();
   }
 
-  Future<List<Producto>> buscar({
+  /// RF-06: búsqueda por palabras clave y categoría.
+  Future<List<Producto>> buscarProductos({String? texto, String? idCategoria}) =>
+      filtrarProductos(texto: texto, idCategoria: idCategoria);
+
+  /// RF-07: filtrado por tianguis, día de operación, categoría y rango de precio
+  /// (puede combinarse con la búsqueda por texto).
+  Future<List<Producto>> filtrarProductos({
     String? texto,
     String? idCategoria,
     String? idTianguis,
@@ -116,18 +122,16 @@ class CatalogoService {
   /// RF-29: oferta activa (no vencida) de un producto, con su precio final.
   Future<OfertaVigente?> ofertaVigente(String idProducto, num? precioRef) async {
     final r = await _db
-        .from('oferta_productos')
-        .select('precio_promocional, descuento_porcentaje, ofertas!inner(titulo, estado, fecha_fin)')
+        .from('ofertas')
+        .select('titulo, fecha_fin, precio_promocional, descuento')
         .eq('id_producto', idProducto)
-        .eq('ofertas.estado', Est.ofertaActiva)
-        .gt('ofertas.fecha_fin', DateTime.now().toUtc().toIso8601String())
+        .eq('estado', Est.ofertaActiva)
+        .gt('fecha_fin', DateTime.now().toUtc().toIso8601String())
         .limit(1);
     if ((r as List).isEmpty) return null;
-    final f = r.first;
-    final precio = precioPromo(
-        precioRef, f['precio_promocional'] as num?, f['descuento_porcentaje'] as num?);
+    final o = r.first;
+    final precio = precioPromo(precioRef, o['precio_promocional'] as num?, o['descuento'] as num?);
     if (precio == null) return null;
-    final o = f['ofertas'] as Map;
     return OfertaVigente(o['titulo'] as String?, DateTime.parse(o['fecha_fin']).toLocal(), precio);
   }
 }

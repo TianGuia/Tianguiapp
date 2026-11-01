@@ -5,6 +5,7 @@ import '../widgets/fondo.dart';
 import '../widgets/pincel.dart';
 import 'admin_entrada_screen.dart';
 import '../widgets/entradas.dart';
+import '../widgets/enlaces_legales.dart';
 
 /// RF-01 / RF-40: entrar SIN iniciar sesión. Solo se elige un nombre público.
 class AccesoScreen extends StatefulWidget {
@@ -51,7 +52,7 @@ class _AccesoScreenState extends State<AccesoScreen> {
       _errorNombre = null;
     });
     try {
-      await _auth.entrarAnonimo(n);
+      await _auth.registrar(n);
       // AuthGate detecta la sesión y muestra el Home.
     } on NombreEnUsoException {
       if (mounted) setState(() => _errorNombre = 'Este nombre de usuario ya existe, elige otro');
@@ -81,12 +82,12 @@ class _AccesoScreenState extends State<AccesoScreen> {
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(30),
-                    child: Image.asset('assets/images/logo.png', width: 150, height: 150),
+                    child: Image.asset('assets/images/icono_app.png', width: 150, height: 150),
                   ),
                   const SizedBox(height: 10),
                   Transform.rotate(
                     angle: -0.05,
-                    child: Text('COMIDA, ANTOJITOS Y MÁS…', style: Tg.marcador(15)),
+                    child: Text('VÁMONOS DE TIANGUIS', style: Tg.marcador(15)),
                   ),
                   const SizedBox(height: 26),
                   const Text('¿Cómo quieres que te llamemos?',
@@ -115,6 +116,7 @@ class _AccesoScreenState extends State<AccesoScreen> {
                     title: const Text('Acepto las condiciones de uso y el aviso de privacidad',
                         style: TextStyle(fontSize: 13)),
                   ),
+                  const EnlacesLegales(),
                   const SizedBox(height: 8),
                   const Text(
                     'Tu cuenta se guarda en este teléfono: si cierras sesión, escribe el mismo '

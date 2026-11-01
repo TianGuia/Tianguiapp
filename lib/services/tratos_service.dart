@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/estados.dart';
 import '../models/tratos.dart';
+import 'comprador_id.dart';
 
 /// RF-17, RF-18, RF-31, RF-32: propuestas de precio y apartados.
 /// Los cambios de estado pasan por funciones SQL (responder_propuesta,
@@ -10,11 +11,11 @@ class TratosService {
   String get _uid => _db.auth.currentUser!.id;
 
   static const _selProp = '*, productos(nombre, precio_referencia), '
-      'comprador:usuarios!propuestas_precio_id_comprador_fkey(nombre_publico), '
+      'comprador:compradores!propuestas_precio_id_comprador_fkey(usuarios(nombre_publico)), '
       'vendedor:perfiles_vendedor(nombre_negocio, usuarios(nombre_publico))';
 
   static const _selApart = '*, productos(nombre), '
-      'comprador:usuarios!apartados_id_comprador_fkey(nombre_publico), '
+      'comprador:compradores!apartados_id_comprador_fkey(usuarios(nombre_publico)), '
       'vendedor:perfiles_vendedor(nombre_negocio, usuarios(nombre_publico))';
 
   /// Marca como vencidos los apartados/ofertas pasados de fecha. Si no hay
@@ -30,7 +31,7 @@ class TratosService {
     final q = _db.from('propuestas_precio').select(_selProp);
     final r = await (idVendedor != null
             ? q.eq('id_vendedor', idVendedor)
-            : q.eq('id_comprador', _uid))
+            : q.eq('id_comprador', await miIdComprador()))
         .order('creada_en', ascending: false)
         .limit(80);
     return r.map<Propuesta>(Propuesta.fromMap).toList();
@@ -40,7 +41,7 @@ class TratosService {
     final q = _db.from('apartados').select(_selApart);
     final r = await (idVendedor != null
             ? q.eq('id_vendedor', idVendedor)
-            : q.eq('id_comprador', _uid))
+            : q.eq('id_comprador', await miIdComprador()))
         .order('creado_en', ascending: false)
         .limit(80);
     return r.map<Apartado>(Apartado.fromMap).toList();

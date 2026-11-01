@@ -20,12 +20,12 @@ class BienvenidaScreen extends StatelessWidget {
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(44),
-                  child: Image.asset('assets/images/logo.png', width: 280, height: 280),
+                  child: Image.asset('assets/images/icono_app.png', width: 280, height: 280),
                 ),
                 const SizedBox(height: 20),
                 Transform.rotate(
                   angle: -0.1,
-                  child: Text('COMIDA, ANTOJITOS\nY MÁS…',
+                  child: Text('VÁMONOS\nDE TIANGUIS',
                       textAlign: TextAlign.center,
                       style: Tg.marcador(22)),
                 ),

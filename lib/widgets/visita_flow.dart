@@ -96,7 +96,7 @@ Future<void> _calificar(BuildContext context, PuestosService svc, String idVisit
   );
   if (ok != true || !context.mounted) return;
   try {
-    await svc.calificar(
+    await svc.registrarCalificacion(
       idVisita: idVisita,
       puntuacion: estrellas,
       comentario: com.text.trim().isEmpty ? null : com.text.trim(),

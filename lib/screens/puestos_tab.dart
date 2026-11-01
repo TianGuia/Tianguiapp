@@ -27,7 +27,7 @@ class _PuestosTabState extends State<PuestosTab> {
   late bool _mapa = widget.iniciaEnMapa;
   bool _favTianguis = false;
   final _inicio = InicioService();
-  late Future<List<Puesto>> _futuro = _puestos.abiertos();
+  late Future<List<Puesto>> _futuro = _puestos.consultarMapa();
 
   void _refrescarFavTianguis() {
     final id = _filtro;
@@ -56,7 +56,7 @@ class _PuestosTabState extends State<PuestosTab> {
     setState(() {
       _filtro = id;
       _favTianguis = false;
-      _futuro = _puestos.abiertos(idTianguis: id);
+      _futuro = _puestos.consultarMapa(idTianguis: id);
     });
     if (id != null) {
       _inicio.esFavoritoTianguis(id).then((v) {

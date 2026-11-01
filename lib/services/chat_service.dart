@@ -1,29 +1,57 @@
+import 'dart:math';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/enums.dart';
+import 'comprador_id.dart';
 
 /// RF-16, RF-17, RF-18, RF-37, RF-38.
 class ChatService {
   final _db = Supabase.instance.client;
   String get _uid => _db.auth.currentUser!.id;
 
-  /// RF-16: abre (o reutiliza) la conversación de un producto con su vendedor.
-  /// [idUsuarioVendedor] = perfiles_vendedor.id_usuario del dueño del producto.
-  Future<String> conversacionDeProducto(String idProducto, String idUsuarioVendedor) async {
+  /// RF-16 / RF-35: abre (o reutiliza) una conversación. Se origina en un
+  /// producto ([idProducto]) o en un anuncio de espacio ([idAnuncio]).
+  /// [idUsuarioReceptor] = id_usuario del dueño del producto o del anuncio.
+  Future<String> iniciarConversacion({
+    String? idProducto,
+    String? idAnuncio,
+    required String idUsuarioReceptor,
+  }) async {
+    assert((idProducto == null) != (idAnuncio == null),
+        'Indica idProducto o idAnuncio, solo uno');
+    final esProducto = idProducto != null;
+    final columna = esProducto ? 'id_producto' : 'id_anuncio_espacio';
+    final origen = (esProducto ? idProducto : idAnuncio)!;
     final ya = await _db
         .from('conversaciones')
         .select('id')
-        .eq('id_producto', idProducto)
+        .eq(columna, origen)
         .eq('id_iniciador', _uid)
-        .eq('id_receptor', idUsuarioVendedor)
+        .eq('id_receptor', idUsuarioReceptor)
         .maybeSingle();
     if (ya != null) return ya['id'];
-    final r = await _db.from('conversaciones').insert({
-      'contexto': 'producto',
-      'id_producto': idProducto,
+    // El id se genera aquí y el insert NO pide la fila de vuelta: conv_select
+    // exige participa_en(id) y el trigger conversaciones_participantes registra
+    // a los participantes DESPUÉS del insert, así que insert(...).select()
+    // fallaba con 42501.
+    final id = _uuidV4();
+    await _db.from('conversaciones').insert({
+      'id': id,
+      'contexto': esProducto ? Enums.contextoProducto : Enums.contextoEspacio,
+      columna: origen,
       'id_iniciador': _uid,
-      'id_receptor': idUsuarioVendedor,
-    }).select('id').single();
-    return r['id'];
+      'id_receptor': idUsuarioReceptor,
+    });
+    return id;
+  }
+
+  static String _uuidV4() {
+    final r = Random.secure();
+    final b = List<int>.generate(16, (_) => r.nextInt(256));
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    String h(int i) => b[i].toRadixString(16).padLeft(2, '0');
+    return '${h(0)}${h(1)}${h(2)}${h(3)}-${h(4)}${h(5)}-${h(6)}${h(7)}-${h(8)}${h(9)}-'
+        '${h(10)}${h(11)}${h(12)}${h(13)}${h(14)}${h(15)}';
   }
 
   /// Conversaciones que no he borrado. Una borrada reaparece sola si llega
@@ -82,7 +110,7 @@ class ChatService {
             : l.where((m) => DateTime.parse(m['enviado_en'] as String).isAfter(desde!)).toList());
   }
 
-  Future<void> enviar(String idConversacion, String texto) =>
+  Future<void> enviarMensaje(String idConversacion, String texto) =>
       _db.from('mensajes').insert({
         'id_conversacion': idConversacion,
         'id_remitente': _uid,
@@ -134,45 +162,30 @@ class ChatService {
     }
   }
 
-  /// RF-35: abre (o reutiliza) la conversación de un anuncio de espacio.
-  Future<String> conversacionDeAnuncio(String idAnuncio, String idUsuarioDueno) async {
-    final ya = await _db
-        .from('conversaciones')
-        .select('id')
-        .eq('id_anuncio_espacio', idAnuncio)
-        .eq('id_iniciador', _uid)
-        .eq('id_receptor', idUsuarioDueno)
-        .maybeSingle();
-    if (ya != null) return ya['id'];
-    final r = await _db.from('conversaciones').insert({
-      'contexto': Enums.contextoEspacio,
-      'id_anuncio_espacio': idAnuncio,
-      'id_iniciador': _uid,
-      'id_receptor': idUsuarioDueno,
-    }).select('id').single();
-    return r['id'];
-  }
-
   /// RF-17
   Future<void> proponerPrecio({
     required String idProducto, required String idVendedor, required num monto,
-  }) => _db.from('propuestas_precio').insert({
-        'id_producto': idProducto, 'id_comprador': _uid, 'id_vendedor': idVendedor,
-        'id_emisor': _uid, 'monto': monto,
-      });
+  }) async {
+    await _db.from('propuestas_precio').insert({
+      'id_producto': idProducto, 'id_comprador': await miIdComprador(), 'id_vendedor': idVendedor,
+      'id_emisor': _uid, 'monto': monto,
+    });
+  }
 
   /// RF-18: apartado temporal (24 h por defecto).
   Future<void> solicitarApartado({
     required String idProducto, required String idVendedor, int cantidad = 1,
     Duration vigencia = const Duration(hours: 24),
-  }) => _db.from('apartados').insert({
-        'id_producto': idProducto, 'id_comprador': _uid, 'id_vendedor': idVendedor,
-        'cantidad': cantidad,
-        'fecha_expiracion': DateTime.now().add(vigencia).toUtc().toIso8601String(),
-      });
+  }) async {
+    await _db.from('apartados').insert({
+      'id_producto': idProducto, 'id_comprador': await miIdComprador(), 'id_vendedor': idVendedor,
+      'cantidad': cantidad,
+      'fecha_expiracion': DateTime.now().add(vigencia).toUtc().toIso8601String(),
+    });
+  }
 
   /// RF-44
-  Future<void> reportar({
+  Future<void> crearReporte({
     required String tipoObjetivo, required String idObjetivo,
     String? idUsuarioReportado, required String motivo,
   }) => _db.from('reportes').insert({

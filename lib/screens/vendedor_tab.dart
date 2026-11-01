@@ -89,9 +89,9 @@ class _VendedorTabState extends State<VendedorTab> {
   Future<void> _alternar(Puesto p) async {
     try {
       if (p.abierto) {
-        await _svc.cerrarPuesto(p.id);
+        await _svc.marcarCerrado(p.id);
       } else {
-        await _svc.abrirPuesto(p.id);
+        await _svc.marcarAbierto(p.id);
       }
       await _cargar();
     } catch (e) {

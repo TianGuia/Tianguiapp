@@ -117,6 +117,18 @@ class InicioService {
       .order('creada_en', ascending: false)
       .limit(60);
 
+  /// Borra una notificación propia (política notif_delete).
+  Future<void> borrarNotificacion(String id) => _db
+      .from('notificaciones')
+      .delete()
+      .eq('id', id)
+      .eq('id_usuario', _db.auth.currentUser!.id);
+
+  Future<void> borrarNotificaciones() => _db
+      .from('notificaciones')
+      .delete()
+      .eq('id_usuario', _db.auth.currentUser!.id);
+
   Future<void> marcarLeidas() => _db
       .from('notificaciones')
       .update({'leida': true})

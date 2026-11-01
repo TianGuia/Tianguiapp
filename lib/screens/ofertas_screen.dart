@@ -49,7 +49,7 @@ class _OfertasScreenState extends State<OfertasScreen> {
     );
     if (ok != true) return;
     try {
-      await _svc.terminarOferta(o.id);
+      await _svc.finalizarOferta(o.id);
       _recargar();
     } catch (e) {
       _msg('$e');

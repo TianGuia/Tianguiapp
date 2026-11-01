@@ -71,12 +71,20 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 0,
-          toolbarHeight: 66,
+          toolbarHeight: 72,
+          centerTitle: false,
+          titleSpacing: 0,
           leading: IconButton(
             icon: const Icon(Icons.menu, size: 32),
             onPressed: () => _llave.currentState?.openDrawer(),
           ),
-          title: const Wordmark(tam: 26),
+          title: Padding(
+            padding: const EdgeInsets.only(left: 50),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset('assets/images/icono_app.png', height: 58, width: 58, fit: BoxFit.cover),
+            ),
+          ),
           actions: [
             IconButton(
               icon: const Icon(Icons.map_outlined, size: 28),

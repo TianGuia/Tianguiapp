@@ -29,7 +29,7 @@ class VendedorService {
       _db.from('vendedor_tianguis').insert({'id_vendedor': idVendedor, 'id_tianguis': idTianguis});
 
   /// RF-21
-  Future<void> agregarHorario(String idVendedor, String idTianguis, int dia, String inicio, String fin) =>
+  Future<void> registrarHorario(String idVendedor, String idTianguis, int dia, String inicio, String fin) =>
       _db.from('vendedor_horarios').insert({
         'id_vendedor': idVendedor, 'id_tianguis': idTianguis,
         'dia_semana': dia, 'hora_inicio': inicio, 'hora_fin': fin,
@@ -95,7 +95,7 @@ class VendedorService {
   /// Cierre con aviso a los compradores. Primero cierra la jornada (cerrar_puesto)
   /// y luego marca el tipo de cierre; al volver a abrir el trigger lo limpia.
   Future<void> cerrarTemporalmente(String idPuesto, {DateTime? reabreEn, String? motivo}) async {
-    await cerrarPuesto(idPuesto);
+    await marcarCerrado(idPuesto);
     await actualizarPuesto(idPuesto, {
       'cierre_tipo': 'temporal',
       'reabre_en': reabreEn?.toIso8601String().substring(0, 10),
@@ -104,7 +104,7 @@ class VendedorService {
   }
 
   Future<void> cerrarHastaNuevoAviso(String idPuesto, {String? motivo}) async {
-    await cerrarPuesto(idPuesto);
+    await marcarCerrado(idPuesto);
     await actualizarPuesto(idPuesto, {
       'cierre_tipo': 'hasta_nuevo_aviso',
       'reabre_en': null,
@@ -115,14 +115,14 @@ class VendedorService {
   /// Eliminar = baja lógica (activo=false), como con los productos: se conservan
   /// visitas y calificaciones. Sus productos quedan sin puesto (siguen en tu catálogo).
   Future<void> eliminarPuesto(String idPuesto) async {
-    await cerrarPuesto(idPuesto);
+    await marcarCerrado(idPuesto);
     await _db.from('productos').update({'id_puesto': null}).eq('id_puesto', idPuesto);
     await actualizarPuesto(idPuesto, {'activo': false});
   }
 
   /// RF-27 + RF-28: abre el puesto y registra la ubicación UNA sola vez
   /// (sin rastreo continuo, RNF-2).
-  Future<String> abrirPuesto(String idPuesto) async {
+  Future<String> marcarAbierto(String idPuesto) async {
     var permiso = await Geolocator.checkPermission();
     if (permiso == LocationPermission.denied) {
       permiso = await Geolocator.requestPermission();
@@ -142,7 +142,7 @@ class VendedorService {
     }) as String; // id de jornada
   }
 
-  Future<void> cerrarPuesto(String idPuesto) =>
+  Future<void> marcarCerrado(String idPuesto) =>
       _db.rpc('cerrar_puesto', params: {'p_id_puesto': idPuesto});
 
   /// RF-41: código temporal para que los compradores confirmen su visita.
@@ -186,6 +186,10 @@ class VendedorService {
   }
 
   /// RF-24 / RF-26
+  /// RF-26: actualiza la cantidad disponible; sin existencias queda no disponible.
+  Future<void> actualizarStock(String id, int cantidad) =>
+      actualizarProducto(id, {'cantidad_disponible': cantidad, 'disponible': cantidad > 0});
+
   Future<void> actualizarProducto(String id, Map<String, dynamic> cambios) =>
       _db.from('productos').update({...cambios, 'actualizado_en': DateTime.now().toUtc().toIso8601String()}).eq('id', id);
 
@@ -209,39 +213,50 @@ class VendedorService {
   Future<List<Oferta>> misOfertas(String idVendedor) async {
     final r = await _db
         .from('ofertas')
-        .select('*, oferta_productos(precio_promocional, descuento_porcentaje, productos(nombre, precio_referencia))')
+        .select('*, productos!ofertas_id_producto_fkey(nombre, precio_referencia)')
         .eq('id_vendedor', idVendedor)
         .order('creado_en', ascending: false)
-        .limit(50);
-    return r.map<Oferta>(Oferta.fromMap).toList();
+        .limit(100);
+    return Oferta.agrupar(List<Map<String, dynamic>>.from(r));
   }
 
+  /// Cada producto es una fila de `ofertas`; las filas de una misma publicación
+  /// se enlazan con id_oferta_origen (apunta a la primera).
   Future<void> publicarOferta({
     required String idVendedor,
     required String titulo,
     required DateTime fin,
     required List<({String idProducto, num? precioPromo, num? descuento})> productos,
   }) async {
-    final o = await _db.from('ofertas').insert({
-      'id_vendedor': idVendedor, 'titulo': titulo,
-      'fecha_fin': fin.toUtc().toIso8601String(),
-    }).select('id').single();
+    Map<String, dynamic> fila(({String idProducto, num? precioPromo, num? descuento}) p,
+            [String? origen]) =>
+        {
+          'id_vendedor': idVendedor,
+          'titulo': titulo,
+          'fecha_fin': fin.toUtc().toIso8601String(),
+          'id_producto': p.idProducto,
+          'precio_promocional': p.precioPromo,
+          'descuento': p.descuento,
+          if (origen != null) 'id_oferta_origen': origen,
+        };
+
+    final primera = await _db.from('ofertas').insert(fila(productos.first)).select('id').single();
+    if (productos.length == 1) return;
     try {
-      await _db.from('oferta_productos').insert([
-        for (final p in productos)
-          {
-            'id_oferta': o['id'], 'id_producto': p.idProducto,
-            'precio_promocional': p.precioPromo, 'descuento_porcentaje': p.descuento,
-          }
+      await _db.from('ofertas').insert([
+        for (final p in productos.skip(1)) fila(p, primera['id'] as String),
       ]);
     } catch (e) {
-      // no dejar una oferta vacía si fallaron sus productos
-      try { await _db.from('ofertas').delete().eq('id', o['id']); } catch (_) {}
+      // no dejar una oferta a medias si fallaron los demás productos
+      try { await _db.from('ofertas').delete().eq('id', primera['id']); } catch (_) {}
       rethrow;
     }
   }
 
   /// RF-30: terminar anticipadamente.
-  Future<void> terminarOferta(String idOferta) =>
-      _db.from('ofertas').update({'estado': Est.ofertaFinalizada}).eq('id', idOferta);
+  Future<void> finalizarOferta(String idOferta) =>
+      _db
+          .from('ofertas')
+          .update({'estado': Est.ofertaFinalizada})
+          .or('id.eq.$idOferta,id_oferta_origen.eq.$idOferta');
 }

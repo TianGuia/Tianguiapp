@@ -70,16 +70,11 @@ class ImagenPuesto extends StatelessWidget {
   final String? url;
   const ImagenPuesto(this.url, {super.key});
 
+  /// Sin foto se muestra el icono de la app (mismo fondo azul que el icono).
   Widget _respaldo() => Container(
-        color: Tg.azulOscuro,
+        color: const Color(0xFF0754AD),
         alignment: Alignment.center,
-        child: Opacity(
-          opacity: 0.55,
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
-          ),
-        ),
+        child: Image.asset('assets/images/icono_app.png', fit: BoxFit.contain),
       );
 
   @override

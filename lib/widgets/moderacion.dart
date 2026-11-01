@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/enums.dart';
+import '../models/entidades.dart';
 import '../services/chat_service.dart';
 
 /// Valores de `reportes.tipo_objetivo` (ver lib/config/enums.dart).
@@ -40,7 +40,7 @@ Future<void> reportarContenido(
   );
   if (enviar != true || motivo.text.trim().isEmpty) return;
   try {
-    await ChatService().reportar(
+    await ChatService().crearReporte(
       tipoObjetivo: tipoObjetivo,
       idObjetivo: idObjetivo,
       idUsuarioReportado: idUsuarioReportado,
@@ -98,14 +98,12 @@ Future<bool> solicitarRevision(
   );
   if (enviar != true || motivo.text.trim().isEmpty) return false;
   try {
-    final db = Supabase.instance.client;
-    await db.from('apelaciones').insert({
-      'id_usuario': db.auth.currentUser!.id,
-      'id_medida': idMedida,
-      'id_reporte': idReporte,
-      'id_calificacion': idCalificacion,
-      'motivo': motivo.text.trim(),
-    });
+    await Apelacion.solicitarRevision(
+      idMedida: idMedida,
+      idReporte: idReporte,
+      idCalificacion: idCalificacion,
+      motivo: motivo.text.trim(),
+    );
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Solicitud enviada. Un administrador la revisará')));

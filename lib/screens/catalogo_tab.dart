@@ -23,7 +23,7 @@ class _CatalogoTabState extends State<CatalogoTab> {
   String? _idTianguis;
   int? _dia; // 0 = domingo … 6 = sábado
   num? _precioMin, _precioMax;
-  late Future<List<Producto>> _futuro = _svc.buscar();
+  late Future<List<Producto>> _futuro = _svc.buscarProductos();
 
   static const _dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -51,7 +51,7 @@ class _CatalogoTabState extends State<CatalogoTab> {
 
   void _buscar() {
     setState(() {
-      _futuro = _svc.buscar(
+      _futuro = _svc.filtrarProductos(
         texto: _texto.text,
         idCategoria: _cat,
         idTianguis: _idTianguis,
@@ -89,6 +89,8 @@ class _CatalogoTabState extends State<CatalogoTab> {
               const SizedBox(height: 14),
               // Los campos del tema tienen fondo blanco: el texto se fuerza a negro
               // (si no, lo escrito o elegido queda blanco sobre blanco).
+              const Text('Tianguis', style: TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
               DropdownButtonFormField<String?>(
                 value: idT,
                 isExpanded: true,
@@ -99,8 +101,7 @@ class _CatalogoTabState extends State<CatalogoTab> {
                   for (final t in _tianguis)
                     Text(t.nombre, style: _negro, overflow: TextOverflow.ellipsis),
                 ],
-                decoration:
-                    const InputDecoration(labelText: 'Tianguis', labelStyle: _etiquetaCampo),
+                decoration: const InputDecoration(),
                 items: [
                   const DropdownMenuItem(value: null, child: Text('Todos los tianguis')),
                   for (final t in _tianguis) DropdownMenuItem(value: t.id, child: Text(t.nombre)),
@@ -124,6 +125,8 @@ class _CatalogoTabState extends State<CatalogoTab> {
                   ),
               ]),
               const SizedBox(height: 14),
+              const Text('Rango de precio', style: TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
               Row(children: [
                 Expanded(
                   child: TextField(
@@ -132,8 +135,8 @@ class _CatalogoTabState extends State<CatalogoTab> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: Entradas.formatoDinero,
                     decoration: const InputDecoration(
-                        labelText: 'Precio mínimo',
-                        labelStyle: _etiquetaCampo,
+                        hintText: 'Mínimo',
+                        hintStyle: _etiquetaCampo,
                         prefixText: r'$ ',
                         prefixStyle: _negro),
                   ),
@@ -146,8 +149,8 @@ class _CatalogoTabState extends State<CatalogoTab> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: Entradas.formatoDinero,
                     decoration: const InputDecoration(
-                        labelText: 'Precio máximo',
-                        labelStyle: _etiquetaCampo,
+                        hintText: 'Máximo',
+                        hintStyle: _etiquetaCampo,
                         prefixText: r'$ ',
                         prefixStyle: _negro),
                   ),

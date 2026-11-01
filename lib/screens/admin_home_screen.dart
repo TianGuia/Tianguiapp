@@ -33,7 +33,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         ],
       ),
     );
-    if (ok == true) await AuthService().salirAdmin();
+    if (ok != true || !mounted) return;
+    // Cierra pantallas encimadas (p. ej. "Ver la app como usuario") para que no
+    // queden sobre el login al cerrar la sesión.
+    Navigator.of(context).popUntil((r) => r.isFirst);
+    await AuthService().salirAdmin();
   }
 
   @override
@@ -80,7 +84,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           destinations: const [
             NavigationDestination(icon: Icon(Icons.dashboard_outlined), label: 'Resumen'),
             NavigationDestination(icon: Icon(Icons.flag_outlined), label: 'Reportes'),
-            NavigationDestination(icon: Icon(Icons.gavel), label: 'Apelaciones'),
+            NavigationDestination(icon: Icon(Icons.gavel), label: 'Revisión'),
             NavigationDestination(icon: Icon(Icons.storefront_outlined), label: 'Tianguis'),
             NavigationDestination(icon: Icon(Icons.description_outlined), label: 'Términos'),
             NavigationDestination(icon: Icon(Icons.search), label: 'Consulta'),

@@ -1,11 +1,12 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/modelos.dart';
+import 'comprador_id.dart';
 
 /// RF-09, RF-10: mapa de puestos abiertos y su última ubicación.
 class PuestosService {
   final _db = Supabase.instance.client;
 
-  Future<List<Puesto>> abiertos({String? idTianguis}) async {
+  Future<List<Puesto>> consultarMapa({String? idTianguis}) async {
     var q = _db.from('puestos').select().eq('activo', true).eq('estado', 'abierto');
     if (idTianguis != null) q = q.eq('id_tianguis', idTianguis);
     final r = await q.order('fecha_apertura', ascending: false);
@@ -40,16 +41,15 @@ class PuestosService {
 
   /// RF-42: calificar una visita verificada. El trigger calificacion_desde_visita
   /// completa id_puesto e id_vendedor.
-  Future<void> calificar({
+  Future<void> registrarCalificacion({
     required String idVisita,
     required int puntuacion,
     String? comentario,
     List<String> idEtiquetas = const [],
   }) async {
-    final uid = _db.auth.currentUser!.id;
     final c = await _db.from('calificaciones').insert({
       'id_visita': idVisita,
-      'id_usuario': uid,
+      'id_usuario': await miIdComprador(),
       'puntuacion': puntuacion,
       'comentario': comentario,
     }).select('id').single();

@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/estados.dart';
 import '../config/theme.dart';
 import '../models/tratos.dart';
+import '../services/ocultos.dart';
 import '../services/tratos_service.dart';
 import '../widgets/entradas.dart';
 
@@ -20,6 +21,7 @@ class _TratosScreenState extends State<TratosScreen> {
   final _yo = Supabase.instance.client.auth.currentUser!.id;
   late Future<List<Propuesta>> _props;
   late Future<List<Apartado>> _aps;
+  Set<String> _ocP = {}, _ocA = {};
 
   bool get _comoVendedor => widget.idVendedor != null;
 
@@ -27,6 +29,22 @@ class _TratosScreenState extends State<TratosScreen> {
   void initState() {
     super.initState();
     _iniciar();
+    _cargarOcultos();
+  }
+
+  Future<void> _cargarOcultos() async {
+    final p = await Ocultos.cargar('propuestas');
+    final a = await Ocultos.cargar('apartados');
+    if (mounted) setState(() {
+      _ocP = p;
+      _ocA = a;
+    });
+  }
+
+  /// Quita un trato terminado de MI lista (solo en este teléfono).
+  Future<void> _quitar(String tipo, String id) async {
+    setState(() => (tipo == 'propuestas' ? _ocP : _ocA).add(id));
+    await Ocultos.agregar(tipo, [id]);
   }
 
   void _iniciar() {
@@ -197,7 +215,14 @@ class _TratosScreenState extends State<TratosScreen> {
               _boton('Rechazar', () => _hacer(() => _svc.rechazarPropuesta(p.id), 'Propuesta rechazada'),
                   color: Tg.rojo, texto2: Colors.white),
             ]
-          : const [],
+          : [
+              if (!p.pendiente)
+                TextButton.icon(
+                  onPressed: () => _quitar('propuestas', p.id),
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  label: const Text('Quitar de la lista'),
+                ),
+            ],
     );
   }
 
@@ -221,6 +246,13 @@ class _TratosScreenState extends State<TratosScreen> {
         }
       }));
     }
+    if (!a.pendiente && !a.aceptado) {
+      acciones.add(TextButton.icon(
+        onPressed: () => _quitar('apartados', a.id),
+        icon: const Icon(Icons.delete_outline, size: 18),
+        label: const Text('Quitar de la lista'),
+      ));
+    }
     return _tarjeta(
       titulo: a.productoNombre ?? 'Producto',
       estado: a.estado,
@@ -234,7 +266,15 @@ class _TratosScreenState extends State<TratosScreen> {
     );
   }
 
-  Widget _lista<T>(Future<List<T>> futuro, Widget Function(T) tarjeta, String vacio) =>
+  Widget _lista<T>(
+    Future<List<T>> futuro,
+    Widget Function(T) tarjeta,
+    String vacio, {
+    required Set<String> ocultos,
+    required String Function(T) idDe,
+    required bool Function(T) terminado,
+    required void Function(T) quitar,
+  }) =>
       RefreshIndicator(
         onRefresh: () async => _recargar(),
         child: FutureBuilder<List<T>>(
@@ -248,7 +288,7 @@ class _TratosScreenState extends State<TratosScreen> {
                 Padding(padding: const EdgeInsets.all(24), child: Text('Error: ${s.error}')),
               ]);
             }
-            final l = s.data!;
+            final l = s.data!.where((x) => !ocultos.contains(idDe(x))).toList();
             if (l.isEmpty) {
               return ListView(children: [
                 const SizedBox(height: 120),
@@ -258,7 +298,24 @@ class _TratosScreenState extends State<TratosScreen> {
             return ListView.builder(
               padding: const EdgeInsets.only(top: 6, bottom: 30),
               itemCount: l.length,
-              itemBuilder: (_, i) => tarjeta(l[i]),
+              itemBuilder: (_, i) {
+                final x = l[i];
+                if (!terminado(x)) return tarjeta(x);
+                // Los tratos terminados se pueden quitar deslizando hacia la izquierda.
+                return Dismissible(
+                  key: ValueKey(idDe(x)),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20),
+                    decoration: BoxDecoration(color: Tg.rojo, borderRadius: BorderRadius.circular(12)),
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  onDismissed: (_) => quitar(x),
+                  child: tarjeta(x),
+                );
+              },
             );
           },
         ),
@@ -277,9 +334,17 @@ class _TratosScreenState extends State<TratosScreen> {
           ),
           body: TabBarView(children: [
             _lista<Propuesta>(_props, _tarjetaPropuesta,
-                _comoVendedor ? 'Aún no te llegan propuestas' : 'Aún no has enviado propuestas'),
+                _comoVendedor ? 'Aún no te llegan propuestas' : 'Aún no has enviado propuestas',
+                ocultos: _ocP,
+                idDe: (p) => p.id,
+                terminado: (p) => !p.pendiente,
+                quitar: (p) => _quitar('propuestas', p.id)),
             _lista<Apartado>(_aps, _tarjetaApartado,
-                _comoVendedor ? 'Aún no te llegan apartados' : 'Aún no has solicitado apartados'),
+                _comoVendedor ? 'Aún no te llegan apartados' : 'Aún no has solicitado apartados',
+                ocultos: _ocA,
+                idDe: (a) => a.id,
+                terminado: (a) => !a.pendiente && !a.aceptado,
+                quitar: (a) => _quitar('apartados', a.id)),
           ]),
         ),
       );

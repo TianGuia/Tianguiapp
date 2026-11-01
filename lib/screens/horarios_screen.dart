@@ -102,7 +102,7 @@ class _HorariosScreenState extends State<HorariosScreen> {
         context: context, initialTime: const TimeOfDay(hour: 15, minute: 0), helpText: 'HORA DE CIERRE');
     if (fin == null) return;
     try {
-      await _svc.agregarHorario(widget.idVendedor, idT, dia, _hhmm(ini), _hhmm(fin));
+      await _svc.registrarHorario(widget.idVendedor, idT, dia, _hhmm(ini), _hhmm(fin));
       await _cargar();
     } catch (e) {
       _msg('$e');

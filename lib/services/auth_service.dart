@@ -99,7 +99,7 @@ class AuthService {
 
   // ---------------- Entrada anónima (RF-01) ----------------
 
-  Future<void> entrarAnonimo(String nombre) async {
+  Future<void> registrar(String nombre) async {
     final n = nombre.trim();
     final oculta = sesionOculta.value;
     if (oculta != null) {
@@ -148,7 +148,7 @@ class AuthService {
         data: nombre == null ? null : {'nombre_publico': nombre.trim()},
       );
 
-  Future<void> verificarCodigo(String correo, String codigo) async {
+  Future<void> iniciarSesion(String correo, String codigo) async {
     await _db.auth.verifyOTP(
       email: correo.trim(),
       token: codigo.trim(),
@@ -251,9 +251,17 @@ class AuthService {
   /// Cierra la sesión de administrador (invalida el acceso por clave).
   Future<void> salirAdmin() async {
     try {
-      await _db.rpc('admin_salir');
+      // Sin red o con el servidor lento no debe quedarse colgado.
+      await _db.rpc('admin_salir').timeout(const Duration(seconds: 6));
     } catch (_) {}
-    await _db.auth.signOut();
+    try {
+      await _db.auth.signOut().timeout(const Duration(seconds: 6));
+    } catch (_) {
+      // Si no hubo red, cierra al menos la sesión local.
+      try {
+        await _db.auth.signOut(scope: SignOutScope.local);
+      } catch (_) {}
+    }
     cambioRol.value++;
   }
 

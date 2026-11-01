@@ -55,7 +55,7 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
     final dueno = (a['perfiles_vendedor'] as Map?)?['id_usuario'] as String?;
     if (dueno == null) return;
     try {
-      final id = await ChatService().conversacionDeAnuncio(a['id'] as String, dueno);
+      final id = await ChatService().iniciarConversacion(idAnuncio: a['id'] as String, idUsuarioReceptor: dueno);
       if (!mounted) return;
       await Navigator.push(
           context, MaterialPageRoute(builder: (_) => ChatScreen(idConversacion: id, titulo: '${a['titulo']}')));
