@@ -2,3 +2,4 @@
 !docker/
 !docker/Dockerfile
 !docker/entrypoint.sh
+!docker/verify.Dockerfile

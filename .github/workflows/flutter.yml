@@ -11,20 +11,8 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
-      - name: Verificar versionado de tags
-        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
-      - name: Preparar Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          flutter-version: '3.47.8'
-          cache: true
-      - name: Instalar dependencias
-        run: flutter pub get --enforce-lockfile
-      - name: Analizar código
-        run: flutter analyze --no-pub
-      - name: Ejecutar pruebas
-        run: flutter test --no-pub
+      - name: Verificar en el mismo contenedor que el entorno local
+        run: docker compose -f compose.verify.yaml run --build --rm -T verify

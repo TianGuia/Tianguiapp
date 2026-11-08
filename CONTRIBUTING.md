@@ -80,7 +80,19 @@ Si el trabajo es amplio o puede entrar en conflicto con cambios simultáneos, un
 
 Procuramos que los cambios significativos reciban la revisión de otra persona antes de integrarse. Las correcciones triviales pueden llevar un proceso más ligero. Una revisión busca detectar problemas y aprender en conjunto, no imponer preferencias personales: explica el motivo de cada observación y distingue los errores reales de las sugerencias de estilo.
 
-Antes de dar un PR por listo, aplica el formato y ejecuta, cuando corresponda:
+Antes de dar un PR por listo, ejecuta la misma verificación que CI:
+
+```powershell
+./scripts/verify.ps1
+```
+
+En Linux/macOS: `bash scripts/check.sh`. Solo requiere Docker con Compose v2;
+en Windows también admite Docker dentro de WSL. Incluye las pruebas de
+versionado, el análisis y las pruebas Flutter en un contenedor sin Android SDK.
+Consulta [la guía](docs/desarrollo-docker.md#verificación-local-y-en-ci).
+
+Si ya tienes Flutter instalado, puedes aplicar el formato y ejecutar los comandos
+individuales durante el desarrollo:
 
 ```sh
 dart format lib test

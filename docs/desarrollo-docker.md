@@ -1,5 +1,52 @@
 # Desarrollo opcional con Docker
 
+## Verificación local y en CI
+
+Para verificar un cambio basta con Docker y Compose v2 en modo Linux:
+
+```powershell
+./scripts/verify.ps1
+```
+
+El script usa Docker del host o, si no está en PATH, `wsl --exec docker`.
+Usa la distribución predeterminada de WSL; puedes ejecutar el comando directo
+dentro de otra distribución si ahí está tu motor Docker.
+En Linux/macOS: `bash scripts/check.sh`. El comando compartido con Actions es:
+
+```sh
+docker compose -f compose.verify.yaml run --build --rm -T verify
+```
+
+`docker/verify.Dockerfile` es independiente del entorno Android descrito abajo:
+solo contiene Flutter fijado a la revisión de 3.47.8, Python y las bibliotecas
+Linux necesarias. La imagen base está fijada por digest y los paquetes Debian por una
+fecha de snapshot, para que Python y las bibliotecas no cambien al reconstruir
+en otro equipo. `scripts/verify.sh` define una sola secuencia para ambos
+entornos: pruebas Python de versionado, `flutter pub get --enforce-lockfile`,
+`flutter analyze --no-pub` y `flutter test --no-pub`. Cualquier fallo detiene la
+secuencia y se propaga al comando y a Actions.
+
+La fuente se monta de solo lectura y se copia a un contenedor nuevo. No se
+reutilizan `.dart_tool`, `build` ni rutas del SDK del host. Solo persiste Pub en
+el volumen `verify-pub-cache`, separado del entorno de desarrollo. No hay
+servicios de backend, puertos, ADB ni secretos que configurar. La primera
+construcción descarga Flutter; las siguientes aprovechan las capas de Docker.
+La arquitectura es amd64 también en ARM (mediante emulación). Ambos entornos
+usan UTC y los mismos límites de 4 CPU y 4 GB de RAM por defecto.
+
+Para borrar exclusivamente esta caché:
+
+```sh
+docker compose -f compose.verify.yaml down --volumes
+```
+
+Al actualizar Flutter, cambia la revisión completa y su tag de versión en `docker/verify.Dockerfile`
+y mantén alineadas las versiones del contenedor de desarrollo y de los workflows
+de releases. Las pruebas de base de datos de Toldo, la compilación nativa y las
+pruebas manuales de dispositivos quedan fuera de esta suite.
+
+## Entorno completo de desarrollo
+
 Este entorno usa Debian 13 slim e instala Flutter 3.47.8 (incluye Dart), Java 21
 y las herramientas de Android. Sirve para analizar, probar, compilar APK y ejecutar la
 app en Android o mediante web-server. No necesitas Flutter ni Android Studio

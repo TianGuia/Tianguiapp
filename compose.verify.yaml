@@ -1,0 +1,15 @@
+services:
+  verify:
+    build:
+      context: .
+      dockerfile: docker/verify.Dockerfile
+    platform: linux/amd64
+    init: true
+    cpus: '${TIANGUIA_CPUS:-4}'
+    mem_limit: 4g
+    volumes:
+      - .:/source:ro
+      - verify-pub-cache:/home/dev/.pub-cache
+
+volumes:
+  verify-pub-cache:

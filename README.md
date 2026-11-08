@@ -43,6 +43,37 @@ migraciones, permisos, datos de ejemplo y pruebas de base de datos.
 
 ## Ejecución local
 
+### Verificar los cambios con el mismo entorno que CI
+
+Solo necesitas Docker con Compose v2 y contenedores Linux. No requiere Flutter,
+Python, Java, Android Studio ni un backend instalados en el host.
+
+```powershell
+./scripts/verify.ps1
+```
+
+En Windows, el script usa Docker de WSL cuando no hay una CLI nativa. En
+Linux/macOS: `bash scripts/check.sh`. También puedes ejecutar directamente:
+
+```sh
+docker compose -f compose.verify.yaml run --build --rm -T verify
+```
+
+GitHub Actions ejecuta exactamente ese comando. Comprueba las 5 pruebas de
+versionado, instala las dependencias respetando `pubspec.lock`, analiza el código
+y ejecuta todas las pruebas Flutter. Se detiene ante el primer fallo y devuelve
+un código distinto de cero. Usa Linux amd64, Flutter 3.47.8 fijado por commit y
+Python del contenedor; no descarga el SDK/NDK de Android.
+
+La primera ejecución descarga Flutter y construye la imagen; las siguientes
+reutilizan las capas y la caché de Pub. Cada ejecución usa una copia nueva del
+repositorio, montado de solo lectura, sin los archivos generados del host. No
+modifica tu código ni tu instalación de Flutter. La descarga de dependencias
+requiere Internet; las pruebas actuales usan HTTP simulado, sin Supabase real.
+Esta suite cubre análisis y pruebas automatizadas, no la compilación ni los
+flujos manuales en Android/iOS. Consulta los detalles en la
+[guía de Docker](docs/desarrollo-docker.md#verificación-local-y-en-ci).
+
 Puedes usar el [entorno opcional con Docker](docs/desarrollo-docker.md) para
 Android y web-server sin instalar Flutter ni el SDK completo en tu equipo.
 Incluye scripts para pruebas, compilación y conexión con el ADB del host.
