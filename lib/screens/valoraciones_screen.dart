@@ -14,7 +14,7 @@ class ValoracionesScreen extends StatefulWidget {
 
 class _ValoracionesScreenState extends State<ValoracionesScreen> {
   final _db = Supabase.instance.client;
-  late Future<List<Map<String, dynamic>>> _futuro = _cargar();
+  late final Future<List<Map<String, dynamic>>> _futuro = _cargar();
 
   Future<List<Map<String, dynamic>>> _cargar() async {
     final r = await _db

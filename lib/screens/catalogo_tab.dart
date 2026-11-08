@@ -92,7 +92,7 @@ class _CatalogoTabState extends State<CatalogoTab> {
               const Text('Tianguis', style: TextStyle(fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
               DropdownButtonFormField<String?>(
-                value: idT,
+                initialValue: idT,
                 isExpanded: true,
                 dropdownColor: Tg.azulOscuro,
                 iconEnabledColor: Colors.black54,

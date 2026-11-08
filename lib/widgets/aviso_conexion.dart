@@ -50,14 +50,14 @@ class _AvisoConexionState extends State<AvisoConexion> {
   @override
   Widget build(BuildContext context) {
     if (!_sinConexion) return const SizedBox.shrink();
-    return Material(
-      color: const Color(0xFFFFD21F),
+    return const Material(
+      color: Color(0xFFFFD21F),
       child: SafeArea(
         top: false,
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          child: Row(children: const [
+          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Row(children: [
             Icon(Icons.wifi_off, size: 20, color: Color(0xFF061A5E)),
             SizedBox(width: 10),
             Expanded(

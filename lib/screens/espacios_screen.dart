@@ -7,7 +7,6 @@ import '../services/catalogo_service.dart';
 import '../services/chat_service.dart';
 import '../widgets/moderacion.dart';
 import 'chat_screen.dart';
-import '../widgets/entradas.dart';
 
 /// RF-33 a RF-36: anuncios de espacios (renta, préstamo o traspaso) entre vendedores.
 class EspaciosScreen extends StatefulWidget {

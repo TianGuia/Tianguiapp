@@ -35,10 +35,12 @@ class _TratosScreenState extends State<TratosScreen> {
   Future<void> _cargarOcultos() async {
     final p = await Ocultos.cargar('propuestas');
     final a = await Ocultos.cargar('apartados');
-    if (mounted) setState(() {
-      _ocP = p;
-      _ocA = a;
-    });
+    if (mounted) {
+      setState(() {
+        _ocP = p;
+        _ocA = a;
+      });
+    }
   }
 
   /// Quita un trato terminado de MI lista (solo en este teléfono).

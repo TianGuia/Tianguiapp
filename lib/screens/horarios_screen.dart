@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../services/catalogo_service.dart';
 import '../services/vendedor_service.dart';
-import '../widgets/entradas.dart';
 
 /// RF-21 y RF-22: horario habitual y ausencias programadas del vendedor.
 class HorariosScreen extends StatefulWidget {

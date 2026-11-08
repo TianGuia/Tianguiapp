@@ -1037,7 +1037,7 @@ class _TianguisFormState extends State<_TianguisForm> {
           title: const Text('Horario general'),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             DropdownButtonFormField<int>(
-              value: dia,
+              initialValue: dia,
               items: [for (var i = 0; i < 7; i++) DropdownMenuItem(value: i, child: Text(_dias[i]))],
               onChanged: (v) => set(() => dia = v ?? dia),
             ),
@@ -1096,7 +1096,7 @@ class _TianguisFormState extends State<_TianguisForm> {
               TextField(controller: nombre, decoration: const InputDecoration(hintText: 'Nombre')),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: tipo,
+                initialValue: tipo,
                 items: const [
                   DropdownMenuItem(value: 'zona', child: Text('Zona')),
                   DropdownMenuItem(value: 'pasillo', child: Text('Pasillo')),
@@ -1124,7 +1124,7 @@ class _TianguisFormState extends State<_TianguisForm> {
     final g = geo.text.trim();
     nombre.dispose();
     geo.dispose();
-    if (ok != true) return;
+    if (!mounted || ok != true) return;
     if (n.isEmpty) return _aviso(context, 'Escribe el nombre');
     Object? geometria;
     if (g.isNotEmpty) {
@@ -1364,7 +1364,7 @@ class _PublicarVersionState extends State<_PublicarVersion> {
         appBar: AppBar(title: const Text('Publicar versión')),
         body: ListView(padding: const EdgeInsets.all(16), children: [
           DropdownButtonFormField<String>(
-            value: _tipo,
+            initialValue: _tipo,
             items: const [
               DropdownMenuItem(value: 'terminos', child: Text('Condiciones de uso')),
               DropdownMenuItem(value: 'privacidad', child: Text('Aviso de privacidad')),
