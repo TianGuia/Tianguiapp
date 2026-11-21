@@ -38,34 +38,3 @@ Respuesta corta para la presentación:
 En los diagramas, los **módulos** son los recuadros de colores. En el código son
 las carpetas dentro de `lib/models/`. Los módulos **no son clases**: son
 agrupaciones que contienen clases.
-
-## Cómo escribir comentarios (sin sonar a robot ni a manual técnico)
-
-1. **Explica el para qué, no el cómo.** El código ya dice cómo; el comentario
-   dice por qué existe.
-2. **Habla como le explicarías a un compañero.** Frases cortas, sin jerga.
-3. **Si usas una palabra técnica, explícala una vez** («entidad asociativa: une
-   dos cosas»).
-4. **Pon el número de requisito (RF-xx)** para que se pueda rastrear al SRS.
-5. **No comentes lo obvio.** `// suma 1` sobre `i++` sobra.
-6. **Escríbelos con tus palabras.** Si suena a texto copiado, reescríbelo.
-
-Ejemplo:
-
-```dart
-// ❌ Técnico:
-/// Invoca el servicio de autenticación para persistir la sesión.
-
-// ✅ Claro:
-/// RF-03 · Volver a entrar con el código que llega al correo.
-```
-
-## Guion para videos cortos (2–3 min cada uno)
-
-1. **El mapa general** (`lib/README.md`): restaurante, flujo
-   pantalla → servicio → modelo.
-2. **Del diagrama al código**: abrir el diagrama de clases y luego
-   `models/`, mostrando que cada caja tiene su archivo.
-3. **Un recorrido completo**: registro → habilitar vendedor → abrir puesto.
-   Seguir el camino por `acceso_screen` → `auth_service` → `usuario.dart`.
-4. **Cómo comentar y subir cambios**: esta guía + `git add / commit / push`.
