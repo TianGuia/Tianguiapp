@@ -3,7 +3,6 @@ import '../config/enums.dart';
 import '../models/entidades.dart';
 import '../services/chat_service.dart';
 
-/// Valores de `reportes.tipo_objetivo` (ver lib/config/enums.dart).
 class TipoReporte {
   static const perfil = Enums.repPerfil;
   static const producto = Enums.repProducto;
@@ -12,7 +11,7 @@ class TipoReporte {
   static const calificacion = Enums.repCalificacion;
 }
 
-/// RF-44: pide un motivo y registra el reporte.
+// rf-44 se cumple aqui: se manda un reporte cuando algo rompe las reglas
 Future<void> reportarContenido(
   BuildContext context, {
   required String tipoObjetivo,
@@ -57,7 +56,7 @@ Future<void> reportarContenido(
   }
 }
 
-/// RF-38: confirmación antes de bloquear.
+// rf-38 se cumple aqui: se puede bloquear a alguien y ya no se pueden mandar mensajes
 Future<bool?> confirmarBloqueo(BuildContext context, String nombre) => showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -70,9 +69,8 @@ Future<bool?> confirmarBloqueo(BuildContext context, String nombre) => showDialo
       ),
     );
 
-/// RF-46: solicitud de revisión de una medida, reporte o calificación.
-/// Pasa exactamente uno de [idMedida], [idReporte] o [idCalificacion].
-/// Devuelve true si la solicitud se registró.
+// rf-46 se cumple aqui: la persona pide que el administrador revise otra vez una decision
+// se manda uno solo de idMedida, idReporte o idCalificacion, devuelve true si se registro
 Future<bool> solicitarRevision(
   BuildContext context, {
   String? idMedida,

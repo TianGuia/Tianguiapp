@@ -1,89 +1,80 @@
 # TianGuía
 
-TianGuía es la plataforma que conecta a vendedores y compradores en tu tianguis
-más cercano. Un lugar para descubrir lo que buscas, encontrar a tus tiangueros
-favoritos y seguir apoyando al comercio local.
+App móvil para encontrar puestos y productos en el tianguis. El comprador ve qué
+puestos están abiertos y dónde se pusieron ese día, y el vendedor maneja su
+catálogo, sus horarios y sus ofertas desde el celular.
 
-Tianguiapp es el código de la app para móviles, hecha con ❤️ en Flutter.
-La estamos construyendo en comunidad para que puedas:
+Este repositorio es la app, hecha con Flutter. El backend está en
+[Toldo](https://github.com/Tianguia/Toldo).
 
-- Encontrar productos y puestos abiertos en el tianguis.
-- Consultar dónde se instaló tu vendedor favorito ese día.
-- Compartir tu catálogo, disponibilidad y ofertas si eres tianguero.
-- Platicar con vendedores, proponer un precio y pedir un apartado.
-- Guardar favoritos y enterarte de ofertas y días de tianguis.
-- Compartir tu experiencia y ayudar a cuidar la comunidad.
+Con la app se puede:
 
-La compra se acuerda y se paga directamente en el puesto. La app te ayuda a
-llegar, preguntar y conectar; el encuentro sucede en el tianguis.
+- buscar productos y ver en un mapa los puestos abiertos
+- guardar favoritos
+- chatear con el vendedor, proponerle un precio o pedirle que te aparte algo
+- si eres vendedor, abrir y cerrar tu puesto, publicar productos y ofertas
+- calificar un puesto después de visitarlo, y reportar lo que rompa las reglas
 
-¿Te gustaría sumar algo? Las ideas, las experiencias del tianguis y las
-contribuciones al código son bienvenidas. En el tablero del proyecto puedes ver
-lo que estamos preparando.
+La app no cobra nada. El pago se arregla directo con el vendedor en el tianguis.
 
-## Tecnologías y estructura del repositorio
+## Cómo está organizado
 
-La aplicación utiliza Flutter y Dart, con Supabase para autenticación,
-datos en PostgreSQL, almacenamiento de imágenes y mensajería en tiempo real.
-Android e iOS tienen su estructura nativa configurada en este repositorio.
+Usamos Flutter y Dart. Supabase se encarga de la sesión, la base de datos
+(PostgreSQL), las fotos y los mensajes en tiempo real.
 
 ```text
 lib/
-  config/       Tema visual y configuración de Supabase
-  models/       Modelos de datos del dominio
-  screens/      Pantallas y pestañas de Flutter
-  services/     Autenticación y operaciones del dominio
-android/        Aplicación Android y configuración de compilación
-ios/            Aplicación iOS, proyecto de Xcode y permisos
-test/           Pruebas automatizadas de la aplicación
+  config/       tema y configuración de Supabase
+  models/       las clases del diagrama
+  screens/      pantallas y pestañas
+  services/     sesión y conexión con Supabase
+  widgets/      piezas que se repiten en varias pantallas
+android/        proyecto Android
+ios/            proyecto iOS
+test/           pruebas
+docs/           guías extra
 ```
 
-El backend se mantiene en [Toldo](https://github.com/Tianguia/Toldo), con sus
-migraciones, permisos, datos de ejemplo y pruebas de base de datos.
+Si buscas dónde está una clase del diagrama, mira
+[docs/guia-del-codigo.md](docs/guia-del-codigo.md). Cada lugar del código que
+cumple un requisito tiene un comentario que empieza con `rf-` y el número, por
+ejemplo `rf-01`.
 
-## Ejecución local
+## Probar que todo funciona
 
-### Verificar los cambios con el mismo entorno que CI
-
-Solo necesitas Docker con Compose v2 y contenedores Linux. No requiere Flutter,
-Python, Java, Android Studio ni un backend instalados en el host.
+La forma más fácil es con Docker (con Compose v2 y contenedores Linux). No hace
+falta tener Flutter, Python, Java ni Android Studio instalados.
 
 ```powershell
 ./scripts/verify.ps1
 ```
 
-En Windows, el script usa Docker de WSL cuando no hay una CLI nativa. En
-Linux/macOS: `bash scripts/check.sh`. También puedes ejecutar directamente:
+En Windows usa el Docker de WSL si no hay uno nativo. En Linux o macOS:
+`bash scripts/check.sh`. Los dos hacen lo mismo que este comando, que es el que
+corre GitHub Actions:
 
 ```sh
 docker compose -f compose.verify.yaml run --build --rm -T verify
 ```
 
-GitHub Actions ejecuta exactamente ese comando. Comprueba las 5 pruebas de
-versionado, instala las dependencias respetando `pubspec.lock`, analiza el código
-y ejecuta todas las pruebas Flutter. Se detiene ante el primer fallo y devuelve
-un código distinto de cero. Usa Linux amd64, Flutter 3.47.8 fijado por commit y
-Python del contenedor; no descarga el SDK/NDK de Android.
+Primero corre las 5 pruebas de versionado, luego instala las dependencias según
+`pubspec.lock`, analiza el código y corre las pruebas de Flutter. Si algo falla
+se detiene ahí. Usa Flutter 3.47.8 y no descarga el SDK de Android.
 
-La primera ejecución descarga Flutter y construye la imagen; las siguientes
-reutilizan las capas y la caché de Pub. Cada ejecución usa una copia nueva del
-repositorio, montado de solo lectura, sin los archivos generados del host. No
-modifica tu código ni tu instalación de Flutter. La descarga de dependencias
-requiere Internet; las pruebas actuales usan HTTP simulado, sin Supabase real.
-Esta suite cubre análisis y pruebas automatizadas, no la compilación ni los
-flujos manuales en Android/iOS. Consulta los detalles en la
-[guía de Docker](docs/desarrollo-docker.md#verificación-local-y-en-ci).
+La primera vez tarda porque descarga Flutter y arma la imagen. Después va mucho
+más rápido. Las pruebas usan respuestas HTTP simuladas, así que no tocan Supabase,
+pero sí hace falta internet para bajar las dependencias. Esto no compila ni
+prueba la app en un Android o iPhone real. Más detalles en la
+[guía de Docker](docs/desarrollo-docker.md#verificar-un-cambio), que
+también explica cómo armar un entorno completo para Android sin instalar nada.
 
-Puedes usar el [entorno opcional con Docker](docs/desarrollo-docker.md) para
-Android y web-server sin instalar Flutter ni el SDK completo en tu equipo.
-Incluye scripts para pruebas, compilación y conexión con el ADB del host.
-La instalación nativa sigue disponible con las instrucciones siguientes.
+## Correrla en tu computadora
 
-### Requisitos previos
+### Lo que necesitas
 
-Instala Flutter en su canal estable y Android Studio con el SDK de Android.
-Agrega el directorio `bin` de Flutter a tu `PATH`. Para compilar en Android,
-Flutter utiliza el JDK incluido en Android Studio.
+Flutter (canal estable) y Android Studio con el SDK de Android. Agrega la carpeta
+`bin` de Flutter a tu `PATH`. Para compilar en Android, Flutter usa el JDK que
+trae Android Studio.
 
 ```sh
 git clone https://github.com/Tianguia/Tianguiapp.git
@@ -92,89 +83,80 @@ flutter doctor -v
 flutter pub get
 ```
 
-### Configuración del backend
+### Backend
 
-La aplicación lee `SUPABASE_URL` y `SUPABASE_KEY` mediante parámetros de
-compilación de Dart en [SupabaseConfig](lib/config/supabase_config.dart). El
-archivo incluye una configuración predeterminada; puedes sustituirla mediante
-parámetros para conectarte a tu propio backend de desarrollo. Utiliza una clave
-pública de cliente (`publishable` o `anon`) y mantén las claves privilegiadas
-`service_role` fuera de la aplicación.
+La app lee `SUPABASE_URL` y `SUPABASE_KEY` desde
+[SupabaseConfig](lib/config/supabase_config.dart). El archivo ya trae valores
+por defecto, pero puedes cambiarlos con `--dart-define` para usar tu propio
+backend de pruebas. Usa solo la clave pública (`publishable` o `anon`). La
+`service_role` nunca debe estar en la app.
 
-Los flujos de datos requieren una base de datos compatible en Supabase.
-Consulta las instrucciones de [Toldo](https://github.com/Tianguia/Toldo) para las
-migraciones y la preparación del backend. Toldo ya verifica la restauración de
-la base y algunos permisos en Docker; la configuración completa de autenticación
-y almacenamiento para un entorno nuevo todavía está en desarrollo.
-Los SQL antiguos de este repositorio se conservan en el historial de Git.
-La autenticación utiliza acceso anónimo para compradores y códigos de un solo
-uso (OTP) por correo para vendedores y administradores; habilita estos métodos
-en tu backend.
+Para que funcione necesitas una base de Supabase con las migraciones de
+[Toldo](https://github.com/Tianguia/Toldo). La configuración completa de
+autenticación y almacenamiento para un proyecto nuevo todavía no está lista.
+En el backend hay que activar el acceso anónimo (lo usan los compradores) y los
+códigos por correo (los usan vendedores y administradores).
 
-### Ejecución en Android
+### Android
 
-Conecta un teléfono con la depuración USB habilitada o inicia un emulador de
-Android:
+Conecta un teléfono con la depuración USB activada, o abre un emulador:
 
 ```sh
 flutter devices
 flutter run -d <id-dispositivo> --dart-define=SUPABASE_URL=<url-proyecto> --dart-define=SUPABASE_KEY=<clave-publica>
 ```
 
-Las mismas opciones `--dart-define` pueden utilizarse al compilar:
+Los mismos `--dart-define` sirven para compilar:
 
 ```sh
 flutter build apk --debug
 flutter build apk --release
 ```
 
-Los archivos APK se generan en `build/app/outputs/flutter-apk/`. Las compilaciones
-locales `release` conservan la firma de depuración si no se proporciona una
-clave de distribución; el workflow por tags utiliza la clave estable de Secrets.
+El APK queda en `build/app/outputs/flutter-apk/`. Si compilas `release` en tu
+equipo sin una clave de distribución, se firma con la de depuración. La clave
+real solo la usa el workflow de tags.
 
 ### Versiones e iOS
 
-Al subir un tag como `v0.1.0`, Actions compila tres APK firmados y un IPA sin
-firmar en runners Linux y macOS. La versión sale del tag y el número de
-compilación aumenta automáticamente. Consulta la [guía de versiones](docs/versiones.md)
-para descargar los artefactos y conservar la clave de firma.
+Cuando se sube un tag como `v0.1.0`, GitHub Actions compila tres APK firmados y
+un IPA sin firmar. La versión sale del tag y el número de compilación sube solo.
+Cómo descargar los archivos y cuidar la clave de firma está en
+[docs/versiones.md](docs/versiones.md).
 
-Para trabajar con iOS localmente necesitas macOS, Xcode y Flutter. El proyecto
-oficial está en `ios/`; `bash scripts/dev.sh ios -d <id-dispositivo>` usa esa
-instalación nativa.
+Para trabajar en iOS necesitas una Mac con Xcode y Flutter. El proyecto está en
+`ios/` y se corre con `bash scripts/dev.sh ios -d <id-dispositivo>`.
 
 <details>
-<summary>Notas de configuración para Windows y Android</summary>
+<summary>Notas para Windows y Android</summary>
 
-Las notas del entorno local registran Flutter 3.47.8, SDK de compilación de
-Android 36 y NDK 28.2.13676358. La configuración de Gradle toma las versiones del
-SDK y del NDK del SDK de Flutter instalado. Instala el NDK solicitado desde
-Android Studio en **SDK Manager > SDK Tools > Show Package Details >
-NDK (Side by side)**.
+Estamos usando Flutter 3.47.8, SDK de compilación de Android 36 y NDK
+28.2.13676358. Gradle toma las versiones del SDK y del NDK del Flutter que
+tengas instalado. El NDK se instala desde Android Studio en
+**SDK Manager > SDK Tools > Show Package Details > NDK (Side by side)**.
 
-Con la CLI más reciente de Android, el comando de instalación registrado es:
+Con la CLI nueva de Android se instala así:
 
 ```powershell
 & "$env:LOCALAPPDATA\Android\Sdk\cmdline-tools\latest\bin\android.exe" sdk install 'ndk/28.2.13676358'
 flutter doctor --android-licenses
 ```
 
-Si `sdkmanager.bat` falla cuando Gradle solicita `ndk;28.2.13676358`, prueba el
-comando directo con `android.exe` anterior, si tienes instalada esa CLI.
+Si `sdkmanager.bat` falla cuando Gradle pide `ndk;28.2.13676358`, usa el comando
+de arriba con `android.exe`.
 
-`android/gradle.properties` deshabilita la compilación incremental de Kotlin para
-evitar problemas de caché cuando el repositorio y la caché de Pub están en
-unidades distintas de Windows. La carga de trabajo de C++ de Visual Studio solo
-es necesaria para desarrollar la versión de escritorio para Windows.
+En `android/gradle.properties` está desactivada la compilación incremental de
+Kotlin. Sin eso daba errores de caché cuando el proyecto y la caché de Pub están
+en discos distintos de Windows. La carga de trabajo de C++ de Visual Studio solo
+hace falta para la versión de escritorio de Windows.
 
 </details>
 
 <details>
-<summary>Desarrollo en navegador con Brave</summary>
+<summary>Correrla en el navegador con Brave</summary>
 
-En un entorno con el destino web de Flutter configurado, puedes seleccionar
-Brave mediante `CHROME_EXECUTABLE`. Define la ruta sin comillas adicionales
-dentro de su valor:
+Si ya tienes configurado el destino web de Flutter, puedes elegir Brave con la
+variable `CHROME_EXECUTABLE`:
 
 ```powershell
 $browserPath = "$env:ProgramFiles\BraveSoftware\Brave-Browser\Application\brave.exe"
@@ -183,50 +165,15 @@ $env:CHROME_EXECUTABLE = $browserPath
 flutter run -d chrome
 ```
 
-Reinicia las terminales y los IDE abiertos después de modificar variables de
-entorno persistentes.
+Cierra y vuelve a abrir las terminales y el editor para que tomen la variable.
 
 </details>
 
-## Cómo contribuir
+## Colaborar
 
-Puedes ayudar con código, documentación, accesibilidad, diseño o ideas. Si vas al
-tianguis a comprar o vender, tu experiencia también cuenta: cuéntanos qué te
-gustaría encontrar en la app y qué haría más fácil tu día.
-
-1. Revisa el documento de requisitos y el tablero del proyecto, y consulta las
-   [incidencias existentes](https://github.com/Tianguia/Tianguiapp/issues) para
-   identificar trabajo relacionado.
-2. Abre una incidencia para describir un error o discutir un cambio importante.
-   Si reportas un error, incluye los pasos para reproducirlo, el comportamiento
-   esperado y el dispositivo o plataforma utilizados.
-3. Trabaja en una rama dedicada al cambio y envía una solicitud de incorporación
-   (*pull request*) que explique el problema, la solución y cómo la verificaste.
-   Vincula la incidencia y el requisito correspondiente cuando aplique; incluye
-   capturas de pantalla si modificas la interfaz.
-
-Antes de enviar cambios en Dart, aplica el formato y ejecuta el análisis
-estático:
-
-```sh
-dart format lib
-flutter analyze
-flutter test
-```
-
-GitHub Actions ejecuta el análisis estático y las pruebas en cada push y pull
-request. Las pruebas de la app usan respuestas HTTP simuladas, sin conectarse al
-Supabase compartido. Las pruebas de base de datos se ejecutan por separado en Toldo.
-
-Las [notas de implementación](docs/notas-implementacion.md) incluyen recorridos
-manuales para las funciones de puestos, productos, propuestas y apartados.
-
-Incluye las pruebas pertinentes al agregar o modificar comportamientos y describe
-las verificaciones manuales que requieran un dispositivo o un backend
-configurado. Evita incluir credenciales y datos personales de usuarios en
-incidencias, capturas de pantalla y commits.
+Mira [CONTRIBUTING.md](CONTRIBUTING.md). Si vas al tianguis, también nos sirve
+que nos cuentes qué te gustaría que hiciera la app.
 
 ## Licencia
 
-Este proyecto se distribuye bajo la licencia [BSD de 3 cláusulas](LICENSE)
-(`BSD-3-Clause`).
+BSD de 3 cláusulas, está en [LICENSE](LICENSE).

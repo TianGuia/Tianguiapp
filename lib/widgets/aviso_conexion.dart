@@ -5,9 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../config/supabase_config.dart';
 
-/// RNF-5: avisa cuando no hay conexión con el servidor, para que el usuario
-/// sepa que lo que ve puede estar desactualizado (p. ej. el estado de un puesto).
-/// Si no se puede determinar (p. ej. en web), no muestra nada.
+// rnf-5: avisa cuando no hay conexion para que se sepa que lo que se ve puede estar viejo
+// si no se puede saber, por ejemplo en web, no muestra nada
 class AvisoConexion extends StatefulWidget {
   const AvisoConexion({super.key});
   @override

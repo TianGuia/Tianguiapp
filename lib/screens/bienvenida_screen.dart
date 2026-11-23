@@ -3,7 +3,6 @@ import '../config/theme.dart';
 import '../widgets/fondo.dart';
 import '../widgets/pincel.dart';
 
-/// Primera pantalla: logo, lema y botón COMENZAR.
 class BienvenidaScreen extends StatelessWidget {
   final VoidCallback onComenzar;
   const BienvenidaScreen({super.key, required this.onComenzar});

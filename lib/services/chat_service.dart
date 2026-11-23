@@ -3,14 +3,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/enums.dart';
 import 'comprador_id.dart';
 
-/// RF-16, RF-17, RF-18, RF-37, RF-38.
+// rf-38 se cumple aqui: se revisa si ya bloquee a esta persona
 class ChatService {
   final _db = Supabase.instance.client;
   String get _uid => _db.auth.currentUser!.id;
 
-  /// RF-16 / RF-35: abre (o reutiliza) una conversación. Se origina en un
-  /// producto ([idProducto]) o en un anuncio de espacio ([idAnuncio]).
-  /// [idUsuarioReceptor] = id_usuario del dueño del producto o del anuncio.
+  // rf-16 se cumple aqui: el comprador abre un chat privado con el vendedor desde un producto
+  // rf-35 se cumple aqui: el vendedor abre un chat con otro vendedor desde un anuncio
+  // idUsuarioReceptor es el dueño del producto o del anuncio
   Future<String> iniciarConversacion({
     String? idProducto,
     String? idAnuncio,
@@ -29,10 +29,9 @@ class ChatService {
         .eq('id_receptor', idUsuarioReceptor)
         .maybeSingle();
     if (ya != null) return ya['id'];
-    // El id se genera aquí y el insert NO pide la fila de vuelta: conv_select
-    // exige participa_en(id) y el trigger conversaciones_participantes registra
-    // a los participantes DESPUÉS del insert, así que insert(...).select()
-    // fallaba con 42501.
+    // el id se genera aqui y el insert no pide la fila de vuelta
+    // porque conv_select exige participa_en y el trigger agrega a los participantes
+    // despues del insert. antes con select fallaba con 42501
     final id = _uuidV4();
     await _db.from('conversaciones').insert({
       'id': id,
@@ -54,8 +53,7 @@ class ChatService {
         '${h(10)}${h(11)}${h(12)}${h(13)}${h(14)}${h(15)}';
   }
 
-  /// Conversaciones que no he borrado. Una borrada reaparece sola si llega
-  /// un mensaje nuevo después de borrarla.
+  // conversaciones que no he borrado, una borrada vuelve a salir si llega mensaje nuevo
   Future<List<Map<String, dynamic>>> misConversaciones() async {
     final todas = await _db
         .from('conversaciones')
@@ -86,20 +84,18 @@ class ChatService {
     return ultimo == null || !DateTime.parse(ultimo).isAfter(ocultadaEn);
   }
 
-  /// Borra la conversación SOLO para mí (la otra persona la sigue viendo y
-  /// el historial queda disponible para moderación).
+  // borra la conversacion solo para mi, la otra persona la sigue viendo
   Future<void> borrarConversacion(String idConversacion) =>
       _db.rpc('ocultar_conversacion', params: {'p_id': idConversacion});
 
-  /// Mensajes en tiempo real (Supabase Realtime).
-  /// Llegan del más nuevo al más viejo; la pantalla usa ListView(reverse: true)
-  /// para que el más nuevo quede abajo. Si borré la conversación antes,
-  /// solo se muestran los mensajes posteriores al borrado.
+  // mensajes en tiempo real con supabase realtime
+  // llegan del mas nuevo al mas viejo y la pantalla usa reverse
+  // si borre la conversacion solo salen los posteriores
   Stream<List<Map<String, dynamic>>> mensajes(String idConversacion) async* {
     DateTime? desde;
     try {
       desde = (await _ocultas())[idConversacion];
-    } catch (_) {}
+    } catch (_) {} // sin esto se muestran todos los mensajes
     yield* _db
         .from('mensajes')
         .stream(primaryKey: ['id'])
@@ -117,7 +113,6 @@ class ChatService {
         'contenido': texto.trim(),
       });
 
-  /// Id del otro participante de la conversación (para bloquear o reportar).
   Future<String?> otroParticipante(String idConversacion) async {
     final c = await _db
         .from('conversaciones')
@@ -128,7 +123,7 @@ class ChatService {
     return c['id_iniciador'] == _uid ? c['id_receptor'] as String? : c['id_iniciador'] as String?;
   }
 
-  /// RF-38: ¿ya bloqueé a este usuario? (solo cuenta el bloqueo activo)
+  // rf-38 se cumple aqui: se quita el bloqueo
   Future<bool> estaBloqueado(String idUsuario) async {
     final r = await _db
         .from('bloqueos')
@@ -140,14 +135,14 @@ class ChatService {
     return (r as List).isNotEmpty;
   }
 
-  /// RF-38: quita el bloqueo (queda registrado como inactivo).
+  // rf-38 se cumple aqui: se bloquea a la persona y ya no se pueden mandar mensajes
   Future<void> desbloquear(String idUsuario) => _db
       .from('bloqueos')
       .update({'activo': false})
       .eq('id_bloqueador', _uid)
       .eq('id_bloqueado', idUsuario);
 
-  /// RF-38: bloquea; si ya hubo un bloqueo previo lo reactiva.
+  // rf-38 se cumple aqui: se puede bloquear a alguien y ya no se pueden mandar mensajes
   Future<void> bloquear(String idUsuario) async {
     final ya = await _db
         .from('bloqueos')
@@ -162,7 +157,7 @@ class ChatService {
     }
   }
 
-  /// RF-17
+  // rf-17 se cumple aqui: el comprador manda el precio que propone por un producto
   Future<void> proponerPrecio({
     required String idProducto, required String idVendedor, required num monto,
   }) async {
@@ -172,7 +167,7 @@ class ChatService {
     });
   }
 
-  /// RF-18: apartado temporal (24 h por defecto).
+  // rf-18 se cumple aqui: el comprador pide apartar un producto sin pagar dentro de la app
   Future<void> solicitarApartado({
     required String idProducto, required String idVendedor, int cantidad = 1,
     Duration vigencia = const Duration(hours: 24),
@@ -184,7 +179,7 @@ class ChatService {
     });
   }
 
-  /// RF-44
+  // rf-44 se cumple aqui: se manda un reporte cuando algo rompe las reglas
   Future<void> crearReporte({
     required String tipoObjetivo, required String idObjetivo,
     String? idUsuarioReportado, required String motivo,

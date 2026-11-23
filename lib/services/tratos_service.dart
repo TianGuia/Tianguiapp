@@ -3,9 +3,9 @@ import '../config/estados.dart';
 import '../models/tratos.dart';
 import 'comprador_id.dart';
 
-/// RF-17, RF-18, RF-31, RF-32: propuestas de precio y apartados.
-/// Los cambios de estado pasan por funciones SQL (responder_propuesta,
-/// responder_apartado) para que sean atómicos y validados.
+// propuestas de precio y apartados
+// rf-17 y rf-18 las crea el comprador, rf-31 y rf-32 las contesta el vendedor
+// los cambios de estado van por funciones sql para que sean atomicos
 class TratosService {
   final _db = Supabase.instance.client;
   String get _uid => _db.auth.currentUser!.id;
@@ -18,15 +18,15 @@ class TratosService {
       'comprador:compradores!apartados_id_comprador_fkey(usuarios(nombre_publico)), '
       'vendedor:perfiles_vendedor(nombre_negocio, usuarios(nombre_publico))';
 
-  /// Marca como vencidos los apartados/ofertas pasados de fecha. Si no hay
-  /// pg_cron en tu proyecto, esto es lo que los hace vencer. Nunca lanza error.
+  // marca como vencidos los apartados y ofertas pasados de fecha
+  // si no hay pg_cron esto es lo que los vence. no lanza error
   Future<void> vencer() async {
     try {
       await _db.rpc('vencer_pendientes');
-    } catch (_) {}
+    } catch (_) {} // si falla ya se venceran despues
   }
 
-  /// [idVendedor] != null → las que recibe ese vendedor; null → las que envié como comprador.
+  // con idVendedor son las que recibe ese vendedor, sin el son las que mande como comprador
   Future<List<Propuesta>> propuestas({String? idVendedor}) async {
     final q = _db.from('propuestas_precio').select(_selProp);
     final r = await (idVendedor != null
@@ -65,7 +65,6 @@ class TratosService {
   Future<void> cancelarApartado(String id) =>
       _db.rpc('responder_apartado', params: {'p_id': id, 'p_accion': 'cancelar'});
 
-  /// Pendientes por atender del vendedor (para el número en el botón).
   Future<int> pendientes(String idVendedor) async {
     final props = await _db
         .from('propuestas_precio')

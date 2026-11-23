@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tianguia/widgets/entradas.dart';
 
-/// Aplica los formateadores como si el usuario escribiera [nuevo] sobre [viejo].
+// aplica los formateadores como si el usuario escribiera [nuevo] sobre [viejo].
 String _escribir(List<TextInputFormatter> f, String viejo, String nuevo) {
   final anterior = TextEditingValue(text: viejo);
   var actual = TextEditingValue(text: nuevo);

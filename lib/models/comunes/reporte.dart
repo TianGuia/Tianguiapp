@@ -1,7 +1,6 @@
 import '../../services/chat_service.dart';
 
-/// Aviso de que algo (un perfil, publicación, mensaje o valoración) rompe las
-/// reglas. Lo revisa el administrador. Tabla `reportes`.
+// aviso de que algo rompe las reglas, lo revisa el administrador, tabla reportes
 class Reporte {
   final String idReporte, idUsuario, tipo, idReferencia, motivo, estado;
   final DateTime fechaCreacion;
@@ -15,7 +14,7 @@ class Reporte {
         estado = m['estado'].toString(),
         fechaCreacion = DateTime.parse(m['creado_en']).toLocal();
 
-  /// RF-44 · Enviar el reporte con su motivo.
+  // rf-44 se cumple aqui: se manda un reporte cuando algo rompe las reglas
   static Future<void> crearReporte({
     required String tipoObjetivo,
     required String idObjetivo,

@@ -2,7 +2,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/modelos.dart';
 import 'comprador_id.dart';
 
-/// RF-09, RF-10: mapa de puestos abiertos y su última ubicación.
+// rf-09 se cumple aqui: se ven en un mapa los puestos que estan abiertos
+// rf-10 se cumple aqui: se ve si el puesto esta abierto o cerrado y donde estaba la ultima vez
 class PuestosService {
   final _db = Supabase.instance.client;
 
@@ -13,19 +14,17 @@ class PuestosService {
     return r.map<Puesto>(Puesto.fromMap).toList();
   }
 
-  /// RF-13/RF-21: horarios generales del tianguis.
+  // horarios generales del tianguis.
   Future<List<Map<String, dynamic>>> horarios(String idTianguis) =>
       _db.from('tianguis_horarios').select().eq('id_tianguis', idTianguis).order('dia_semana');
 
-  /// RF-41: el comprador captura el código que le muestra el vendedor.
-  /// Devuelve el id de la visita (función confirmar_visita).
+  // rf-41 se cumple aqui: el comprador escribe el codigo que le da el vendedor para confirmar que si fue al puesto
   Future<String> verificarVisita(String codigo) async =>
       await _db.rpc('confirmar_visita', params: {'p_codigo': codigo.trim()})
           as String;
 
-  /// RF-42: etiquetas descriptivas que el comprador puede elegir al calificar.
-  /// Si la columna `activa` no existe o la lectura falla, devuelve lista vacía
-  /// y la calificación sigue funcionando solo con estrellas y comentario.
+  // rf-42 se cumple aqui: salen las etiquetas que el comprador puede elegir al calificar
+  // si falla la lectura devuelve lista vacia y se califica solo con estrellas y comentario
   Future<List<Map<String, dynamic>>> etiquetasValoracion() async {
     try {
       final r = await _db
@@ -39,8 +38,7 @@ class PuestosService {
     }
   }
 
-  /// RF-42: calificar una visita verificada. El trigger calificacion_desde_visita
-  /// completa id_puesto e id_vendedor.
+  // rf-42 se cumple aqui: despues de una visita confirmada el comprador deja su calificacion
   Future<void> registrarCalificacion({
     required String idVisita,
     required int puntuacion,

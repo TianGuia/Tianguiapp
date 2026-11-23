@@ -2,11 +2,7 @@ import '../../services/catalogo_service.dart';
 import '../../services/chat_service.dart';
 import '../modelos.dart';
 
-/// El ROL de quien busca productos y puestos en el tianguis.
-///
-/// No es una persona distinta: es lo que un Usuario puede hacer como comprador
-/// (buscar, filtrar y proponer un precio). En la base de datos es la tabla
-/// `compradores`, ligada a su cuenta.
+// el rol de quien busca productos y puestos, tabla compradores
 class Comprador {
   final String idComprador, idUsuario;
 
@@ -14,11 +10,11 @@ class Comprador {
       : idComprador = m['id_comprador'],
         idUsuario = m['id_usuario'];
 
-  /// RF-06 · Buscar productos por palabra o categoría.
+  // rf-06 se cumple aqui: se buscan productos escribiendo una palabra o eligiendo una categoria
   Future<List<Producto>> buscarProductos({String? texto, String? idCategoria}) =>
       CatalogoService().buscarProductos(texto: texto, idCategoria: idCategoria);
 
-  /// RF-07 · Filtrar por tianguis, día, categoría y rango de precio.
+  // rf-07 se cumple aqui: los productos se filtran por tianguis, dia, categoria y precio
   Future<List<Producto>> filtrarProductos({
     String? texto,
     String? idCategoria,
@@ -36,7 +32,7 @@ class Comprador {
         diaSemana: diaSemana,
       );
 
-  /// RF-17 · Mandar al vendedor una propuesta de precio (regateo).
+  // rf-17 se cumple aqui: el comprador manda el precio que propone por un producto
   Future<void> proponerPrecio({
     required String idProducto,
     required String idVendedor,

@@ -1,9 +1,6 @@
 import '../../services/puestos_service.dart';
 
-/// La opinión que deja un comprador después de una visita confirmada.
-///
-/// Lleva una puntuación, etiquetas (por ejemplo «amable») y un comentario
-/// opcional. Tabla `calificaciones`.
+// la opinion que deja el comprador despues de una visita confirmada, tabla calificaciones
 class Calificacion {
   final String idCalificacion, idComprador, idPuesto, idVendedor;
   final int puntuacion;
@@ -24,7 +21,7 @@ class Calificacion {
         ]..removeWhere((e) => e.isEmpty),
         fechaCreacion = DateTime.parse(m['creada_en']).toLocal();
 
-  /// RF-42 · Guardar la calificación de una visita ya confirmada.
+  // rf-42 se cumple aqui: despues de una visita confirmada el comprador deja su calificacion
   static Future<void> registrarCalificacion({
     required String idVisita,
     required int puntuacion,

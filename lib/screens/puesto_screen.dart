@@ -8,7 +8,6 @@ import '../widgets/pincel.dart';
 import '../widgets/visita_flow.dart';
 import 'producto_detalle_screen.dart';
 
-/// Detalle de un puesto: foto, ubicación, calificación y sus productos.
 class PuestoScreen extends StatefulWidget {
   final PuestoResumen puesto;
   const PuestoScreen({super.key, required this.puesto});
@@ -78,7 +77,7 @@ class _PuestoScreenState extends State<PuestoScreen> {
                   FutureBuilder<Puesto?>(
                     future: _estado,
                     builder: (_, s) {
-                      // Si aún no carga (o falla), se usa el estado del resumen.
+                      // si aun no carga, o falla, se usa el estado del resumen.
                       final real = s.data;
                       final abierto = real?.abierto ?? p.abierto;
                       final cierreEspecial = !abierto && real?.cierreTipo != null;
@@ -158,7 +157,7 @@ class _PuestoScreenState extends State<PuestoScreen> {
                   );
                 }
                 if (s.hasError) {
-                  return SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(20), child: Text('Error: ${s.error}')));
+                  return SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(20), child: Text('No se pudieron cargar los productos: ${s.error}')));
                 }
                 final l = s.data!;
                 if (l.isEmpty) {
@@ -192,7 +191,6 @@ class _PuestoScreenState extends State<PuestoScreen> {
   }
 }
 
-/// Tarjeta blanca de producto (como la lista de "Tacos" del diseño).
 class TarjetaProducto extends StatelessWidget {
   final Producto producto;
   final VoidCallback onTap;

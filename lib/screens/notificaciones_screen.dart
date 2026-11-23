@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../services/inicio_service.dart';
+import '../widgets/mensaje.dart';
 
+// rf-12 se cumple a medias, aqui se muestran los avisos de ofertas pero la app no los crea, eso le toca al backend
 class NotificacionesScreen extends StatefulWidget {
   const NotificacionesScreen({super.key});
   @override
@@ -15,7 +17,7 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> {
 
   Future<List<Map<String, dynamic>>> _cargar() async {
     final l = await _svc.notificaciones();
-    // Se marcan como leídas al abrir la pantalla; la lista ya se trajo con su estado original.
+    // se marcan como leidas al abrir la pantalla; la lista ya se trajo con su estado original.
     _svc.marcarLeidas().catchError((_) {});
     _lista = List<Map<String, dynamic>>.of(l);
     return l;
@@ -28,7 +30,7 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> {
     return '${dos(d.day)}/${dos(d.month)}  ${dos(d.hour)}:${dos(d.minute)}';
   }
 
-  void _msg(String t) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+  void _msg(String t) => mostrarMensaje(context, t);
 
   Future<void> _borrar(Map<String, dynamic> n) async {
     setState(() => _lista!.remove(n));
@@ -82,7 +84,7 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> {
           if (s.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
           }
-          if (s.hasError) return Center(child: Text('Error: ${s.error}'));
+          if (s.hasError) return Center(child: Text('No se pudieron cargar los avisos: ${s.error}'));
           final l = _lista ?? s.data!;
           if (l.isEmpty) {
             return const Center(child: Text('No tienes notificaciones por ahora'));

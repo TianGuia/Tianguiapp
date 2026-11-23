@@ -1,7 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// RF-47 a RF-54: operaciones del administrador. Los permisos los aplica la
-/// base de datos (es_admin() en las políticas RLS), no la app.
+// todo lo que hace el administrador, rf-47 a rf-54
+// los permisos los revisa la base de datos y no la app
 class AdminService {
   final _db = Supabase.instance.client;
   String get _uid => _db.auth.currentUser!.id;
@@ -15,7 +15,8 @@ class AdminService {
     return {for (final u in r) u['id'] as String: (u['nombre_publico'] ?? '') as String};
   }
 
-  // ---------------- RF-50: reportes ----------------
+  // reportes
+  // rf-50 se cumple aqui: el administrador revisa los reportes y decide que hacer
 
   Future<List<Map<String, dynamic>>> reportes({bool soloPendientes = true}) async {
     final base = _db.from('reportes').select();
@@ -38,7 +39,6 @@ class AdminService {
     ];
   }
 
-  /// Texto de lo que se reportó, para que el administrador decida con contexto.
   Future<String> _contenidoReportado(String tipo, String id) async {
     String unir(List<Object?> partes) =>
         partes.where((p) => p != null && '$p'.trim().isNotEmpty).join(' · ');
@@ -98,8 +98,7 @@ class AdminService {
     return '';
   }
 
-  /// [medida]: advertencia | ocultar_contenido | retirar_contenido |
-  /// suspender_cuenta, o null para mantener el contenido sin medida.
+  // medida: advertencia, ocultar_contenido, retirar_contenido o suspender_cuenta, null si no hay
   Future<void> resolverReporte(Map<String, dynamic> reporte,
       {String? medida, required String decision}) async {
     if (medida != null) {
@@ -125,7 +124,8 @@ class AdminService {
     }).eq('id', reporte['id']);
   }
 
-  // ---------------- RF-51: apelaciones ----------------
+  // apelaciones
+  // rf-51 se cumple aqui: el administrador resuelve las apelaciones
 
   Future<List<Map<String, dynamic>>> apelaciones({bool soloPendientes = true}) async {
     final base = _db.from('apelaciones').select();
@@ -136,8 +136,7 @@ class AdminService {
     return [for (final x in r) {...x, 'usuario_nombre': nombres[x['id_usuario']] ?? '—'}];
   }
 
-  /// [resolucion]: mantenida | modificada | revertida. Si se revierte una
-  /// medida, se desactiva (el trigger de la base restaura contenido/cuenta).
+  // resolucion: mantenida, modificada o revertida. si se revierte se desactiva la medida
   Future<void> resolverApelacion(Map<String, dynamic> apelacion,
       {required String resolucion, required String comentario}) async {
     await _db.from('apelaciones').update({
@@ -154,12 +153,15 @@ class AdminService {
     }
   }
 
-  // ---------------- RF-47, RF-48, RF-49: tianguis ----------------
+  // tianguis
+  // rf-47 se cumple aqui: el administrador agrega, cambia o quita tianguis
+  // rf-48 se cumple aqui: el administrador maneja los horarios del tianguis
+  // rf-49 se cumple aqui: el administrador guarda las zonas y coordenadas que usa el mapa
 
   Future<List<Map<String, dynamic>>> tianguis() async =>
       List<Map<String, dynamic>>.from(await _db.from('tianguis').select().order('nombre'));
 
-  /// Crea (id == null) o modifica un tianguis. Devuelve su id.
+  // crea el tianguis si id es null, si no lo modifica. devuelve su id
   Future<String> guardarTianguis(String? id, Map<String, dynamic> datos) async {
     if (id == null) {
       final r = await _db.from('tianguis').insert(datos).select('id').single();
@@ -206,7 +208,8 @@ class AdminService {
 
   Future<void> eliminarZona(String id) => _db.from('tianguis_zonas').delete().eq('id', id);
 
-  // ---------------- RF-52: términos y privacidad ----------------
+  // terminos y privacidad
+  // rf-52 se cumple aqui: el administrador publica nuevas condiciones de uso
 
   Future<List<Map<String, dynamic>>> versiones() async =>
       List<Map<String, dynamic>>.from(await _db
@@ -214,8 +217,7 @@ class AdminService {
           .select('id, tipo, version, vigente, requiere_reaceptacion, publicado_en')
           .order('publicado_en', ascending: false));
 
-  /// Publica una versión nueva y deja como no vigentes las anteriores del
-  /// mismo tipo. Si falla la publicación, restaura las anteriores.
+  // publica una version nueva y deja viejas las anteriores, si falla las restaura
   Future<void> publicarVersion({
     required String tipo,
     required String version,
@@ -248,9 +250,10 @@ class AdminService {
     }
   }
 
-  // ---------------- RF-54: consulta ----------------
+  // consulta
+  // rf-54 se cumple aqui: el administrador consulta usuarios, vendedores, productos y puestos
 
-  /// [entidad]: usuarios | vendedores | productos | puestos.
+  // [entidad]: usuarios | vendedores | productos | puestos.
   Future<List<Map<String, dynamic>>> consultar(String entidad, String texto) async {
     final t = _limpia(texto);
     const moderables = {
@@ -289,9 +292,7 @@ class AdminService {
       }
       case 'puestos':
       {
-        // puestos no tiene llave foránea directa a tianguis (apunta a
-        // vendedor_tianguis), así que no se puede incrustar tianguis(...).
-        // Se piden los nombres aparte y se pegan a cada fila.
+        // puestos no tiene llave directa a tianguis, los nombres se piden aparte y se pegan a cada fila
         var q = _db.from('puestos').select('id, nombre, estado, activo, id_tianguis');
         if (t.isNotEmpty) q = q.ilike('nombre', '%$t%');
         final ps = await q.limit(60);
@@ -316,8 +317,7 @@ class AdminService {
     return tipo == null ? lista : _conMedidas(tipo, lista);
   }
 
-  /// Agrega 'medida_id' a las filas que tienen una medida de ocultar/retirar
-  /// activa (de un reporte o directa), para poder levantarla desde la lista.
+  // le agrega medida_id a las filas con medida activa para poder levantarla desde la lista
   Future<List<Map<String, dynamic>>> _conMedidas(
       String tipoObjetivo, List<Map<String, dynamic>> filas) async {
     final ms = await medidasActivas();
@@ -330,19 +330,19 @@ class AdminService {
     return [for (final f in filas) {...f, 'medida_id': porObjetivo['${f['id']}']}];
   }
 
-  /// Categorías ('categorias') o etiquetas de valoración ('etiquetas').
+  // categorias o etiquetas de valoracion
   Future<List<Map<String, dynamic>>> catalogo(String tabla) async {
     final r = await _db.rpc('admin_catalogo_listar', params: {'p_tabla': tabla});
     return [for (final x in (r as List)) Map<String, dynamic>.from(x as Map)];
   }
 
-  /// Crea ([id] nulo) o edita una categoría/etiqueta; [activa] false la desactiva.
+  // crea o edita, con activa en false se desactiva
   Future<void> guardarCatalogo(String tabla,
           {String? id, required String nombre, bool activa = true}) =>
       _db.rpc('admin_catalogo_guardar',
           params: {'p_tabla': tabla, 'p_id': id, 'p_nombre': nombre, 'p_activa': activa});
 
-  // ---------------- administradores por clave ----------------
+  // administradores por clave
 
   Future<List<Map<String, dynamic>>> administradores() async {
     final r = await _db.rpc('admin_lista_admins');
@@ -354,7 +354,7 @@ class AdminService {
     return [for (final x in (r as List)) Map<String, dynamic>.from(x as Map)];
   }
 
-  /// Alta o cambio de clave. [miClave]/[miRespuesta] son las de quien lo hace.
+  // alta o cambio de clave. miClave y miRespuesta son de quien lo hace
   Future<void> guardarAdministrador(
           {required String nombre,
           required String clave,
@@ -374,21 +374,19 @@ class AdminService {
       _db.rpc('admin_quitar_admin',
           params: {'p_nombre': nombre, 'p_mi_clave': miClave, 'p_mi_respuesta': miRespuesta});
 
-  /// Números para el resumen del panel (función admin_resumen).
   Future<Map<String, int>> resumen() async {
     final r = await _db.rpc('admin_resumen');
     return {for (final e in (r as Map).entries) '${e.key}': (e.value as num).toInt()};
   }
 
-  /// Medidas de moderación vigentes, más recientes primero.
   Future<List<Map<String, dynamic>>> medidasActivas() async {
     final r = await _db.rpc('admin_medidas_activas');
     return [for (final m in (r as List)) Map<String, dynamic>.from(m as Map)];
   }
 
-  /// Moderación directa, sin reporte. [tipoObjetivo]: puesto | producto |
-  /// vendedor | anuncio_espacio | calificacion | mensaje. La función de la base
-  /// calcula a quién afecta, aplica el efecto y le avisa al usuario (RF-45).
+  // moderacion directa sin reporte
+  // tipoObjetivo: puesto, producto, vendedor, anuncio_espacio, calificacion o mensaje
+  // rf-45 se cumple aqui: la persona se entera de la medida que puso el administrador
   Future<void> aplicarMedida(
           {required String tipoObjetivo,
           required String id,
@@ -401,11 +399,10 @@ class AdminService {
         'p_motivo': motivo,
       });
 
-  /// Levanta una medida activa, revierte su efecto y avisa al usuario.
   Future<void> levantarMedida(String idMedida, String motivo) =>
       _db.rpc('admin_levantar_medida', params: {'p_id': idMedida, 'p_motivo': motivo});
 
-  /// activa | suspendida
+  // activa | suspendida
   Future<void> cambiarEstadoCuenta(String idUsuario, String estado) =>
       _db.rpc('admin_cambiar_estado_cuenta', params: {'p_id': idUsuario, 'p_estado': estado});
 }

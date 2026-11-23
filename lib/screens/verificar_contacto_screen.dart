@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../widgets/fondo.dart';
 import '../widgets/entradas.dart';
+import '../widgets/mensaje.dart';
 
-/// RF-02 / RF-19: verifica el correo y lo liga a la cuenta anónima actual.
-/// Hace pop(true) cuando la cuenta quedó verificada.
+// rf-02 se cumple aqui: el correo se verifica con un codigo que llega a ese mismo correo
+// rf-19 se cumple aqui: la persona activa su perfil de vendedor
+// hace pop(true) si la cuenta quedo verificada
 class VerificarContactoScreen extends StatefulWidget {
   const VerificarContactoScreen({super.key});
   @override
@@ -17,8 +19,7 @@ class _VerificarContactoScreenState extends State<VerificarContactoScreen> {
   final _codigo = TextEditingController();
   bool _enviado = false, _cargando = false;
 
-  void _msg(String t) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+  void _msg(String t) => mostrarMensaje(context, t);
 
   Future<void> _enviar() async {
     final c = _correo.text.trim();

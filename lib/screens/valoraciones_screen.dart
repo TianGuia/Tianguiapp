@@ -3,8 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/theme.dart';
 import '../widgets/moderacion.dart';
 
-/// RF-43: el vendedor consulta sus valoraciones y etiquetas.
-/// También puede solicitar la revisión de una calificación (RF-46).
+// rf-43 se cumple aqui: el vendedor ve las calificaciones que le han dejado
+// rf-46 se cumple aqui: puede pedir que revisen una calificacion que le parece injusta
 class ValoracionesScreen extends StatefulWidget {
   final String idVendedor;
   const ValoracionesScreen({super.key, required this.idVendedor});
@@ -41,7 +41,7 @@ class _ValoracionesScreenState extends State<ValoracionesScreen> {
             if (s.connectionState != ConnectionState.done) {
               return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
             }
-            if (s.hasError) return Center(child: Text('Error: ${s.error}'));
+            if (s.hasError) return Center(child: Text('No se pudieron cargar las valoraciones: ${s.error}'));
             final l = s.data!;
             if (l.isEmpty) return const Center(child: Text('Aún no tienes valoraciones'));
             final promedio = l.map((c) => (c['puntuacion'] as num).toDouble()).reduce((a, b) => a + b) / l.length;

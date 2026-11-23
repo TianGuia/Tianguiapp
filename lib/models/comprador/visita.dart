@@ -1,10 +1,7 @@
 import '../../services/puestos_service.dart';
 
-/// La confirmación de que el comprador SÍ estuvo en un puesto.
-///
-/// El vendedor le muestra un código y el comprador lo escribe. Solo con una
-/// visita confirmada se puede dejar una calificación (así se evitan opiniones
-/// falsas). Tabla `visitas`.
+// confirma que el comprador si estuvo en el puesto, tabla visitas
+// sin visita confirmada no se puede calificar, asi no hay opiniones falsas
 class Visita {
   final String idVisita, idComprador, idPuesto, metodoVerificacion, estado;
   final String? idJornada;
@@ -19,6 +16,6 @@ class Visita {
         estado = m['estado'],
         fechaHora = DateTime.parse(m['fecha_hora']).toLocal();
 
-  /// RF-41 · Validar el código del vendedor; devuelve el id de la visita creada.
+  // rf-41 se cumple aqui: el comprador escribe el codigo que le da el vendedor para confirmar que si fue al puesto
   static Future<String> verificarVisita(String codigo) => PuestosService().verificarVisita(codigo);
 }

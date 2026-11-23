@@ -1,12 +1,5 @@
-// Este archivo ya no contiene clases: solo las reúne en un mismo lugar.
-//
-// Antes, las 11 clases del diagrama vivían aquí, todas juntas. Ahora cada una
-// tiene su propio archivo dentro de la carpeta de su módulo (inicio_sesion,
-// comprador, vendedor, comunes). Se deja este archivo para que las pantallas
-// que ya hacen `import '../models/entidades.dart'` sigan funcionando igual.
-//
-// Para ver una clase, busca su archivo en lib/models/<módulo>/.
-
+// este archivo solo junta los exports de los modelos
+// cada clase vive en su propia carpeta dentro de models
 export 'inicio_sesion/usuario.dart';
 export 'comprador/comprador.dart';
 export 'comprador/visita.dart';

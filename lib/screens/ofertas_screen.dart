@@ -5,8 +5,10 @@ import '../models/modelos.dart';
 import '../models/tratos.dart';
 import '../services/vendedor_service.dart';
 import '../widgets/entradas.dart';
+import '../widgets/mensaje.dart';
 
-/// RF-29 / RF-30: ofertas relámpago del vendedor.
+// rf-29 se cumple aqui: el vendedor publica una oferta con descuento y hasta cuando dura
+// rf-30 se cumple aqui: la oferta deja de verse cuando se acaba su tiempo y el vendedor la puede terminar antes
 class OfertasScreen extends StatefulWidget {
   final String idVendedor;
   const OfertasScreen({super.key, required this.idVendedor});
@@ -24,8 +26,7 @@ class _OfertasScreenState extends State<OfertasScreen> {
     });
   }
 
-  void _msg(String t) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+  void _msg(String t) => mostrarMensaje(context, t);
 
   Future<void> _nueva() async {
     final ok = await Navigator.push<bool>(
@@ -73,7 +74,7 @@ class _OfertasScreenState extends State<OfertasScreen> {
                 return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
               }
               if (s.hasError) {
-                return ListView(children: [Padding(padding: const EdgeInsets.all(24), child: Text('Error: ${s.error}'))]);
+                return ListView(children: [Padding(padding: const EdgeInsets.all(24), child: Text('No se pudieron cargar las ofertas: ${s.error}'))]);
               }
               final l = s.data!;
               if (l.isEmpty) {
@@ -135,7 +136,7 @@ class _OfertasScreenState extends State<OfertasScreen> {
       );
 }
 
-/// Crear una oferta: título, hora de fin, productos y descuento o precio fijo.
+// crear una oferta: titulo, hora de fin, productos y descuento o precio fijo.
 class OfertaFormScreen extends StatefulWidget {
   final String idVendedor;
   const OfertaFormScreen({super.key, required this.idVendedor});
@@ -152,7 +153,7 @@ class _OfertaFormScreenState extends State<OfertaFormScreen> {
   List<Producto> _productos = [];
   bool _cargando = true;
   bool _guardando = false;
-  final Map<String, TextEditingController> _valores = {}; // id producto -> valor (solo seleccionados)
+  final Map<String, TextEditingController> _valores = {}; // id producto a valor, solo seleccionados
   final List<TextEditingController> _todos = []; // para liberarlos al salir
 
   @override
@@ -179,8 +180,7 @@ class _OfertaFormScreenState extends State<OfertaFormScreen> {
     super.dispose();
   }
 
-  void _msg(String t) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+  void _msg(String t) => mostrarMensaje(context, t);
 
   Future<void> _elegirFin() async {
     final hoy = DateTime.now();

@@ -1,7 +1,4 @@
-/// Dice qué usuarios están dentro de cada conversación (tabla `participantes`).
-///
-/// Es una «entidad asociativa»: no tiene datos propios, solo une un Usuario con
-/// una Conversación. Su llave son los dos ids juntos.
+// dice que usuarios estan en cada conversacion, tabla participantes
 class Participante {
   final String idConversacion, idUsuario;
 

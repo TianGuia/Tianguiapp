@@ -1,7 +1,6 @@
 # Guía del código · de los diagramas a los archivos
 
-Para quien no sabe por dónde empezar. Cada clase del diagrama de clases tiene
-su archivo. Si la maestra pide «muéstrame la clase X», aquí está dónde.
+Cada clase del diagrama de clases tiene su archivo. Esta tabla dice cuál es.
 
 ## Dónde está cada clase del diagrama
 
@@ -23,49 +22,29 @@ su archivo. Si la maestra pide «muéstrame la clase X», aquí está dónde.
 | Funciones comunes | Apelacion | `lib/models/comunes/apelacion.dart` |
 | Administración | Tianguis | `lib/models/modelos.dart` |
 
-## «¿Dónde está la clase Usuario si cualquiera que entra es usuario?»
+## ¿Dónde está la clase Usuario?
 
-Respuesta corta para la presentación:
+La persona no es Usuario hasta que se registra. Usuario es la cuenta que se crea
+al registrarse, y está en `lib/models/inicio_sesion/usuario.dart`. De ahí salen
+Comprador y Vendedor, y una misma cuenta puede ser las dos cosas.
 
-> *«La persona no es Usuario hasta que se registra. Usuario es la cuenta que el
-> sistema crea al registrarse. Está en `models/inicio_sesion/usuario.dart`, con
-> los mismos atributos y métodos del diagrama. De ahí salen Comprador y
-> Vendedor, y una misma cuenta puede tener ambos roles (especialización
-> solapada).»*
+## Módulos y carpetas
 
-## Módulos = carpetas
+Los módulos de los diagramas son carpetas dentro de `lib/models/`. No son
+clases, solo agrupan las clases que van juntas.
 
-En los diagramas, los **módulos** son los recuadros de colores. En el código son
-las carpetas dentro de `lib/models/`. Los módulos **no son clases**: son
-agrupaciones que contienen clases.
+## Carpetas de `lib/`
 
-## Cómo escribir comentarios (sin sonar a robot ni a manual técnico)
+- `screens/`: lo que se ve y se toca. Hay pantallas de inicio de sesión, de comprador, de vendedor,
+  de chat y moderación, y las del administrador.
+- `widgets/`: piezas que se repiten en varias pantallas, como el corazón de favoritos o el fondo.
+- `services/`: hablan con Supabase, iniciar sesión, mandar mensajes, buscar productos.
+- `models/`: las clases del diagrama, una carpeta por módulo.
+- `config/`: colores, tipografía y datos de conexión.
 
-1. **Explica el para qué, no el cómo.** El código ya dice cómo; el comentario
-   dice por qué existe.
-2. **Habla como le explicarías a un compañero.** Frases cortas, sin jerga.
-3. **Si usas una palabra técnica, explícala una vez** («entidad asociativa: une
-   dos cosas»).
-4. **Pon el número de requisito (RF-xx)** para que se pueda rastrear al SRS.
-5. **No comentes lo obvio.** `// suma 1` sobre `i++` sobra.
-6. **Escríbelos con tus palabras.** Si suena a texto copiado, reescríbelo.
+`app.dart` decide a qué pantalla va la persona y `main.dart` arranca la app.
 
-Ejemplo:
+## Dónde se cumple cada requisito
 
-```dart
-// ❌ Técnico:
-/// Invoca el servicio de autenticación para persistir la sesión.
-
-// ✅ Claro:
-/// RF-03 · Volver a entrar con el código que llega al correo.
-```
-
-## Guion para videos cortos (2–3 min cada uno)
-
-1. **El mapa general** (`lib/README.md`): restaurante, flujo
-   pantalla → servicio → modelo.
-2. **Del diagrama al código**: abrir el diagrama de clases y luego
-   `models/`, mostrando que cada caja tiene su archivo.
-3. **Un recorrido completo**: registro → habilitar vendedor → abrir puesto.
-   Seguir el camino por `acceso_screen` → `auth_service` → `usuario.dart`.
-4. **Cómo comentar y subir cambios**: esta guía + `git add / commit / push`.
+En el código, cada lugar que cumple un requisito tiene un comentario que empieza con `rf-` y el número.
+Para ver todos: `grep -rn "rf-" lib`.

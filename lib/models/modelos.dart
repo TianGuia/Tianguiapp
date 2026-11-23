@@ -15,7 +15,8 @@ class Tianguis {
         lat = (m['latitud'] as num?)?.toDouble(),
         lng = (m['longitud'] as num?)?.toDouble();
 
-  /// RF-09 / RF-10: puestos abiertos de este tianguis con su última ubicación.
+  // rf-09 se cumple aqui: se ven en un mapa los puestos que estan abiertos
+  // rf-10 se cumple aqui: se ve si el puesto esta abierto o cerrado y donde estaba la ultima vez
   Future<List<Puesto>> consultarMapa() => PuestosService().consultarMapa(idTianguis: id);
 }
 
@@ -26,10 +27,10 @@ class Puesto {
   final DateTime? fechaApertura, reabreEn;
   bool get abierto => estado == 'abierto';
 
-  /// RF-27 / RF-28: abre el puesto y registra la ubicación de la jornada.
+  // rf-27 se cumple aqui: el vendedor abre o cierra su puesto
+  // rf-28 se cumple aqui: al abrir el puesto se guarda donde esta ese dia
   Future<String> marcarAbierto() => VendedorService().marcarAbierto(id);
 
-  /// RF-27: cierra el puesto y termina la jornada.
   Future<void> marcarCerrado() => VendedorService().marcarCerrado(id);
 
   Puesto.fromMap(Map<String, dynamic> m)
@@ -56,7 +57,6 @@ class Puesto {
           .from(SupabaseConfig.bucketProductos)
           .getPublicUrl(fotoRuta!);
 
-  /// Texto del estado para mostrar (abierto / cerrado / cierres especiales).
   String get textoEstado {
     if (abierto) return 'ABIERTO';
     if (cierreTipo == 'temporal') return 'CERRADO TEMPORALMENTE';
@@ -64,7 +64,7 @@ class Puesto {
     return 'CERRADO';
   }
 
-  /// Detalle del cierre: "Vuelve el 12/11 · Vacaciones".
+  // detalle del cierre, ejemplo: "Vuelve el 12/11, Vacaciones"
   String? get detalleCierre {
     if (abierto || cierreTipo == null) return null;
     final r = reabreEn;
@@ -77,7 +77,6 @@ class Puesto {
   }
 }
 
-/// Foto de un producto (con id y ruta para poder borrarla).
 class ImagenProducto {
   final String? id;
   final String ruta;
@@ -113,7 +112,7 @@ class Producto {
         fotos = _fotos(m['producto_imagenes']),
         imagenes = _urls(m['producto_imagenes']);
 
-  /// RF-23
+  // rf-23 se cumple aqui: el vendedor agrega un producto con nombre, fotos y precio
   static Future<String> crearProducto({
     required String idVendedor,
     String? idPuesto,
@@ -135,7 +134,7 @@ class Producto {
         cantidad: cantidad,
       );
 
-  /// RF-26
+  // rf-26 se cumple aqui: el vendedor actualiza cuantos le quedan de un producto
   Future<void> actualizarStock(int cantidad) => VendedorService().actualizarStock(id, cantidad);
 
   static List<ImagenProducto> _fotos(dynamic filas) {
@@ -159,12 +158,12 @@ class Producto {
   }
 }
 
-/// Fila de la vista v_puestos_resumen (inicio: destacado y tendencias).
+// fila de v_puestos_resumen, sirve para el destacado y las tendencias
 class PuestoResumen {
   final String id, nombre, idTianguis;
   final String? tianguisNombre, categoria, descripcion, rutaImagen;
   final int? diaSemana;
-  final double promedio; // 0 si aún no tiene calificaciones
+  final double promedio; // 0 si aun no tiene calificaciones
   final int calificaciones, guardados;
   final bool abierto;
 
@@ -190,7 +189,7 @@ class PuestoResumen {
 
   static const _dias = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
 
-  /// "EL NIÑO 1 - LUNES"
+  // ejemplo: "EL NIÑO 1 - LUNES"
   String get ubicacion {
     final d = diaSemana;
     final dia = (d != null && d >= 0 && d <= 6) ? _dias[d] : null;

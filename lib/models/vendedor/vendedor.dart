@@ -1,10 +1,7 @@
 import '../../services/vendedor_service.dart';
 
-/// El ROL de quien opera un puesto.
-///
-/// Un Usuario se vuelve Vendedor al «habilitar su perfil» (verifica su correo).
-/// Desde ahí puede registrar horarios, ausencias, puestos y productos. En la
-/// base de datos es la tabla `perfiles_vendedor`.
+// el rol de quien opera un puesto, tabla perfiles_vendedor
+// un usuario se vuelve vendedor cuando activa su perfil
 class Vendedor {
   final String idVendedor, idUsuario, estado;
   final String? nombreNegocio, descripcion;
@@ -18,15 +15,15 @@ class Vendedor {
         estado = m['estado'].toString(),
         fechaHabilitacion = DateTime.parse(m['fecha_habilitacion']).toLocal();
 
-  /// RF-19 · Activar el perfil de vendedor de la cuenta actual.
+  // rf-19 se cumple aqui: la persona activa su perfil de vendedor
   static Future<String> habilitarPerfil({String? nombreNegocio, String? descripcion}) =>
       VendedorService().habilitarPerfil(nombreNegocio: nombreNegocio, descripcion: descripcion);
 
-  /// RF-21 · Guardar el horario habitual en un tianguis (día, hora de inicio y fin).
+  // rf-21 se cumple aqui: el vendedor guarda que dias y a que hora trabaja
   Future<void> registrarHorario(String idTianguis, int dia, String inicio, String fin) =>
       VendedorService().registrarHorario(idVendedor, idTianguis, dia, inicio, fin);
 
-  /// RF-22 · Avisar con tiempo que ese día no va a llegar.
+  // rf-22 se cumple aqui: el vendedor avisa con tiempo que un dia no va a ir
   Future<void> registrarAusencia(String idTianguis, DateTime fecha, {String? motivo}) =>
       VendedorService().registrarAusencia(idVendedor, idTianguis, fecha, motivo: motivo);
 }

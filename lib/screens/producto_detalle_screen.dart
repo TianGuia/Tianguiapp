@@ -10,8 +10,9 @@ import '../widgets/moderacion.dart';
 import '../widgets/entradas.dart';
 import '../widgets/ubicacion_producto.dart';
 import 'chat_screen.dart';
+import '../widgets/mensaje.dart';
 
-/// RF-08, RF-11, RF-16, RF-17, RF-18.
+// aqui se cumplen rf-08, rf-11, rf-16, rf-17, rf-18, cada parte de abajo dice cual cumple
 class ProductoDetalleScreen extends StatefulWidget {
   final Producto producto;
   const ProductoDetalleScreen({super.key, required this.producto});
@@ -47,8 +48,7 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
     }).catchError((_) {});
   }
 
-  void _msg(String t) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+  void _msg(String t) => mostrarMensaje(context, t);
 
   Future<void> _run(Future<void> Function() f, String ok) async {
     setState(() => _ocupado = true);
@@ -56,7 +56,7 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
       await f();
       if (mounted) _msg(ok);
     } catch (e) {
-      if (mounted) _msg('Error: $e');
+      if (mounted) _msg('No se pudo completar: $e');
     }
     if (mounted) setState(() => _ocupado = false);
   }
@@ -79,7 +79,7 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
     if (mounted) setState(() => _ocupado = false);
   }
 
-  /// RF-44: reportar la publicación (el reporte apunta al dueño del producto).
+  // rf-44 se cumple aqui: se manda un reporte cuando algo rompe las reglas
   Future<void> _reportar() async {
     try {
       final uidV = await _cat.usuarioDeVendedor(p.idVendedor);
@@ -139,7 +139,7 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
                   await _cat.alternarFavoritoProducto(p.id);
                   if (mounted) setState(() => _fav = !_fav);
                 } catch (e) {
-                  if (mounted) _msg('Error: $e');
+                  if (mounted) _msg('No se pudo guardar el favorito: $e');
                 }
               },
             ),
@@ -201,6 +201,7 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
           const SizedBox(height: 14),
           UbicacionProducto(idPuesto: p.idPuesto),
           const SizedBox(height: 8),
+          // rf-39 se cumple aqui: aqui se avisa que la app no cobra y que el pago se arregla directo con el vendedor
           const Text('TianGuía no procesa pagos: el trato es directo con el vendedor.',
               style: TextStyle(fontSize: 12, color: Colors.white70)),
           const SizedBox(height: 20),

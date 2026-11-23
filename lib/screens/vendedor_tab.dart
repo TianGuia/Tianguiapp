@@ -12,8 +12,9 @@ import 'puesto_form_screen.dart';
 import 'tratos_screen.dart';
 import 'valoraciones_screen.dart';
 import 'verificar_contacto_screen.dart';
+import '../widgets/mensaje.dart';
 
-/// RF-19, RF-20, RF-27, RF-28, RF-41: panel del vendedor.
+// aqui se cumplen rf-19, rf-20, rf-27, rf-28, rf-41, cada parte de abajo dice cual cumple
 class VendedorTab extends StatefulWidget {
   const VendedorTab({super.key});
   @override
@@ -35,7 +36,7 @@ class _VendedorTabState extends State<VendedorTab> {
     _cargar();
   }
 
-  void _msg(String t) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+  void _msg(String t) => mostrarMensaje(context, t);
 
   Future<void> _cargar() async {
     setState(() => _cargando = true);
@@ -48,12 +49,12 @@ class _VendedorTabState extends State<VendedorTab> {
     try {
       _pendientes = _perfil == null ? 0 : await TratosService().pendientes(_perfil!['id'] as String);
     } catch (_) {
-      _pendientes = 0; // el número simplemente no se muestra
+      _pendientes = 0; // el numero simplemente no se muestra
     }
     if (mounted) setState(() => _cargando = false);
   }
 
-  /// Abre una pantalla y, al volver, refresca el contador de pendientes.
+  // abre una pantalla y, al volver, refresca el contador de pendientes.
   Future<void> _ir(Widget pantalla) async {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
     if (mounted) _cargar();
@@ -61,7 +62,7 @@ class _VendedorTabState extends State<VendedorTab> {
 
   Future<void> _habilitar() async {
     try {
-      // RF-19: para vender hay que verificar el correo (la cuenta anónima se liga).
+      // rf-19 se cumple aqui: la persona activa su perfil de vendedor
       if (AuthService().esAnonimo) {
         final ok = await Navigator.push<bool>(
           context,
@@ -116,9 +117,9 @@ class _VendedorTabState extends State<VendedorTab> {
     }
   }
 
-  // ---- Cierres con aviso y eliminación ----
+  // cierres con aviso y eliminacion
 
-  /// Pide motivo (y fecha de regreso si es temporal). Devuelve null si cancela.
+  // pide motivo y fecha de regreso si es temporal, null si cancela
   Future<({String? motivo, DateTime? fecha})?> _preguntarCierre(Puesto p, {required bool temporal}) {
     final motivo = TextEditingController();
     DateTime? fecha;

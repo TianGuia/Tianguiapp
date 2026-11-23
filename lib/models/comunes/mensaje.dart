@@ -1,6 +1,6 @@
 import '../../services/chat_service.dart';
 
-/// Un mensaje escrito dentro de una conversación. Tabla `mensajes`.
+// un mensaje dentro de una conversacion, tabla mensajes
 class Mensaje {
   final String idMensaje, idConversacion, idRemitente, contenido;
   final String? estado;
@@ -14,7 +14,7 @@ class Mensaje {
         estado = m['estado'],
         fechaEnvio = DateTime.parse(m['enviado_en']).toLocal();
 
-  /// RF-37 · Enviar un mensaje en la conversación.
+  // rf-37 se cumple aqui: las dos personas del chat mandan y reciben mensajes
   static Future<void> enviarMensaje(String idConversacion, String texto) =>
       ChatService().enviarMensaje(idConversacion, texto);
 }

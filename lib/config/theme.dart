@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Paleta y tipografía de TianGuía (azul con pinceladas, amarillo, rosa, verde).
 class Tg {
   static const azul = Color(0xFF0B2A8F);
   static const azulOscuro = Color(0xFF061A5E);
@@ -12,7 +11,6 @@ class Tg {
   static const rosa = Color(0xFFE91E8C);
   static const naranja = Color(0xFFFF8A00);
 
-  /// Letra tipo marcador/pincel para títulos y botones.
   static TextStyle marcador(double size, {Color color = Colors.white}) =>
       GoogleFonts.permanentMarker(fontSize: size, color: color);
 

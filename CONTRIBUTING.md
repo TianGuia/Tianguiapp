@@ -1,98 +1,108 @@
 # Colaborar en TianGuía
 
-¡Gracias por tu interés en TianGuía! Este proyecto está abierto a aportaciones de código, diseño, documentación, pruebas, accesibilidad e ideas de personas que conocen los tianguis de primera mano.
-
-Esta guía busca facilitar el trabajo entre quienes desarrollamos la aplicación habitualmente y quienes contribuyen de manera ocasional. No pretende imponer una forma única de programar: preferimos acuerdos sencillos, cambios comprensibles y comunicación oportuna.
+Gracias por querer ayudar. Se vale aportar código, diseño, documentación,
+pruebas o ideas. Si conoces los tianguis, tu opinión vale tanto como un commit.
 
 ## Antes de empezar
 
-- Consulta el [README](README.md) para conocer la aplicación, su configuración y las tecnologías que utilizamos.
-- Revisa las [incidencias](https://github.com/Tianguia/Tianguiapp/issues) y los pull requests existentes para descubrir trabajos relacionados. No hace falta abrir una incidencia para corregir una errata o realizar una mejora pequeña y evidente.
-- Si planeas una función nueva, un cambio que afecte a varios módulos o una decisión técnica importante, comenta primero tu propuesta en una incidencia o discusión. Basta con explicar qué quieres resolver y cómo piensas abordarlo.
-- Quienes trabajamos en el equipo también podemos organizarnos en nuestro tablero interno. Las personas externas no necesitan acceso a él para colaborar.
+- Lee el [README](README.md) para saber cómo correr la app.
+- Revisa las [incidencias](https://github.com/Tianguia/Tianguiapp/issues) y los
+  pull requests abiertos, a ver si alguien ya está en lo mismo.
+- Para corregir una errata o hacer una mejora chica no hace falta abrir una
+  incidencia. Si es una función nueva o un cambio que toca varios módulos,
+  cuéntanos primero en una incidencia qué quieres resolver y cómo lo harías.
 
-Las propuestas son bienvenidas incluso si todavía no hay una solución definida. Preguntar o cuestionar una decisión técnica es parte normal del desarrollo.
+## Cómo trabajamos
 
-## Trabajar en conjunto
+Nos ponemos de acuerdo en qué se va a hacer, no en cada línea. Si dos personas
+van a tocar las mismas pantallas o servicios, avísense antes para no repetir
+trabajo. Tener asignado un módulo no lo hace tuyo: otra persona puede ayudarte o
+revisarlo.
 
-**Coordinamos el alcance, no cada línea de código.** Cada contribuyente tiene libertad para resolver una tarea dentro de los acuerdos del proyecto. Cuando dos trabajos puedan afectar las mismas pantallas, servicios, modelos o recursos, procuramos avisarlo y repartir el alcance antes de que se duplique el esfuerzo.
+Lo chico y local se puede hacer sin preguntar. Lo que cambia requisitos, flujos
+de usuario, permisos, dependencias importantes o la estructura compartida
+conviene platicarlo antes, aunque ya lo tengas hecho. Lo que se decida lo
+dejamos escrito en una incidencia o en el PR, para no depender de que alguien se
+acuerde de una plática.
 
-La responsabilidad sobre un módulo o tarea puede asignarse temporalmente, pero no implica propiedad exclusiva del código. Se puede pedir ayuda, intercambiar tareas o revisar el trabajo de otra persona. Lo importante es que las responsabilidades y el estado de cada actividad sean visibles para quienes colaboran.
+## El código
 
-Los cambios locales y pequeños pueden avanzar sin una consulta previa. En cambio, conviene discutir antes las modificaciones que alteren requisitos, flujos de usuario, dependencias relevantes, contratos de datos, permisos, plataformas compatibles o la arquitectura compartida. El hecho de que una solución ya esté implementada no sustituye esa conversación.
+La app está en `lib/`:
 
-Tratamos de registrar las decisiones que afecten al equipo en una incidencia, un pull request o la documentación pertinente, con una explicación breve de sus motivos. Así no dependemos de recordar conversaciones privadas para entender el proyecto.
+- `screens/`: pantallas y navegación
+- `widgets/`: piezas visuales que se repiten
+- `models/`: las clases de los datos
+- `services/`: lógica y conexión con Supabase
+- `config/`: tema y configuración
 
-## Estructura y responsabilidades del código
+Las pruebas están en `test/`, fuera de `lib/`.
 
-La aplicación activa se desarrolla principalmente en `lib/`:
+El backend, con las migraciones y los permisos de la base, vive en
+[Toldo](https://github.com/Tianguia/Toldo). Si tu cambio afecta a los dos
+repositorios, explica en el PR qué depende de qué.
 
-- `screens/`: pantallas, navegación y presentación de la interfaz.
-- `widgets/`: componentes visuales reutilizables.
-- `models/`: representación de los datos del dominio.
-- `services/`: operaciones del dominio y comunicación con Supabase.
-- `config/`: configuración y tema visual.
-- `test/`: pruebas automatizadas.
+Lo que pedimos:
 
-La aplicación activa está en la raíz del repositorio. La antigua copia `tianguia/` se retiró; evita volver a incorporar copias completas de la aplicación o paquetes ZIP de entrega.
+- nombres claros y funciones que hagan una sola cosa
+- la lógica de datos fuera de los widgets cuando se pueda
+- nada de código repetido ni de abstracciones que nadie pidió
+- comentarios solo cuando expliquen algo que no se ve a simple vista, no para
+  repetir lo que hace la línea
+- no esconder errores con `catch` vacíos si de verdad importan
+- si el cambio se ve en la pantalla, que sea accesible y se parezca al resto
+- pensar en el celular real: consultas, red, batería y ubicación
 
-El backend, incluidas las migraciones y políticas de la base de datos, se mantiene en [Toldo](https://github.com/Tianguia/Toldo). Los cambios que afecten conjuntamente a la app y al backend deben describir las dependencias entre ambos repositorios.
+Puedes usar herramientas de IA, pero tú respondes por lo que mandas. Entiéndelo,
+pruébalo y quita lo que sobre.
 
-Esta organización es una referencia, no una invitación a crear capas, clases o archivos sin necesidad. Si una responsabilidad deja de estar clara, podemos ajustar la estructura de común acuerdo.
-
-## Código que podamos mantener
-
-Buscamos **código legible, directo y eficiente**, sin complejidad innecesaria.
-
-- Prefiere nombres descriptivos, funciones con una responsabilidad clara y convenciones habituales de Dart y Flutter.
-- Mantén la lógica de acceso a datos y las operaciones del dominio fuera de los widgets cuando corresponda. Reutiliza componentes cuando haya un beneficio real, sin abstraer por adelantado cada detalle.
-- Evita el código repetido, las dependencias prescindibles, el *boilerplate* sin propósito y los comentarios que solo repiten lo evidente. Documenta, en cambio, las decisiones y restricciones que no sean obvias.
-- Considera el rendimiento en dispositivos reales: consultas a la base de datos, reconstrucciones de interfaz, consumo de red, memoria, ubicación y batería. Optimiza problemas concretos sin sacrificar claridad por mejoras hipotéticas.
-- Maneja los errores de forma explícita cuando importen. No ocultes fallos ni descartes excepciones indiscriminadamente para aparentar que una función siempre tiene éxito.
-- Respeta el diseño existente y procura que las interfaces sean utilizables, accesibles y coherentes. Los cambios visuales relevantes deben poder revisarse con capturas o una descripción del comportamiento.
-
-Se permite usar herramientas de generación de código e inteligencia artificial. Quien presenta una contribución sigue siendo responsable de comprenderla, comprobarla, revisar sus dependencias y retirar el contenido generado que no aporte valor. El código sugerido por una herramienta se evalúa con los mismos criterios que cualquier otro.
+Si agregas un requisito nuevo, deja un comentario `rf-NN` en el lugar donde se
+cumple, como los que ya hay.
 
 ## Privacidad y seguridad
 
-TianGuía trabaja con cuentas, ubicaciones, información de vendedores y conversaciones. Tratamos esos datos con cuidado desde el desarrollo:
+La app maneja cuentas, ubicaciones y chats, así que ten cuidado:
 
-- No incluyas contraseñas, tokens de sesión, claves privadas, credenciales de firma, claves de servicio privilegiadas ni archivos de configuración personal en commits o pull requests.
-- Las claves públicas de cliente de Supabase (`publishable` o `anon`) no son equivalentes a una clave `service_role`, pero tampoco sustituyen permisos correctos en el backend. Nunca confíes en que ocultar algo en la aplicación protege ese dato.
-- Utiliza datos ficticios para pruebas, capturas y ejemplos. No publiques correos, teléfonos, mensajes, coordenadas precisas u otros datos personales de usuarios reales sin una razón y autorización adecuadas.
-- Revisa los cambios de autenticación, permisos, políticas RLS, acceso a Storage y funciones SQL con especial atención. El acceso debe ser el mínimo necesario para cada operación.
-- No registres en logs información sensible ni expongas detalles internos innecesarios en mensajes de error.
+- no subas contraseñas, tokens, claves privadas, claves de firma ni la
+  `service_role` de Supabase
+- la clave pública (`publishable` o `anon`) puede ir en la app, pero eso no
+  reemplaza los permisos del backend. Esconder algo en la app no lo protege
+- usa datos inventados en pruebas y capturas. Nada de correos, teléfonos,
+  mensajes ni ubicaciones de personas reales
+- si tocas autenticación, políticas RLS, Storage o funciones SQL, revísalo con
+  más cuidado y da solo el acceso necesario
+- no pongas datos sensibles en los logs ni en los mensajes de error
 
-Si descubres una vulnerabilidad que pueda afectar a usuarios o credenciales, comunícala de forma privada a los responsables del proyecto en lugar de publicar instrucciones de explotación o datos sensibles en una incidencia pública. Si un secreto se filtra, debe revocarse o rotarse: borrar el archivo del último commit no basta.
+Si encuentras una vulnerabilidad, avísanos en privado, no la publiques en una
+incidencia. Y si se filtra una clave hay que cambiarla: borrar el archivo en el
+siguiente commit no la borra del historial.
 
-## Proponer e integrar cambios
+## Pull requests
 
-Trabaja preferentemente en una rama dedicada y abre un **pull request** para integrar tu aportación. Un PR pequeño y enfocado suele revisarse mejor que uno que mezcla cambios funcionales, rediseños y reorganizaciones sin relación.
+Trabaja en una rama aparte. Un PR chico y enfocado se revisa mejor que uno que
+mezcla funciones, rediseños y reorganizaciones. En la descripción cuenta:
 
-En la descripción del PR, procura indicar:
+- qué problema resuelve y por qué
+- qué cambió, sobre todo si se nota en la app o afecta otros módulos
+- cómo lo probaste y qué no pudiste probar
+- capturas, si tocaste la interfaz
+- la incidencia o el requisito relacionado, si hay
 
-- **Qué** problema resuelve y **por qué** es necesario.
-- **Qué** cambió, especialmente si modifica el comportamiento visible o afecta otros módulos.
-- **Cómo** lo verificaste, incluyendo limitaciones conocidas. Adjunta capturas si modificaste la interfaz.
-- La incidencia o el requisito relacionado, cuando exista.
+Si el trabajo es grande, abre el PR como borrador para enseñar avances. Los
+cambios importantes los revisa otra persona antes de entrar. Al revisar, explica
+el porqué de cada comentario y aclara qué es un error y qué es solo una
+preferencia.
 
-Si el trabajo es amplio o puede entrar en conflicto con cambios simultáneos, un PR en borrador sirve para compartir avances y recibir comentarios sin presentar la solución como terminada. No es necesario publicar cada pequeño cambio: lo importante es que el trabajo compartido pueda coordinarse e integrarse sin sorpresas.
-
-Procuramos que los cambios significativos reciban la revisión de otra persona antes de integrarse. Las correcciones triviales pueden llevar un proceso más ligero. Una revisión busca detectar problemas y aprender en conjunto, no imponer preferencias personales: explica el motivo de cada observación y distingue los errores reales de las sugerencias de estilo.
-
-Antes de dar un PR por listo, ejecuta la misma verificación que CI:
+Antes de dar el PR por listo, corre lo mismo que corre CI:
 
 ```powershell
 ./scripts/verify.ps1
 ```
 
-En Linux/macOS: `bash scripts/check.sh`. Solo requiere Docker con Compose v2;
-en Windows también admite Docker dentro de WSL. Incluye las pruebas de
-versionado, el análisis y las pruebas Flutter en un contenedor sin Android SDK.
-Consulta [la guía](docs/desarrollo-docker.md#verificación-local-y-en-ci).
+En Linux o macOS: `bash scripts/check.sh`. Solo necesita Docker con Compose v2
+(en Windows también sirve Docker dentro de WSL). Más información en la
+[guía de Docker](docs/desarrollo-docker.md#verificar-un-cambio).
 
-Si ya tienes Flutter instalado, puedes aplicar el formato y ejecutar los comandos
-individuales durante el desarrollo:
+Si ya tienes Flutter instalado, mientras desarrollas puedes correr:
 
 ```sh
 dart format lib test
@@ -100,12 +110,16 @@ flutter analyze
 flutter test
 ```
 
-Las verificaciones automatizadas de GitHub Actions ayudan a detectar problemas, pero no sustituyen las pruebas manuales de los flujos modificados. Si alguna comprobación no puede ejecutarse en tu entorno, indícalo en el PR. Incluye o actualiza pruebas cuando cambies un comportamiento que se pueda verificar automáticamente.
+Que pase CI no reemplaza probar a mano lo que cambiaste. Si algo no lo pudiste
+correr, dilo en el PR. Si cambias algo que se puede probar automáticamente,
+agrega o actualiza la prueba.
 
-## Documentación, atribución y convivencia
+## Documentación y trato
 
-Mantén actualizada la documentación que resulte afectada por tu cambio, sin duplicar instrucciones que ya existen en el README u otros documentos. Conserva los avisos de licencia y atribuye adecuadamente el trabajo de terceros, incluidos recursos gráficos y fragmentos de código que puedan tener condiciones de uso.
+Si tu cambio deja desactualizada alguna documentación, arréglala sin duplicar lo
+que ya está en el README. Respeta las licencias y da crédito por imágenes o
+código de otras personas.
 
-Agradecemos la crítica técnica fundamentada y la diversidad de experiencia. Nos dirigimos a las personas con respeto, suponemos buena intención y resolvemos los desacuerdos sobre hechos, requisitos y alternativas técnicas. No hace falta estar de acuerdo en todo para colaborar bien.
-
-**La prioridad es construir una aplicación útil y mantenible entre todos.** Estas convenciones pueden evolucionar mediante propuestas y revisiones del propio equipo y de la comunidad.
+Se vale criticar una decisión técnica con argumentos, y no hace falta estar de
+acuerdo en todo. Tratemos a todos con respeto y asumamos buena intención. Lo
+importante es que la app sirva y se pueda mantener.

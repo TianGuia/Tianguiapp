@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../screens/documento_screen.dart';
 
-/// Enlaces "Ver condiciones de uso" y "Ver aviso de privacidad" que se ponen
-/// junto a la casilla de aceptación, para que se pueda leer a qué se está aceptando.
 class EnlacesLegales extends StatelessWidget {
   const EnlacesLegales({super.key});
 

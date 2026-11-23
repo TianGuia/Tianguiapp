@@ -4,11 +4,11 @@ import '../widgets/fondo.dart';
 import '../services/auth_service.dart';
 import '../widgets/entradas.dart';
 import '../widgets/enlaces_legales.dart';
+import '../widgets/mensaje.dart';
 
-/// RF-01, RF-02, RF-03, RF-40.
-/// Correo -> código de un solo uso. Es la única vía de acceso con correo.
+// aqui se cumplen rf-01, rf-02, rf-03, rf-40, cada parte de abajo dice cual cumple
+// correo y codigo de un solo uso, es la unica entrada con correo
 class LoginScreen extends StatefulWidget {
-  /// Para regresar a la pantalla de bienvenida.
   final VoidCallback? onVolver;
   const LoginScreen({super.key, this.onVolver});
   @override
@@ -24,8 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   static const _negro = TextStyle(color: Colors.black);
 
-  void _msg(String t) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+  void _msg(String t) => mostrarMensaje(context, t);
 
   Future<void> _enviar() async {
     if (!Entradas.correoValido(_correo.text)) return _msg('Escribe un correo válido');

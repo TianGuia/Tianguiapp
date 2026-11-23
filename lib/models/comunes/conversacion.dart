@@ -1,9 +1,7 @@
 import '../../services/chat_service.dart';
 
-/// Un chat privado entre dos personas.
-///
-/// Nace desde un producto (comprador con vendedor) o desde un anuncio de espacio
-/// (vendedor con vendedor). Tabla `conversaciones`.
+// un chat privado entre dos personas, tabla conversaciones
+// nace desde un producto o desde un anuncio de espacio
 class Conversacion {
   final String idConversacion, estado;
   final String? contexto, idProducto, idAnuncioEspacio;
@@ -17,7 +15,8 @@ class Conversacion {
         idAnuncioEspacio = m['id_anuncio_espacio'],
         fechaCreacion = DateTime.parse(m['creada_en']).toLocal();
 
-  /// RF-16 / RF-35 · Abrir el chat; si ya existía uno, devuelve ese mismo.
+  // rf-16 se cumple aqui: el comprador abre un chat privado con el vendedor desde un producto
+  // rf-35 se cumple aqui: el vendedor abre un chat con otro vendedor desde un anuncio
   static Future<String> iniciarConversacion({
     String? idProducto,
     String? idAnuncio,

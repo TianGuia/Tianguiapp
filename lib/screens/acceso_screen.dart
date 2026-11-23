@@ -6,8 +6,10 @@ import '../widgets/pincel.dart';
 import 'admin_entrada_screen.dart';
 import '../widgets/entradas.dart';
 import '../widgets/enlaces_legales.dart';
+import '../widgets/mensaje.dart';
 
-/// RF-01 / RF-40: entrar SIN iniciar sesión. Solo se elige un nombre público.
+// rf-01 se cumple aqui: la persona crea su cuenta escribiendo solo un nombre
+// rf-40 se cumple aqui: la persona acepta las condiciones de uso antes de entrar
 class AccesoScreen extends StatefulWidget {
   final VoidCallback onVolver;
   final VoidCallback onTengoCuenta;
@@ -22,8 +24,7 @@ class _AccesoScreenState extends State<AccesoScreen> {
   bool _acepta = false, _cargando = false;
   String? _errorNombre;
 
-  void _msg(String t) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+  void _msg(String t) => mostrarMensaje(context, t);
 
   Future<void> _entrar() async {
     final n = _nombre.text.trim();
@@ -53,7 +54,7 @@ class _AccesoScreenState extends State<AccesoScreen> {
     });
     try {
       await _auth.registrar(n);
-      // AuthGate detecta la sesión y muestra el Home.
+      // AuthGate detecta la sesion y muestra el home.
     } on NombreEnUsoException {
       if (mounted) setState(() => _errorNombre = 'Este nombre de usuario ya existe, elige otro');
     } catch (e) {

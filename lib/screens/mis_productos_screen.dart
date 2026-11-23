@@ -6,8 +6,9 @@ import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
 import '../services/vendedor_service.dart';
 import '../widgets/entradas.dart';
+import '../widgets/mensaje.dart';
 
-/// RF-23 a RF-26: catálogo del vendedor con stock, fotos, edición y retiro.
+// aqui se cumplen rf-23 a rf-26, cada parte de abajo dice cual cumple
 class MisProductosScreen extends StatefulWidget {
   final String idVendedor;
   const MisProductosScreen({super.key, required this.idVendedor});
@@ -25,8 +26,7 @@ class _MisProductosScreenState extends State<MisProductosScreen> {
     });
   }
 
-  void _msg(String t) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+  void _msg(String t) => mostrarMensaje(context, t);
 
   Future<void> _stock(Producto p, int delta) async {
     final n = ((p.cantidad ?? 0) + delta).clamp(0, 100000);
@@ -34,11 +34,10 @@ class _MisProductosScreenState extends State<MisProductosScreen> {
       await _svc.actualizarStock(p.id, n);
       _recargar();
     } catch (e) {
-      _msg('Error: $e');
+      _msg('No se pudo cambiar el stock: $e');
     }
   }
 
-  /// Abre el formulario para crear (producto == null) o editar.
   Future<void> _abrirFormulario({Producto? producto}) async {
     final guardado = await Navigator.push<bool>(
       context,
@@ -67,10 +66,11 @@ class _MisProductosScreenState extends State<MisProductosScreen> {
     );
     if (ok != true) return;
     try {
+      // rf-25 se cumple aqui: el producto no se borra, solo se oculta para que ya no salga
       await _svc.retirarProducto(p.id);
       _recargar();
     } catch (e) {
-      _msg('Error: $e');
+      _msg('No se pudo retirar el producto: $e');
     }
   }
 
@@ -88,7 +88,7 @@ class _MisProductosScreenState extends State<MisProductosScreen> {
             if (s.connectionState != ConnectionState.done) {
               return const Center(child: CircularProgressIndicator());
             }
-            if (s.hasError) return Center(child: Text('Error: ${s.error}'));
+            if (s.hasError) return Center(child: Text('No se pudieron cargar tus productos: ${s.error}'));
             final l = s.data!;
             if (l.isEmpty) return const Center(child: Text('Aún no tienes productos'));
             return ListView.builder(
@@ -134,8 +134,10 @@ class _MisProductosScreenState extends State<MisProductosScreen> {
       );
 }
 
-/// Crear o editar un producto (RF-23, RF-24, RF-26). Hasta [maxFotos] fotos;
-/// la primera es la portada.
+// crear o editar un producto, la primera foto es la portada
+// rf-23 se cumple aqui: el vendedor agrega un producto con nombre, fotos y precio
+// rf-24 se cumple aqui: el vendedor cambia los datos de un producto
+// rf-26 se cumple aqui: el vendedor actualiza cuantos le quedan de un producto
 class ProductoFormScreen extends StatefulWidget {
   final String idVendedor;
   final Producto? producto;
@@ -157,13 +159,13 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
   late final _nombre = TextEditingController(text: widget.producto?.nombre);
   late final _desc = TextEditingController(text: widget.producto?.descripcion);
   late final _precio = TextEditingController(text: widget.producto?.precio?.toString());
-  // Vacío = sin control de cantidad (productos viejos pueden no tenerla).
+  // vacio es sin control de cantidad, hay productos viejos sin ella
   late final _cant =
       TextEditingController(text: widget.producto?.cantidad?.toString() ?? (_edita ? '' : '1'));
 
   List<Map<String, dynamic>> _cats = [];
   List<Puesto> _puestos = [];
-  String? _cat; // en edición se resuelve por nombre al cargar las categorías
+  String? _cat; // en edicion se resuelve por nombre al cargar las categorias
   late String? _puesto = widget.producto?.idPuesto;
   late String _estado = widget.producto?.estadoArticulo ?? 'nuevo';
   late bool _disponible = widget.producto?.disponible ?? true;
@@ -205,8 +207,7 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
     super.dispose();
   }
 
-  void _msg(String t) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+  void _msg(String t) => mostrarMensaje(context, t);
 
   Future<void> _agregarFotos() async {
     final cupo = maxFotos - _totalFotos;
@@ -263,7 +264,6 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
         );
         if (!disponible) await _svc.actualizarProducto(id, {'disponible': false});
       }
-      // Las fotos nuevas van al final del orden actual.
       var orden = _existentes.isEmpty ? 0 : _existentes.map((e) => e.orden).reduce((a, b) => a > b ? a : b) + 1;
       for (final f in _nuevas) {
         await _svc.subirImagen(id, f, orden: orden++);

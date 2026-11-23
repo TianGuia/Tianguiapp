@@ -22,10 +22,9 @@ class TianGuiaApp extends StatelessWidget {
       );
 }
 
-/// Sin sesión -> Bienvenida / Acceso. Con sesión (anónima o con correo) -> Home.
-/// Si la sesión ya existía al abrir la app y hay una versión nueva de los
-/// términos, se pide aceptarla antes de entrar (RF-53). Las sesiones iniciadas
-/// en esta ejecución ya aceptaron los términos vigentes al entrar.
+// sin sesion va a bienvenida o acceso, con sesion va al home
+// si ya habia sesion y hay terminos nuevos primero se piden aceptar
+// rf-53 se cumple aqui: si hay condiciones nuevas se pide aceptarlas antes de seguir
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
   @override
@@ -60,17 +59,17 @@ class _AuthGateState extends State<AuthGate> {
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, _) {
         final sesion = Supabase.instance.client.auth.currentSession;
-        // Sin sesión, o con la sesión anónima "cerrada" en este teléfono.
+        // sin sesion, o con la sesion anonima "cerrada" en este telefono.
         if (sesion == null || sesionOculta) {
           _revisarTerminos = false;
           return const _Entrada();
         }
-        // Validando el acceso de administrador: no mostrar la app de comprador.
+        // validando el acceso de administrador: no mostrar la app de comprador.
         if (entrandoAdmin) {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
-        // La llave por usuario reinicia las pestañas si cambia de usuario
-        // (al verificar el correo el id NO cambia, así que no se reinicia).
+        // la llave por usuario reinicia las pestañas si cambia el usuario
+        // al verificar el correo el id no cambia, asi que no se reinicia
         final home = HomeScreen(key: ValueKey(sesion.user.id));
         final Widget destino = !_revisarTerminos
             ? home
@@ -81,7 +80,6 @@ class _AuthGateState extends State<AuthGate> {
   }
 }
 
-/// Administradores -> panel de administración; los demás -> la app de usuario.
 class _PuertaRol extends StatefulWidget {
   final Widget usuario;
   const _PuertaRol({super.key, required this.usuario});
@@ -116,8 +114,7 @@ class _PuertaRolState extends State<_PuertaRol> {
   }
 }
 
-/// RF-53: muestra los términos pendientes y deja pasar al aceptarlos.
-/// Si no se pueden consultar (sin red, función ausente), no bloquea la app.
+// si no se pueden consultar no bloquea la app
 class _PuertaTerminos extends StatefulWidget {
   final Widget child;
   const _PuertaTerminos({super.key, required this.child});
@@ -159,8 +156,6 @@ class _PuertaTerminosState extends State<_PuertaTerminos> {
 
 enum _Paso { bienvenida, acceso, login }
 
-/// Bienvenida ("COMENZAR") -> elegir nombre (acceso anónimo).
-/// Desde ahí, "Ya tengo cuenta" lleva al login con correo.
 class _Entrada extends StatefulWidget {
   const _Entrada();
   @override

@@ -4,7 +4,9 @@ import '../models/modelos.dart';
 import '../models/tratos.dart';
 import 'favoritos_cambios.dart';
 
-/// RF-06, RF-07, RF-08: búsqueda, filtros y consulta de productos.
+// rf-06 se cumple aqui: se buscan productos escribiendo una palabra o eligiendo una categoria
+// rf-07 se cumple aqui: los productos se filtran por tianguis, dia, categoria y precio
+// rf-08 se cumple aqui: se muestra todo de un producto, como fotos, precio y quien lo vende
 class CatalogoService {
   final _db = Supabase.instance.client;
 
@@ -19,19 +21,16 @@ class CatalogoService {
     return r.map<Tianguis>(Tianguis.fromMap).toList();
   }
 
-  /// RF-06: búsqueda por palabras clave y categoría.
   Future<List<Producto>> buscarProductos({String? texto, String? idCategoria}) =>
       filtrarProductos(texto: texto, idCategoria: idCategoria);
 
-  /// RF-07: filtrado por tianguis, día de operación, categoría y rango de precio
-  /// (puede combinarse con la búsqueda por texto).
   Future<List<Producto>> filtrarProductos({
     String? texto,
     String? idCategoria,
     String? idTianguis,
     num? precioMin,
     num? precioMax,
-    int? diaSemana, // 0 = domingo … 6 = sábado
+    int? diaSemana, // 0 = domingo … 6 = sabado
   }) async {
     var q = _db.from('productos').select(_select).eq('activo', true).eq('moderado', false).eq('disponible', true);
 
@@ -44,15 +43,13 @@ class CatalogoService {
     if (precioMax != null) q = q.lte('precio_referencia', precioMax);
 
     if (idTianguis != null) {
-      // productos cuyo puesto pertenece al tianguis elegido
       final ps = await _db.from('puestos').select('id').eq('id_tianguis', idTianguis);
       final ids = ps.map((p) => p['id'] as String).toList();
       if (ids.isEmpty) return [];
       q = q.inFilter('id_puesto', ids);
     }
 
-    // RF-07: día de operación. Cuenta el horario habitual del vendedor y el
-    // horario general del tianguis donde está su puesto.
+    // rf-07 se cumple aqui: el filtro por dia mira el horario del vendedor y el del tianguis
     if (diaSemana != null) {
       final hv = await _db
           .from('vendedor_horarios')
@@ -86,7 +83,8 @@ class CatalogoService {
     return r == null ? null : Producto.fromMap(r);
   }
 
-  // ---- Favoritos (RF-11) ----
+  // favoritos
+  // rf-11 se cumple aqui: se guardan productos como favoritos
   Future<void> alternarFavoritoProducto(String idProducto) async {
     final uid = _db.auth.currentUser!.id;
     final ya = await _db.from('favoritos').select('id').eq('id_usuario', uid).eq('id_producto', idProducto).maybeSingle();
@@ -98,7 +96,7 @@ class CatalogoService {
     FavoritosCambios.avisar();
   }
 
-  /// id_usuario del dueño de un perfil de vendedor (para abrir el chat).
+  // id_usuario del dueño de un perfil de vendedor, para abrir el chat.
   Future<String?> usuarioDeVendedor(String idVendedor) async {
     final r = await _db
         .from('perfiles_vendedor')
@@ -119,7 +117,7 @@ class CatalogoService {
     return r != null;
   }
 
-  /// RF-29: oferta activa (no vencida) de un producto, con su precio final.
+  // rf-29 se cumple aqui: se busca la oferta que sigue vigente para mostrarla al comprador
   Future<OfertaVigente?> ofertaVigente(String idProducto, num? precioRef) async {
     final r = await _db
         .from('ofertas')

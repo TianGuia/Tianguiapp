@@ -3,7 +3,7 @@ import '../services/chat_service.dart';
 import '../services/tratos_service.dart';
 import '../services/vendedor_service.dart';
 
-/// "25/10 16:30"
+// ejemplo: "25/10 16:30"
 String fmtFecha(DateTime? d) {
   if (d == null) return '';
   final l = d.toLocal();
@@ -18,7 +18,8 @@ String? _nombreVendedor(dynamic v) {
   return (v['usuarios'] as Map?)?['nombre_publico'] as String?;
 }
 
-/// RF-17 / RF-31: propuesta de precio (o contraoferta, si trae idAnterior).
+// rf-17 se cumple aqui: el comprador manda el precio que propone por un producto
+// rf-31 se cumple aqui: el vendedor acepta, rechaza o contesta con otro precio
 class Propuesta {
   final String id, idProducto, idComprador, idVendedor, idEmisor, estado;
   final String? idAnterior, productoNombre, compradorNombre, vendedorNombre;
@@ -45,7 +46,8 @@ class Propuesta {
   bool get esContraoferta => idAnterior != null;
 }
 
-/// RF-18 / RF-32: apartado temporal.
+// rf-18 se cumple aqui: el comprador pide apartar un producto sin pagar dentro de la app
+// rf-32 se cumple aqui: el vendedor acepta o rechaza un apartado, y si vence el producto queda libre otra vez
 class Apartado {
   final String id, idProducto, idComprador, idVendedor, estado;
   final String? productoNombre, compradorNombre, vendedorNombre;
@@ -69,7 +71,6 @@ class Apartado {
   bool get pendiente => estado == Est.pendiente;
   bool get aceptado => estado == Est.apAceptado;
 
-  /// RF-18
   static Future<void> solicitarApartado({
     required String idProducto,
     required String idVendedor,
@@ -77,14 +78,12 @@ class Apartado {
   }) =>
       ChatService().solicitarApartado(idProducto: idProducto, idVendedor: idVendedor, cantidad: cantidad);
 
-  /// RF-32
   Future<void> aceptarApartado() => TratosService().aceptarApartado(id);
 
-  /// RF-32
   Future<void> rechazarApartado() => TratosService().rechazarApartado(id);
 }
 
-/// Renglón de una oferta: un producto con su descuento o precio promocional.
+// una fila de oferta: un producto con descuento o precio promocional
 class OfertaItem {
   final String producto;
   final num? ref, promo, descuento;
@@ -93,7 +92,7 @@ class OfertaItem {
   num? get precioFinal => precioPromo(ref, promo, descuento);
 }
 
-/// Precio final: el promocional si existe; si no, el de referencia menos el %.
+// precio final: el promocional, o el de referencia menos el porcentaje
 num? precioPromo(num? ref, num? promo, num? descuento) {
   if (promo != null) return promo;
   if (ref != null && descuento != null) {
@@ -103,9 +102,10 @@ num? precioPromo(num? ref, num? promo, num? descuento) {
   return null;
 }
 
-/// RF-29 / RF-30
+// rf-29 se cumple aqui: el vendedor publica una oferta con descuento y hasta cuando dura
+// rf-30 se cumple aqui: la oferta deja de verse cuando se acaba su tiempo y el vendedor la puede terminar antes
 class Oferta {
-  /// id de la oferta (si agrupa varios productos, el de la primera fila).
+  // id de la oferta, si son varios productos es el de la primera fila
   final String id, estado;
   final String? titulo;
   final DateTime fin;
@@ -113,9 +113,8 @@ class Oferta {
 
   Oferta._(this.id, this.estado, this.titulo, this.fin, this.items);
 
-  /// En la base cada fila de `ofertas` es un producto (id_producto). Una
-  /// publicación con varios productos son varias filas enlazadas por
-  /// id_oferta_origen; aquí se unen en una sola [Oferta].
+  // en la base cada fila de ofertas es un producto, una publicacion con varios son varias filas
+  // enlazadas por id_oferta_origen, aqui se juntan en una sola Oferta
   factory Oferta.fromFilas(List<Map<String, dynamic>> filas) {
     final p = filas.first;
     return Oferta._(
@@ -137,7 +136,6 @@ class Oferta {
 
   factory Oferta.fromMap(Map<String, dynamic> m) => Oferta.fromFilas([m]);
 
-  /// Agrupa las filas de `ofertas` por publicación (conserva el orden recibido).
   static List<Oferta> agrupar(List<Map<String, dynamic>> filas) {
     final grupos = <String, List<Map<String, dynamic>>>{};
     for (final f in filas) {
@@ -148,7 +146,6 @@ class Oferta {
 
   bool get vigente => estado == Est.ofertaActiva && fin.isAfter(DateTime.now());
 
-  /// RF-29
   static Future<void> publicarOferta({
     required String idVendedor,
     required String titulo,
@@ -162,11 +159,9 @@ class Oferta {
         productos: productos,
       );
 
-  /// RF-30
   Future<void> finalizarOferta() => VendedorService().finalizarOferta(id);
 }
 
-/// Oferta que se muestra al comprador en el detalle del producto.
 class OfertaVigente {
   final String? titulo;
   final DateTime fin;

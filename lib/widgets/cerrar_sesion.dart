@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 
-/// RF-04: cierra sesión.
-/// - Cuenta con correo verificado: cierra la sesión (se vuelve a entrar con código).
-/// - Cuenta anónima: la sesión queda guardada en este teléfono; se vuelve a
-///   entrar escribiendo el mismo nombre. Si se borra la app, se pierde.
+// rf-04 se cumple aqui: la persona puede salir de su cuenta en este telefono
+// con correo verificado cierra la sesion y se entra con codigo
+// cuenta anonima: la sesion queda en el telefono y se entra con el mismo nombre
+// si se borra la app se pierde
 Future<void> confirmarCerrarSesion(BuildContext context) async {
   final auth = AuthService();
   if (!auth.esAnonimo) {

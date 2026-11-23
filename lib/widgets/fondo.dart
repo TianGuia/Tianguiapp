@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 
-/// Fondo azul con pinceladas de colores en las esquinas (como el diseño).
 class Fondo extends StatelessWidget {
   final Widget child;
   final bool pinceladas;
@@ -31,8 +30,6 @@ class Fondo extends StatelessWidget {
 class _PincelPainter extends CustomPainter {
   const _PincelPainter();
 
-  /// Un trazo de pincel: línea gruesa con "pelos" más finos alrededor.
-  /// x, y van en fracción del ANCHO; con [abajo] la y se mide desde el borde inferior.
   void _t(Canvas c, Size s, double x1, double y1, double x2, double y2,
       double g, Color color,
       {bool abajo = false}) {
@@ -61,7 +58,7 @@ class _PincelPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Textura: rayas diagonales muy suaves.
+    // textura: rayas diagonales muy suaves.
     final raya = Paint()
       ..color = Colors.white.withValues(alpha: 0.025)
       ..strokeWidth = 2;
@@ -69,12 +66,10 @@ class _PincelPainter extends CustomPainter {
       canvas.drawLine(Offset(x, size.height), Offset(x + size.height, 0), raya);
     }
 
-    // Arriba
     _t(canvas, size, -0.04, 0.07, 0.28, 0.0, 0.06, Tg.amarillo);
     _t(canvas, size, 0.12, 0.04, 0.40, -0.005, 0.03, Tg.rosa);
     _t(canvas, size, 0.86, 0.0, 1.04, 0.05, 0.04, const Color(0xFF2EAD5B));
     _t(canvas, size, 0.93, 0.16, 1.06, 0.12, 0.025, Tg.naranja);
-    // Abajo
     _t(canvas, size, -0.04, 0.05, 0.30, 0.02, 0.06, Tg.amarillo, abajo: true);
     _t(canvas, size, 0.33, 0.02, 0.65, 0.045, 0.04, const Color(0xFF2EAD5B), abajo: true);
     _t(canvas, size, 0.62, 0.04, 1.04, 0.0, 0.05, Tg.rosa, abajo: true);

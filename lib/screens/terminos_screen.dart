@@ -4,8 +4,7 @@ import '../config/theme.dart';
 import '../services/auth_service.dart';
 import '../widgets/fondo.dart';
 
-/// RF-53: cuando se publica una versión nueva de las condiciones de uso o del
-/// aviso de privacidad, se pide aceptarla antes de seguir usando la app.
+// rf-53 se cumple aqui: si hay condiciones nuevas se pide aceptarlas antes de seguir
 class TerminosScreen extends StatefulWidget {
   final List<Map<String, dynamic>> pendientes;
   final VoidCallback onAceptado;

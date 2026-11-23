@@ -5,9 +5,8 @@ import '../screens/mapa_puestos_screen.dart';
 import '../services/catalogo_service.dart';
 import '../services/inicio_service.dart';
 
-/// RF-08 / RF-10: "¿Dónde lo encuentro?" en la ficha de un producto.
-/// Muestra el puesto, si está abierto y su última ubicación registrada,
-/// con acceso al mapa. Si está cerrado, indica el motivo y cuándo vuelve.
+// rf-08 se cumple aqui: se muestra todo de un producto, como fotos, precio y quien lo vende
+// rf-10 se cumple aqui: se ve si el puesto esta abierto o cerrado y donde estaba la ultima vez
 class UbicacionProducto extends StatefulWidget {
   final String? idPuesto;
   const UbicacionProducto({super.key, required this.idPuesto});

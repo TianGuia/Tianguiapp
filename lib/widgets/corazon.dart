@@ -3,7 +3,7 @@ import '../config/theme.dart';
 import '../services/favoritos_cambios.dart';
 import '../services/inicio_service.dart';
 
-/// Botón de corazón que guarda/quita un puesto de favoritos.
+// rf-11 se cumple aqui: se guardan productos, puestos y tianguis como favoritos para verlos despues
 class BotonCorazon extends StatefulWidget {
   final String idPuesto;
   const BotonCorazon({super.key, required this.idPuesto});
@@ -65,12 +65,10 @@ class _BotonCorazonState extends State<BotonCorazon> {
   }
 }
 
-/// Imagen de un puesto con respaldo si no tiene foto o falla la red.
 class ImagenPuesto extends StatelessWidget {
   final String? url;
   const ImagenPuesto(this.url, {super.key});
 
-  /// Sin foto se muestra el icono de la app (mismo fondo azul que el icono).
   Widget _respaldo() => Container(
         color: const Color(0xFF0754AD),
         alignment: Alignment.center,

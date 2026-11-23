@@ -1,7 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Petición para que el administrador vuelva a revisar una decisión
-/// (una medida aplicada, un reporte o una calificación). Tabla `apelaciones`.
+// pide al administrador que revise otra vez una decision, tabla apelaciones
 class Apelacion {
   final String idApelacion, idUsuario, motivo, estado;
   final String? idReporte, resolucion;
@@ -16,7 +15,7 @@ class Apelacion {
         resolucion = m['resolucion']?.toString(),
         fechaCreacion = DateTime.parse(m['creada_en']).toLocal();
 
-  /// RF-46 · Pedir la revisión. Se manda solo UNO de: idMedida, idReporte o idCalificacion.
+  // rf-46 se cumple aqui: la persona pide que el administrador revise otra vez una decision
   static Future<void> solicitarRevision({
     String? idMedida,
     String? idReporte,
