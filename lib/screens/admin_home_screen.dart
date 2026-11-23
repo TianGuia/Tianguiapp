@@ -113,6 +113,7 @@ Future<String?> _pedirTexto(BuildContext c, String titulo, String hint,
         controller: ctl,
         maxLines: 3,
         minLines: 1,
+        style: const TextStyle(color: Colors.black),
         decoration: InputDecoration(hintText: hint),
       ),
       actions: [
@@ -138,22 +139,44 @@ Future<List<String>?> _pedirCampos(BuildContext c, String titulo, List<(String, 
   return showDialog<List<String>>(
     context: c,
     builder: (_) => AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       title: Text(titulo),
-      content: SingleChildScrollView(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
+      scrollable: true,
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           if (nota != null)
-            Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(nota, style: const TextStyle(fontSize: 12))),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Text(nota, style: const TextStyle(fontSize: 13, color: Colors.white70)),
+            ),
           for (var i = 0; i < campos.length; i++)
-            TextField(
-              controller: ctl[i],
-              obscureText: campos[i].$2,
-              decoration: InputDecoration(labelText: campos[i].$1),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: TextField(
+                controller: ctl[i],
+                obscureText: campos[i].$2,
+                enableSuggestions: !campos[i].$2,
+                autocorrect: !campos[i].$2,
+                textInputAction: i == campos.length - 1 ? TextInputAction.done : TextInputAction.next,
+                style: const TextStyle(color: Colors.black, fontSize: 16),
+                cursorColor: Tg.azul,
+                decoration: InputDecoration(
+                  hintText: campos[i].$1,
+                  hintStyle: const TextStyle(color: Colors.black45),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                ),
+              ),
             ),
         ]),
       ),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+      actionsAlignment: MainAxisAlignment.spaceBetween,
       actions: [
         TextButton(onPressed: () => Navigator.pop(c), child: const Text('CANCELAR')),
         FilledButton(
+          style: FilledButton.styleFrom(minimumSize: const Size(140, 48)),
           onPressed: () {
             final v = [for (final x in ctl) x.text];
             if (v.any((t) => t.trim().isEmpty)) return;
@@ -1092,7 +1115,7 @@ class _TianguisFormState extends State<_TianguisForm> {
           title: const Text('Zona, pasillo o espacio'),
           content: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextField(controller: nombre, decoration: const InputDecoration(hintText: 'Nombre')),
+              TextField(controller: nombre, style: const TextStyle(color: Colors.black), decoration: const InputDecoration(hintText: 'Nombre')),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 initialValue: tipo,
@@ -1108,6 +1131,7 @@ class _TianguisFormState extends State<_TianguisForm> {
                 controller: geo,
                 maxLines: 4,
                 minLines: 2,
+                style: const TextStyle(color: Colors.black),
                 decoration: const InputDecoration(hintText: 'Geometría GeoJSON (opcional)'),
               ),
             ]),

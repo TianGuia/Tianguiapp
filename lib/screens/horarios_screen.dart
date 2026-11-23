@@ -126,7 +126,7 @@ class _HorariosScreenState extends State<HorariosScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Motivo (opcional)'),
-        content: TextField(controller: motivo, maxLength: 80, decoration: const InputDecoration(hintText: 'Vacaciones, lluvia…')),
+        content: TextField(controller: motivo, maxLength: 80, style: const TextStyle(color: Colors.black), decoration: const InputDecoration(hintText: 'Vacaciones, lluvia…')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
           FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Guardar')),
