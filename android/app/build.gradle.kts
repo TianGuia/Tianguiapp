@@ -4,6 +4,11 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// el plugin de Google solo se aplica si ya se puso google-services.json en android/app
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 val releaseKeystore = System.getenv("TIANGUIA_ANDROID_KEYSTORE")
 
 android {
