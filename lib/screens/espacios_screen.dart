@@ -9,7 +9,7 @@ import '../widgets/moderacion.dart';
 import 'chat_screen.dart';
 import '../widgets/mensaje.dart';
 
-// aqui se cumplen rf-33 a rf-36, cada parte de abajo dice cual cumple
+// aqui se cumplen rf-28 a rf-31, cada parte de abajo dice cual cumple
 class EspaciosScreen extends StatefulWidget {
   final String idVendedor;
   const EspaciosScreen({super.key, required this.idVendedor});
@@ -34,7 +34,7 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
   void _msg(String t) => mostrarMensaje(context, t);
   void _recargar() => setState(() => _futuro = _cargar());
 
-  // rf-34 se cumple aqui: el vendedor ve los anuncios de espacios y los filtra por tianguis y tipo de acuerdo
+  // rf-29 se cumple aqui: el vendedor ve los anuncios de espacios y los filtra por tianguis y tipo de acuerdo
   Future<List<Map<String, dynamic>>> _cargar() async {
     var q = _db
         .from('anuncios_espacio')
@@ -50,7 +50,7 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
   String _nombreTianguis(String id) => _tianguis.where((t) => t.id == id).firstOrNull?.nombre ?? '';
   String _etiquetaRol(String? r) => r == Enums.rolOfrezco ? 'OFREZCO' : 'BUSCO';
 
-  // rf-35 se cumple aqui: el vendedor abre un chat con otro vendedor desde un anuncio
+  // rf-30 se cumple aqui: el vendedor abre un chat con otro vendedor desde un anuncio
   Future<void> _contactar(Map<String, dynamic> a) async {
     final dueno = (a['perfiles_vendedor'] as Map?)?['id_usuario'] as String?;
     if (dueno == null) return;
@@ -75,7 +75,7 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
     );
   }
 
-  // rf-33 se cumple aqui: el vendedor publica que ofrece o busca un espacio
+  // rf-28 se cumple aqui: el vendedor publica que ofrece o busca un espacio
   Future<void> _formulario({Map<String, dynamic>? anuncio}) async {
     if (_tianguis.isEmpty) {
       _msg('No hay tianguis disponibles');
@@ -145,7 +145,7 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
     }
   }
 
-  // rf-36 se cumple aqui: el vendedor cambia o cierra su anuncio cuando el espacio ya no esta
+  // rf-31 se cumple aqui: el vendedor cambia o cierra su anuncio cuando el espacio ya no esta
   Future<void> _cerrar(Map<String, dynamic> a) async {
     try {
       await _db.from('anuncios_espacio').update({'estado': Enums.anuncioCerrado}).eq('id', a['id']);

@@ -6,7 +6,8 @@ import '../widgets/entradas.dart';
 import '../widgets/enlaces_legales.dart';
 import '../widgets/mensaje.dart';
 
-// aqui se cumplen rf-01, rf-02, rf-03, rf-40, cada parte de abajo dice cual cumple
+// rf-32 y rf-34: registro e inicio de sesión por correo con código de un solo uso.
+// rf-40: solicita aceptar las condiciones y el aviso de privacidad.
 // correo y codigo de un solo uso, es la unica entrada con correo
 class LoginScreen extends StatefulWidget {
   final VoidCallback? onVolver;

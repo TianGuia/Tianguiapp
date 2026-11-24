@@ -4,8 +4,7 @@ import '../widgets/fondo.dart';
 import '../widgets/entradas.dart';
 import '../widgets/mensaje.dart';
 
-// rf-02 se cumple aqui: el correo se verifica con un codigo que llega a ese mismo correo
-// rf-19 se cumple aqui: la persona activa su perfil de vendedor
+// rf-33 se cumple aqui: el correo se verifica con un codigo que llega a ese mismo correo
 // hace pop(true) si la cuenta quedo verificada
 class VerificarContactoScreen extends StatefulWidget {
   const VerificarContactoScreen({super.key});

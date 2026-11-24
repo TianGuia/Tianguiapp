@@ -6,7 +6,7 @@ import '../config/estados.dart';
 import '../models/modelos.dart';
 import '../models/tratos.dart';
 
-// aqui se cumplen rf-19 a rf-30, cada parte de abajo dice cual cumple
+// aqui se cumplen rf-14 a rf-25, cada parte de abajo dice cual cumple
 class VendedorService {
   final _db = Supabase.instance.client;
   String get _uid => _db.auth.currentUser!.id;
@@ -14,7 +14,7 @@ class VendedorService {
   Future<Map<String, dynamic>?> miPerfil() =>
       _db.from('perfiles_vendedor').select().eq('id_usuario', _uid).maybeSingle();
 
-  // rf-19 se cumple aqui: la persona activa su perfil de vendedor
+  // rf-14 se cumple aqui: la persona activa su perfil de vendedor
   Future<String> habilitarPerfil({String? nombreNegocio, String? descripcion}) async {
     final r = await _db.from('perfiles_vendedor').insert({
       'id_usuario': _uid,
@@ -24,19 +24,19 @@ class VendedorService {
     return r['id'];
   }
 
-  // rf-20 se cumple aqui: el vendedor dice en que tianguis pone su puesto
+  // rf-15 se cumple aqui: el vendedor dice en que tianguis pone su puesto
   Future<void> agregarTianguis(String idVendedor, String idTianguis) =>
       _db.from('vendedor_tianguis').insert({'id_vendedor': idVendedor, 'id_tianguis': idTianguis});
 
-  // rf-21 se cumple aqui: el vendedor guarda que dias y a que hora trabaja
+  // rf-16 se cumple aqui: el vendedor guarda que dias y a que hora trabaja
   Future<void> registrarHorario(String idVendedor, String idTianguis, int dia, String inicio, String fin) =>
       _db.from('vendedor_horarios').insert({
         'id_vendedor': idVendedor, 'id_tianguis': idTianguis,
         'dia_semana': dia, 'hora_inicio': inicio, 'hora_fin': fin,
       });
 
-  // rf-22 se cumple aqui: el vendedor avisa con tiempo que un dia no va a ir
-  // rf-13 se cumple a medias, aqui solo se guarda la ausencia, avisar al comprador le toca al backend
+  // rf-17 se cumple aqui: el vendedor avisa con tiempo que un dia no va a ir
+  // rf-08 se cumple a medias, aqui solo se guarda la ausencia, avisar al comprador le toca al backend
   Future<void> registrarAusencia(String idVendedor, String idTianguis, DateTime fecha, {String? motivo}) =>
       _db.from('ausencias_programadas').insert({
         'id_vendedor': idVendedor, 'id_tianguis': idTianguis,
@@ -117,8 +117,8 @@ class VendedorService {
     await actualizarPuesto(idPuesto, {'activo': false});
   }
 
-  // rf-27 se cumple aqui: el vendedor abre o cierra su puesto
-  // rf-28 se cumple aqui: al abrir el puesto se guarda donde esta ese dia
+  // rf-22 se cumple aqui: el vendedor abre o cierra su puesto
+  // rf-23 se cumple aqui: al abrir el puesto se guarda donde esta ese dia
   Future<String> marcarAbierto(String idPuesto) async {
     var permiso = await Geolocator.checkPermission();
     if (permiso == LocationPermission.denied) {
@@ -162,7 +162,7 @@ class VendedorService {
     return r.map<Producto>(Producto.fromMap).toList();
   }
 
-  // rf-23 se cumple aqui: el vendedor agrega un producto con nombre, fotos y precio
+  // rf-18 se cumple aqui: el vendedor agrega un producto con nombre, fotos y precio
   Future<String> crearProducto({
     required String idVendedor,
     String? idPuesto,
@@ -181,15 +181,15 @@ class VendedorService {
     return r['id'];
   }
 
-  // rf-24 se cumple aqui: el vendedor cambia los datos de un producto
-  // rf-26 se cumple aqui: el vendedor actualiza cuantos le quedan de un producto
+  // rf-19 se cumple aqui: el vendedor cambia los datos de un producto
+  // rf-21 se cumple aqui: el vendedor actualiza cuantos le quedan de un producto
   Future<void> actualizarStock(String id, int cantidad) =>
       actualizarProducto(id, {'cantidad_disponible': cantidad, 'disponible': cantidad > 0});
 
   Future<void> actualizarProducto(String id, Map<String, dynamic> cambios) =>
       _db.from('productos').update({...cambios, 'actualizado_en': DateTime.now().toUtc().toIso8601String()}).eq('id', id);
 
-  // rf-25 se cumple aqui: el producto no se borra, solo se oculta para que ya no salga
+  // rf-20 se cumple aqui: el producto no se borra, solo se oculta para que ya no salga
   Future<void> retirarProducto(String id) => actualizarProducto(id, {'activo': false});
 
   Future<void> subirImagen(String idProducto, File archivo, {int orden = 0}) async {
@@ -245,7 +245,7 @@ class VendedorService {
     }
   }
 
-  // rf-30 se cumple aqui: la oferta deja de verse cuando se acaba su tiempo y el vendedor la puede terminar antes
+  // rf-25 se cumple aqui: la oferta deja de verse cuando se acaba su tiempo y el vendedor la puede terminar antes
   Future<void> finalizarOferta(String idOferta) =>
       _db
           .from('ofertas')

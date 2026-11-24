@@ -9,7 +9,7 @@ import '../widgets/pincel.dart';
 import '../widgets/visita_flow.dart';
 import 'mapa_puestos_screen.dart';
 
-// aqui se cumplen rf-09, rf-10, rf-41, rf-42, cada parte de abajo dice cual cumple
+// aqui se cumplen rf-04, rf-05, rf-41, rf-42, cada parte de abajo dice cual cumple
 class PuestosTab extends StatefulWidget {
   final bool iniciaEnMapa;
   const PuestosTab({super.key, this.iniciaEnMapa = false});

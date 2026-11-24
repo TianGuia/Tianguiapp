@@ -7,7 +7,7 @@ import '../services/favoritos_cambios.dart';
 import 'producto_detalle_screen.dart';
 import 'puesto_screen.dart';
 
-// rf-11 se cumple aqui: se guardan productos, puestos y tianguis como favoritos para verlos despues
+// rf-06 se cumple aqui: se guardan productos, puestos y tianguis como favoritos para verlos despues
 class FavoritosScreen extends StatefulWidget {
   const FavoritosScreen({super.key});
   @override

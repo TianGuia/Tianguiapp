@@ -10,11 +10,11 @@ class Comprador {
       : idComprador = m['id_comprador'],
         idUsuario = m['id_usuario'];
 
-  // rf-06 se cumple aqui: se buscan productos escribiendo una palabra o eligiendo una categoria
+  // rf-01 se cumple aqui: se buscan productos escribiendo una palabra o eligiendo una categoria
   Future<List<Producto>> buscarProductos({String? texto, String? idCategoria}) =>
       CatalogoService().buscarProductos(texto: texto, idCategoria: idCategoria);
 
-  // rf-07 se cumple aqui: los productos se filtran por tianguis, dia, categoria y precio
+  // rf-02 se cumple aqui: los productos se filtran por tianguis, dia, categoria y precio
   Future<List<Producto>> filtrarProductos({
     String? texto,
     String? idCategoria,
@@ -32,7 +32,7 @@ class Comprador {
         diaSemana: diaSemana,
       );
 
-  // rf-17 se cumple aqui: el comprador manda el precio que propone por un producto
+  // rf-12 se cumple aqui: el comprador manda el precio que propone por un producto
   Future<void> proponerPrecio({
     required String idProducto,
     required String idVendedor,

@@ -3,7 +3,7 @@ import '../config/theme.dart';
 import '../services/inicio_service.dart';
 import '../widgets/mensaje.dart';
 
-// rf-12 se cumple a medias, aqui se muestran los avisos de ofertas pero la app no los crea, eso le toca al backend
+// rf-07 se cumple a medias, aqui se muestran los avisos de ofertas pero la app no los crea, eso le toca al backend
 class NotificacionesScreen extends StatefulWidget {
   const NotificacionesScreen({super.key});
   @override

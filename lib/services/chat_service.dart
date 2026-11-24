@@ -8,8 +8,8 @@ class ChatService {
   final _db = Supabase.instance.client;
   String get _uid => _db.auth.currentUser!.id;
 
-  // rf-16 se cumple aqui: el comprador abre un chat privado con el vendedor desde un producto
-  // rf-35 se cumple aqui: el vendedor abre un chat con otro vendedor desde un anuncio
+  // rf-11 se cumple aqui: el comprador abre un chat privado con el vendedor desde un producto
+  // rf-30 se cumple aqui: el vendedor abre un chat con otro vendedor desde un anuncio
   // idUsuarioReceptor es el dueño del producto o del anuncio
   Future<String> iniciarConversacion({
     String? idProducto,
@@ -157,7 +157,7 @@ class ChatService {
     }
   }
 
-  // rf-17 se cumple aqui: el comprador manda el precio que propone por un producto
+  // rf-12 se cumple aqui: el comprador manda el precio que propone por un producto
   Future<void> proponerPrecio({
     required String idProducto, required String idVendedor, required num monto,
   }) async {
@@ -167,7 +167,7 @@ class ChatService {
     });
   }
 
-  // rf-18 se cumple aqui: el comprador pide apartar un producto sin pagar dentro de la app
+  // rf-13 se cumple aqui: el comprador pide apartar un producto sin pagar dentro de la app
   Future<void> solicitarApartado({
     required String idProducto, required String idVendedor, int cantidad = 1,
     Duration vigencia = const Duration(hours: 24),

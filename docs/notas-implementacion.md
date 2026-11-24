@@ -31,7 +31,7 @@ Toldo para aplicar sus migraciones y configurar autenticación y permisos.
   precio y apartado.
 
 ## Pendiente
-- Avisos (RF-12, RF-13, RF-14): existen la pantalla de notificaciones y las preferencias, pero la app
+- Avisos (RF-07, RF-08, RF-09): existen la pantalla de notificaciones y las preferencias, pero la app
   no crea los avisos ni manda notificaciones push. Falta revisar si Toldo los genera con triggers.
 - Pruebas automáticas: solo hay de autenticación y de entradas. Faltan chat, apartados, propuestas,
   moderación y administración.

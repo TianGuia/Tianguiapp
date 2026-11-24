@@ -2,8 +2,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/modelos.dart';
 import 'comprador_id.dart';
 
-// rf-09 se cumple aqui: se ven en un mapa los puestos que estan abiertos
-// rf-10 se cumple aqui: se ve si el puesto esta abierto o cerrado y donde estaba la ultima vez
+// rf-04 se cumple aqui: se ven en un mapa los puestos que estan abiertos
+// rf-05 se cumple aqui: se ve si el puesto esta abierto o cerrado y donde estaba la ultima vez
 class PuestosService {
   final _db = Supabase.instance.client;
 

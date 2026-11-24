@@ -3,7 +3,7 @@ import '../config/theme.dart';
 import '../services/favoritos_cambios.dart';
 import '../services/inicio_service.dart';
 
-// rf-11 se cumple aqui: se guardan productos, puestos y tianguis como favoritos para verlos despues
+// rf-06 se cumple aqui: se guardan productos, puestos y tianguis como favoritos para verlos despues
 class BotonCorazon extends StatefulWidget {
   final String idPuesto;
   const BotonCorazon({super.key, required this.idPuesto});

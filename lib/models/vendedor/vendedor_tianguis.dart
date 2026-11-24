@@ -9,7 +9,7 @@ class VendedorTianguis {
       : idVendedor = m['id_vendedor'],
         idTianguis = m['id_tianguis'];
 
-  // rf-20 se cumple aqui: el vendedor dice en que tianguis pone su puesto
+  // rf-15 se cumple aqui: el vendedor dice en que tianguis pone su puesto
   static Future<void> agregar(String idVendedor, String idTianguis) =>
       VendedorService().agregarTianguis(idVendedor, idTianguis);
 }

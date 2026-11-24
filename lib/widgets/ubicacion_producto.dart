@@ -5,8 +5,7 @@ import '../screens/mapa_puestos_screen.dart';
 import '../services/catalogo_service.dart';
 import '../services/inicio_service.dart';
 
-// rf-08 se cumple aqui: se muestra todo de un producto, como fotos, precio y quien lo vende
-// rf-10 se cumple aqui: se ve si el puesto esta abierto o cerrado y donde estaba la ultima vez
+// rf-05 se cumple aqui: se ve si el puesto esta abierto o cerrado y donde estaba la ultima vez
 class UbicacionProducto extends StatefulWidget {
   final String? idPuesto;
   const UbicacionProducto({super.key, required this.idPuesto});

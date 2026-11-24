@@ -8,7 +8,7 @@ import '../widgets/entradas.dart';
 import '../widgets/enlaces_legales.dart';
 import '../widgets/mensaje.dart';
 
-// rf-01 se cumple aqui: la persona crea su cuenta escribiendo solo un nombre
+// rf-32 se cumple aqui: la persona crea su cuenta escribiendo solo un nombre
 // rf-40 se cumple aqui: la persona acepta las condiciones de uso antes de entrar
 class AccesoScreen extends StatefulWidget {
   final VoidCallback onVolver;

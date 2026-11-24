@@ -5,7 +5,7 @@ import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
 import '../widgets/mensaje.dart';
 
-// rf-15 se cumple aqui: la persona escoge que avisos quiere recibir y que tianguis silencia
+// rf-10 (parcial): permite elegir tipos de avisos y silenciar tianguis.
 class PreferenciasNotificacionScreen extends StatefulWidget {
   const PreferenciasNotificacionScreen({super.key});
   @override
@@ -19,7 +19,7 @@ class _PrefsState extends State<PreferenciasNotificacionScreen> {
   static const _tipos = <String, String>{
     'ofertas': 'Ofertas de mis productos y tianguis',
     'ausencias': 'Ausencias de puestos que me interesan',
-    // rf-14 se cumple a medias, aqui solo esta el interruptor, mandar el recordatorio le toca al backend
+    // rf-09 se cumple a medias, aqui solo esta el interruptor, mandar el recordatorio le toca al backend
     'recordatorios_tianguis': 'Recordatorios de días de tianguis',
     'mensajes': 'Mensajes nuevos',
     'apartados_propuestas': 'Apartados y propuestas de precio',

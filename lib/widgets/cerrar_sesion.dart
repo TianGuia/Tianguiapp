@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 
-// rf-04 se cumple aqui: la persona puede salir de su cuenta en este telefono
+// rf-35 se cumple aqui: la persona puede salir de su cuenta en este telefono
 // con correo verificado cierra la sesion y se entra con codigo
 // cuenta anonima: la sesion queda en el telefono y se entra con el mismo nombre
 // si se borra la app se pierde

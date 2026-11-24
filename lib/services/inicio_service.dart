@@ -23,7 +23,7 @@ class InicioService {
   }
 
   // favoritos de puestos
-  // rf-11 se cumple aqui: se guardan puestos y tianguis como favoritos
+  // rf-06 se cumple aqui: se guardan puestos y tianguis como favoritos
   Future<bool> esFavoritoPuesto(String idPuesto) async {
     final uid = _db.auth.currentUser!.id;
     final r = await _db
@@ -54,7 +54,7 @@ class InicioService {
     return true;
   }
 
-  // rf-11 se cumple aqui: se guardan productos, puestos y tianguis como favoritos para verlos despues
+  // rf-06 se cumple aqui: se guardan productos, puestos y tianguis como favoritos para verlos despues
   Future<bool> esFavoritoTianguis(String idTianguis) async {
     final r = await _db
         .from('favoritos')
@@ -100,7 +100,7 @@ class InicioService {
     return r.map<Producto>(Producto.fromMap).toList();
   }
 
-  // rf-12 se cumple a medias: la app solo lee y borra los avisos, crearlos le toca al backend
+  // rf-07 se cumple a medias: la app solo lee y borra los avisos, crearlos le toca al backend
   Future<int> noLeidas() async {
     final uid = _db.auth.currentUser?.id;
     if (uid == null) return 0;

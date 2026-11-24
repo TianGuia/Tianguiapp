@@ -10,7 +10,7 @@ import '../widgets/mensaje.dart';
 
 // bandeja de propuestas de precio y apartados
 // si trae idVendedor es lo que recibe el vendedor, si no es lo que mando el comprador
-// rf-17 y rf-18 se ven aqui del lado del comprador, rf-31 y rf-32 del lado del vendedor
+// rf-12 y rf-13 se ven aqui del lado del comprador, rf-26 y rf-27 del lado del vendedor
 class TratosScreen extends StatefulWidget {
   final String? idVendedor;
   const TratosScreen({super.key, this.idVendedor});
@@ -77,7 +77,7 @@ class _TratosScreenState extends State<TratosScreen> {
     if (mounted) _recargar();
   }
 
-  // rf-31 se cumple aqui: el vendedor acepta, rechaza o contesta con otro precio
+  // rf-26 se cumple aqui: el vendedor acepta, rechaza o contesta con otro precio
   Future<void> _contraofertar(Propuesta p) async {
     final c = TextEditingController();
     final ok = await showDialog<bool>(
@@ -233,7 +233,7 @@ class _TratosScreenState extends State<TratosScreen> {
     final acciones = <Widget>[];
     if (_comoVendedor && a.pendiente) {
       acciones.addAll([
-        // rf-32 se cumple aqui: el vendedor acepta o rechaza un apartado, y si vence el producto queda libre otra vez
+        // rf-27 se cumple aqui: el vendedor acepta o rechaza un apartado, y si vence el producto queda libre otra vez
         _boton('Aceptar', () => _hacer(() => _svc.aceptarApartado(a.id), 'Apartado aceptado'),
             color: Tg.verde, texto2: Colors.white),
         _boton('Rechazar', () => _hacer(() => _svc.rechazarApartado(a.id), 'Apartado rechazado'),

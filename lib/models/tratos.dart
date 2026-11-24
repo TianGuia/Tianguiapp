@@ -18,8 +18,8 @@ String? _nombreVendedor(dynamic v) {
   return (v['usuarios'] as Map?)?['nombre_publico'] as String?;
 }
 
-// rf-17 se cumple aqui: el comprador manda el precio que propone por un producto
-// rf-31 se cumple aqui: el vendedor acepta, rechaza o contesta con otro precio
+// rf-12 se cumple aqui: el comprador manda el precio que propone por un producto
+// rf-26 se cumple aqui: el vendedor acepta, rechaza o contesta con otro precio
 class Propuesta {
   final String id, idProducto, idComprador, idVendedor, idEmisor, estado;
   final String? idAnterior, productoNombre, compradorNombre, vendedorNombre;
@@ -46,8 +46,8 @@ class Propuesta {
   bool get esContraoferta => idAnterior != null;
 }
 
-// rf-18 se cumple aqui: el comprador pide apartar un producto sin pagar dentro de la app
-// rf-32 se cumple aqui: el vendedor acepta o rechaza un apartado, y si vence el producto queda libre otra vez
+// rf-13 se cumple aqui: el comprador pide apartar un producto sin pagar dentro de la app
+// rf-27 se cumple aqui: el vendedor acepta o rechaza un apartado, y si vence el producto queda libre otra vez
 class Apartado {
   final String id, idProducto, idComprador, idVendedor, estado;
   final String? productoNombre, compradorNombre, vendedorNombre;
@@ -102,8 +102,8 @@ num? precioPromo(num? ref, num? promo, num? descuento) {
   return null;
 }
 
-// rf-29 se cumple aqui: el vendedor publica una oferta con descuento y hasta cuando dura
-// rf-30 se cumple aqui: la oferta deja de verse cuando se acaba su tiempo y el vendedor la puede terminar antes
+// rf-24 se cumple aqui: el vendedor publica una oferta con descuento y hasta cuando dura
+// rf-25 se cumple aqui: la oferta deja de verse cuando se acaba su tiempo y el vendedor la puede terminar antes
 class Oferta {
   // id de la oferta, si son varios productos es el de la primera fila
   final String id, estado;

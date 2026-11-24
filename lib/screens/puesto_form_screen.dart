@@ -8,8 +8,7 @@ import '../services/vendedor_service.dart';
 import '../widgets/entradas.dart';
 import '../widgets/mensaje.dart';
 
-// rf-20 se cumple aqui: el vendedor dice en que tianguis pone su puesto
-// rf-27 se cumple aqui: el vendedor abre o cierra su puesto
+// rf-15 se cumple aqui: el vendedor dice en que tianguis pone su puesto
 // si [puesto] viene, se edita; si no, se crea uno nuevo.
 class PuestoFormScreen extends StatefulWidget {
   final String idVendedor;

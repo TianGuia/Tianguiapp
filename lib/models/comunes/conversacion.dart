@@ -15,8 +15,8 @@ class Conversacion {
         idAnuncioEspacio = m['id_anuncio_espacio'],
         fechaCreacion = DateTime.parse(m['creada_en']).toLocal();
 
-  // rf-16 se cumple aqui: el comprador abre un chat privado con el vendedor desde un producto
-  // rf-35 se cumple aqui: el vendedor abre un chat con otro vendedor desde un anuncio
+  // rf-11 se cumple aqui: el comprador abre un chat privado con el vendedor desde un producto
+  // rf-30 se cumple aqui: el vendedor abre un chat con otro vendedor desde un anuncio
   static Future<String> iniciarConversacion({
     String? idProducto,
     String? idAnuncio,

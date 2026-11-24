@@ -6,7 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/supabase_config.dart';
 
-// cuenta y sesion, aqui se cumplen rf-01 a rf-05 y rf-40
+// cuenta y sesion, aqui se cumplen rf-32 a rf-36 y rf-40
 // el comprador entra sin correo y su cuenta vive en el telefono
 // para vender se verifica el correo y se une a esa misma cuenta
 // ya existe otro usuario con ese nombre
@@ -88,7 +88,7 @@ class AuthService {
   bool get esAnonimo => usuario?.isAnonymous ?? false;
 
   // entrada anonima
-  // rf-01 se cumple aqui: la persona crea su cuenta escribiendo solo un nombre
+  // rf-32 se cumple aqui: la persona crea su cuenta escribiendo solo un nombre
 
   Future<void> registrar(String nombre) async {
     final n = nombre.trim();
@@ -115,7 +115,7 @@ class AuthService {
   }
 
   // vincular correo a la cuenta anonima
-  // rf-02 se cumple aqui: el correo se verifica con un codigo que llega a ese mismo correo
+  // rf-33 se cumple aqui: el correo se verifica con un codigo que llega a ese mismo correo
 
   // manda el codigo al correo y lo une a la cuenta
   Future<void> enviarCodigoVinculacion(String correo) =>
@@ -132,7 +132,7 @@ class AuthService {
   }
 
   // volver a entrar con correo
-  // rf-03 se cumple aqui: quien ya tiene cuenta entra con un codigo que le llega al correo
+  // rf-34 se cumple aqui: quien ya tiene cuenta entra con un codigo que le llega al correo
 
   // manda el codigo, sirve para entrar desde otro celular
   Future<void> enviarCodigo(String correo, {String? nombre}) =>
@@ -184,7 +184,7 @@ class AuthService {
     }
   }
 
-  // rf-05 se cumple aqui: la persona puede ver y cambiar su nombre y su foto
+  // rf-36 se cumple aqui: la persona puede ver y cambiar su nombre y su foto
   Future<String> subirFotoPerfil(File archivo) async {
     final ruta = '${usuario!.id}/perfil/${DateTime.now().millisecondsSinceEpoch}.jpg';
     final bucket = _db.storage.from(SupabaseConfig.bucketProductos);
@@ -257,7 +257,7 @@ class AuthService {
     cambioRol.value++;
   }
 
-  // rf-04 se cumple aqui: la persona puede salir de su cuenta en este telefono
+  // rf-35 se cumple aqui: la persona puede salir de su cuenta en este telefono
   Future<void> cerrarSesion() => _db.auth.signOut();
 
   Future<Map<String, dynamic>?> miPerfil() =>

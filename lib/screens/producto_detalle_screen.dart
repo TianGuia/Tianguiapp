@@ -12,7 +12,7 @@ import '../widgets/ubicacion_producto.dart';
 import 'chat_screen.dart';
 import '../widgets/mensaje.dart';
 
-// aqui se cumplen rf-08, rf-11, rf-16, rf-17, rf-18, cada parte de abajo dice cual cumple
+// aqui se cumplen rf-03, rf-06, rf-11, rf-12, rf-13, cada parte de abajo dice cual cumple
 class ProductoDetalleScreen extends StatefulWidget {
   final Producto producto;
   const ProductoDetalleScreen({super.key, required this.producto});
