@@ -5,7 +5,7 @@ import '../services/chat_service.dart';
 import '../widgets/moderacion.dart';
 import '../widgets/entradas.dart';
 
-/// RF-37: mensajes en tiempo real entre los dos participantes.
+// rf-37 se cumple aqui: las dos personas del chat mandan y reciben mensajes
 class ChatScreen extends StatefulWidget {
   final String idConversacion, titulo;
   const ChatScreen({super.key, required this.idConversacion, required this.titulo});
@@ -46,7 +46,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  /// RF-44: reportar un mensaje recibido.
+  // rf-44 se cumple aqui: se manda un reporte cuando algo rompe las reglas
   Future<void> _reportarMensaje(Map<String, dynamic> m) async {
     final id = m['id'];
     if (id == null) return;
@@ -115,12 +115,12 @@ class _ChatScreenState extends State<ChatScreen> {
             child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: _svc.mensajes(widget.idConversacion),
               builder: (_, s) {
-                if (s.hasError) return Center(child: Text('Error: ${s.error}'));
+                if (s.hasError) return Center(child: Text('No se pudieron cargar los mensajes: ${s.error}'));
                 if (!s.hasData) return const Center(child: CircularProgressIndicator());
                 final l = s.data!;
                 if (l.isEmpty) return const Center(child: Text('Escribe el primer mensaje'));
                 return ListView.builder(
-                  reverse: true, // el mensaje más nuevo queda abajo
+                  reverse: true, // el mensaje mas nuevo queda abajo
                   padding: const EdgeInsets.all(12),
                   itemCount: l.length,
                   itemBuilder: (_, i) {

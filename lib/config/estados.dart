@@ -1,5 +1,4 @@
-/// Valores de los ENUM de Supabase que usa la app. Si tu base usa otros
-/// textos, coordina los cambios aquí con las migraciones del backend en Toldo.
+// estados que usa la app, tienen que coincidir con los enum de toldo
 class Est {
   static const pendiente = 'pendiente';
   // estado_propuesta

@@ -11,7 +11,7 @@ import 'preferencias_notificacion_screen.dart';
 import 'tratos_screen.dart';
 import 'verificar_contacto_screen.dart';
 
-/// RF-05: perfil de la cuenta.
+// rf-36 se cumple aqui: la persona puede ver y cambiar su nombre y su foto
 class PerfilTab extends StatefulWidget {
   const PerfilTab({super.key});
   @override

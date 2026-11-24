@@ -8,8 +8,9 @@ import '../config/theme.dart';
 import '../services/auth_service.dart';
 import '../widgets/fondo.dart';
 import '../widgets/entradas.dart';
+import '../widgets/mensaje.dart';
 
-/// RF-05: consultar y modificar el perfil básico (nombre público y fotografía).
+// rf-36 se cumple aqui: la persona puede ver y cambiar su nombre y su foto
 class EditarPerfilScreen extends StatefulWidget {
   const EditarPerfilScreen({super.key});
   @override
@@ -37,8 +38,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
     super.dispose();
   }
 
-  void _msg(String t) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+  void _msg(String t) => mostrarMensaje(context, t);
 
   Future<void> _cargar() async {
     try {

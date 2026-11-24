@@ -50,7 +50,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
             if (s.connectionState != ConnectionState.done) {
               return const Center(child: CircularProgressIndicator());
             }
-            if (s.hasError) return Center(child: Text('Error: ${s.error}'));
+            if (s.hasError) return Center(child: Text('No se pudieron cargar los chats: ${s.error}'));
             final l = s.data!;
             if (l.isEmpty) return const Center(child: Text('Aún no tienes conversaciones'));
             return ListView.builder(

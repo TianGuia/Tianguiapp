@@ -4,8 +4,8 @@ import '../config/theme.dart';
 import '../services/ocultos.dart';
 import '../widgets/moderacion.dart';
 
-/// RF-45 y RF-46: medidas de moderación aplicadas a mi cuenta o contenido,
-/// con su motivo general, y solicitud de revisión (apelación).
+// rf-45 se cumple aqui: la persona se entera de la medida que puso el administrador
+// rf-46 se cumple aqui: la persona pide que el administrador revise otra vez una decision
 class MedidasScreen extends StatefulWidget {
   const MedidasScreen({super.key});
   @override
@@ -56,7 +56,7 @@ class _MedidasScreenState extends State<MedidasScreen> {
             if (s.connectionState != ConnectionState.done) {
               return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
             }
-            if (s.hasError) return Center(child: Text('Error: ${s.error}'));
+            if (s.hasError) return Center(child: Text('No se pudieron cargar las medidas: ${s.error}'));
             final d = s.data!;
             final medidas = d.medidas.where((m) => !_ocultas.contains(m['id'])).toList();
             if (medidas.isEmpty) return const Center(child: Text('No tienes medidas de moderación'));

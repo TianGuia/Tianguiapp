@@ -1,84 +1,59 @@
-# Compilar versiones desde tags
+# Versiones desde tags
 
-El workflow `Compilar versiones etiquetadas` se ejecuta al subir un tag SemVer:
-`v0.1.0`, `0.2.0` o `v0.3.0-beta.1`, por ejemplo. Utiliza dos runners en paralelo:
+Cuando se sube un tag como `v0.1.0`, `0.2.0` o `v0.3.0-beta.1`, el workflow
+`Compilar versiones etiquetadas` corre dos jobs en paralelo:
 
-- Linux: tres APK de distribución firmados, para ARM32 (`armeabi-v7a`), ARM64
-  (`arm64-v8a`) y x86_64. Flutter no admite x86 de 32 bits como destino de APK.
-- macOS: compila la app oficial de `ios/` para dispositivo y genera un IPA sin
-  firmar. Este archivo necesita refirmarse antes de instalarse; no es un IPA de
-  App Store ni de TestFlight.
+- Linux: tres APK firmados, para ARM32 (`armeabi-v7a`), ARM64 (`arm64-v8a`) y
+  x86_64. Flutter no hace APK para x86 de 32 bits.
+- macOS: compila la app de `ios/` y saca un IPA sin firmar. Hay que firmarlo de
+  nuevo para instalarlo, no sirve para TestFlight ni App Store.
 
-Ambas plataformas usan `mx.udg.alumnos.tianguia` como identificador. Android
-usaba anteriormente `mx.udg.tianguia`; los APK con el identificador nuevo son
-una aplicación distinta para el sistema.
+El identificador de la app es `mx.udg.alumnos.tianguia`. Antes en Android era
+`mx.udg.tianguia`, y para el sistema son apps distintas.
 
-## Versiones y números de compilación
+## Versión y número de compilación
 
-El tag determina la versión visible. `v0.2.0` produce `versionName=0.2.0` en
-Android y `CFBundleShortVersionString=0.2.0` en iOS. Si el tag lleva un sufijo
-como `-beta.1`, Android lo conserva; iOS utiliza la parte numérica `X.Y.Z` y el
-nombre del artefacto conserva el tag completo.
+La versión sale del tag: `v0.2.0` da `versionName=0.2.0` en Android y
+`CFBundleShortVersionString=0.2.0` en iOS. Con un sufijo como `-beta.1`, Android
+lo conserva y iOS usa solo `X.Y.Z`.
 
-El número de compilación se calcula con el contador `GITHUB_RUN_NUMBER` de este
-workflow: `RELEASE_BUILD_BASE + GITHUB_RUN_NUMBER - 1`. La base es `1`, igual al
-`+1` actual de `pubspec.yaml`: la primera ejecución usa 1 y la segunda 2. Se
-aplica a `versionCode` de Android y `CFBundleVersion` de iOS. Los APK de las tres
-arquitecturas comparten ese número, sin el incremento por ABI que añade Flutter
-normalmente.
+El número de compilación es `RELEASE_BUILD_BASE + GITHUB_RUN_NUMBER - 1`, con
+base 1 (igual que el `+1` de `pubspec.yaml`). Se usa como `versionCode` en
+Android y `CFBundleVersion` en iOS, y los tres APK comparten el mismo. Si una
+ejecución falla puede haber saltos, no importa. No hace falta cambiar
+`pubspec.yaml` en cada tag ni bajar la base.
 
-Reintentar una ejecución conserva su número. Las ejecuciones fallidas pueden
-dejar saltos; no se necesita cambiar `pubspec.yaml` por cada tag. La base no debe
-reducirse ni actualizarse por cada versión. El script valida los formatos y el
-límite de cuatro dígitos del contador compartido con iOS.
+## Firma de Android
 
-## Firma Android
+El job usa estos Secrets del repositorio, que ya están configurados:
 
-El job necesita estos Secrets del repositorio:
+- `ANDROID_KEYSTORE_BASE64`: el archivo PKCS12 en base64
+- `ANDROID_KEYSTORE_PASSWORD`: contraseña del almacén
+- `ANDROID_KEY_ALIAS`: alias de la clave
+- `ANDROID_KEY_PASSWORD`: contraseña de la clave
 
-- `ANDROID_KEYSTORE_BASE64`: el archivo PKCS12 codificado en base64.
-- `ANDROID_KEYSTORE_PASSWORD`: contraseña del almacén.
-- `ANDROID_KEY_ALIAS`: alias de la clave.
-- `ANDROID_KEY_PASSWORD`: contraseña de la clave.
+La copia local de la clave está en `.signing/` (fuera de Git). Guarda una copia
+en un lugar seguro: para actualizar los APK hay que firmar siempre con la misma.
 
-Ya se configuraron para este repositorio. La copia local de la clave está en
-`.signing/tianguia-release.p12`, con sus datos de acceso en
-`.signing/android-signing.json`. Esa carpeta es privada, está excluida de Git y
-no se sincroniza con el entorno de desarrollo Docker. Guarda una copia de
-seguridad de ambos archivos en un lugar seguro: se necesita conservar la misma
-clave para distribuir actualizaciones de los APK.
+## Sacar una versión
 
-## Crear una versión
-
-Primero incorpora y sube los cambios del workflow y de la aplicación. Después,
-desde el commit que quieras distribuir:
+Con los cambios ya subidos, desde el commit que quieras publicar:
 
 ```sh
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
-La primera plataforma que termina correctamente crea un **Release** para el
-tag con notas automáticas. Android adjunta sus tres APK firmados e iOS adjunta
-su IPA sin firmar. Cada publicación depende únicamente de su propia compilación:
-si una plataforma falla, se conservan los binarios publicados por la otra.
-Los tags con sufijo como `-beta.1` se publican como **prerelease**. Si el Release
-ya existe, una nueva ejecución actualiza los binarios de esa plataforma sin
-borrar los de la otra ni cambiar las notas. Los dos jobs de publicación comparten
-un bloqueo por tag para evitar que intenten crear el mismo Release a la vez.
-Solo los jobs de publicación tienen permiso `contents: write`; utilizan el token
-automático de GitHub Actions y no necesita un token personal adicional.
+Un tag solo local no hace nada, hay que subirlo. Además el commit tiene que
+incluir el workflow.
 
-Ambas plataformas conservan además sus artefactos en
-**Actions → Compilar versiones etiquetadas
-→ ejecución → Artifacts**. El artefacto Android contiene los tres APK separados
-y el de iOS contiene el archivo `*-unsigned.ipa`. El IPA del Release también
-está sin firmar: necesita refirmarse para instalarse y no se envía a TestFlight
-ni a App Store.
+La primera plataforma que termine crea el **Release** con notas automáticas y le
+agrega sus archivos. Si una falla, la otra se publica igual. Los tags con sufijo
+como `-beta.1` salen como prerelease. Si el Release ya existe, una nueva
+ejecución actualiza los archivos de esa plataforma sin tocar los de la otra.
 
-Crear un tag solo localmente no inicia el workflow: hay que subirlo a GitHub.
-El tag debe apuntar a un commit que ya incluya este workflow de publicación.
+Los archivos también quedan en **Actions > Compilar versiones etiquetadas >
+ejecución > Artifacts**.
 
-Los jobs también ejecutan el análisis y las pruebas de Dart. El de iOS realiza
-una compilación real con Xcode; no crea otro proyecto de ejemplo ni utiliza un
-simulador. Las pruebas de funcionamiento en teléfonos siguen siendo manuales.
+Los jobs también corren el análisis y las pruebas de Dart. Probar en teléfonos
+reales sigue siendo manual.

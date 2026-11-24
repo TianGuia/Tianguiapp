@@ -7,7 +7,7 @@ import '../services/favoritos_cambios.dart';
 import 'producto_detalle_screen.dart';
 import 'puesto_screen.dart';
 
-/// RF-11: favoritos guardados (puestos, productos y tianguis).
+// rf-06 se cumple aqui: se guardan productos, puestos y tianguis como favoritos para verlos despues
 class FavoritosScreen extends StatefulWidget {
   const FavoritosScreen({super.key});
   @override
@@ -20,7 +20,7 @@ class _FavoritosScreenState extends State<FavoritosScreen> {
   late Future<List<Map<String, dynamic>>> _futuro = _cargar();
 
   Future<List<Map<String, dynamic>>> _cargar() async {
-    // puestos -> tianguis no tiene FK directa, así que los nombres se piden aparte.
+    // puestos no tiene fk a tianguis, los nombres se piden aparte
     final t = await CatalogoService().tianguis();
     _tianguis = {for (final x in t) x.id: x.nombre};
     final r = await _db
@@ -70,7 +70,7 @@ class _FavoritosScreenState extends State<FavoritosScreen> {
             if (s.connectionState != ConnectionState.done) {
               return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
             }
-            if (s.hasError) return Center(child: Text('Error: ${s.error}'));
+            if (s.hasError) return Center(child: Text('No se pudieron cargar los favoritos: ${s.error}'));
             final l = s.data!;
             if (l.isEmpty) return const Center(child: Text('Aún no guardas favoritos'));
             return ListView.builder(

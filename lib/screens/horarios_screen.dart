@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../services/catalogo_service.dart';
 import '../services/vendedor_service.dart';
+import '../widgets/mensaje.dart';
 
-/// RF-21 y RF-22: horario habitual y ausencias programadas del vendedor.
+// rf-16 se cumple aqui: el vendedor guarda que dias y a que hora trabaja
+// rf-17 se cumple aqui: el vendedor avisa con tiempo que un dia no va a ir
 class HorariosScreen extends StatefulWidget {
   final String idVendedor;
 
-  /// id de tianguis -> nombre del puesto (se usa para elegir el tianguis).
   final Map<String, String> tianguis;
   const HorariosScreen({super.key, required this.idVendedor, required this.tianguis});
   @override
@@ -27,7 +28,7 @@ class _HorariosScreenState extends State<HorariosScreen> {
     _cargar();
   }
 
-  void _msg(String t) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+  void _msg(String t) => mostrarMensaje(context, t);
 
   Future<void> _cargar() async {
     try {
@@ -125,7 +126,7 @@ class _HorariosScreenState extends State<HorariosScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Motivo (opcional)'),
-        content: TextField(controller: motivo, maxLength: 80, decoration: const InputDecoration(hintText: 'Vacaciones, lluvia…')),
+        content: TextField(controller: motivo, maxLength: 80, style: const TextStyle(color: Colors.black), decoration: const InputDecoration(hintText: 'Vacaciones, lluvia…')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
           FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Guardar')),

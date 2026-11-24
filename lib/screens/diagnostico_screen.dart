@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/theme.dart';
 
-/// Revisa tablas, políticas (RLS), funciones y storage de tu Supabase
-/// con TU sesión, y muestra qué funciona y qué no.
 class DiagnosticoScreen extends StatefulWidget {
   const DiagnosticoScreen({super.key});
   @override

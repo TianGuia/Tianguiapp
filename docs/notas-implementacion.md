@@ -1,10 +1,8 @@
-# Notas de implementación y pruebas manuales
+# Notas y pruebas manuales
 
-La app activa está en la raíz del repositorio. La instalación y ejecución
-se documentan en el [README](../README.md), los iconos en
-[Iconos de la app](iconos.md) y el backend en
-[Toldo](https://github.com/Tianguia/Toldo). Las antiguas copias de la app,
-paquetes ZIP y scripts SQL se conservan únicamente en el historial de Git.
+Aquí van decisiones que tomamos y pasos para probar la app a mano. Cómo instalarla
+está en el [README](../README.md), los iconos en [iconos](iconos.md) y el backend
+en [Toldo](https://github.com/Tianguia/Toldo).
 
 ## Acceso anónimo y habilitación de vendedores
 
@@ -20,34 +18,33 @@ Toldo para aplicar sus migraciones y configurar autenticación y permisos.
    directamente sin verificar su cuenta.
 5. Ya tengo cuenta con correo permite iniciar sesión por código en otro equipo.
 
-## Cosas que decidí y conviene revisar
-- **"15 verificados / 76 en espera"** del diseño no tiene equivalente en la base; el inicio muestra
-  *Abiertos ahora* (puestos con estado `abierto`) y *En espera* (puestos activos cerrados).
+## Decisiones que conviene revisar
+- **Inicio**: muestra *Abiertos ahora* (puestos con estado `abierto`) y *En espera* (puestos activos
+  cerrados). No hay un dato de "verificados" en la base.
 - **Día del tianguis** (`LUNES`, `VIERNES`): `dia_semana` se interpreta como 0 = domingo … 6 = sábado.
 - **Destacado de la semana**: el puesto con mejor promedio de calificaciones (desempata por
   calificaciones y guardados). La categoría del puesto sale de la que más usan sus productos.
 - **Privacidad**: la política de `usuarios` deja que un usuario vea la fila de los vendedores y de
   quien chatea con él, y esa fila incluye `correo`. Si no quieres exponerlo, crea una vista pública
   (`id, nombre_publico, foto_url`) y que la app lea de ahí.
-- Carrito, pedidos y métodos de pago del diseño de ejemplo (tacos) **no están**: TianGuía no vende
-  dentro de la app; se usan chat, propuesta de precio y apartado.
+- **No hay carrito, pedidos ni pagos**: TianGuía no vende dentro de la app, se usan chat, propuesta de
+  precio y apartado.
 
 ## Pendiente
-(Hecho en el paso 2: bandeja de propuestas/contraofertas y apartados, ofertas relámpago, vencimiento automático.)
-(Hecho en el paso 1: editar/eliminar puesto, cierre temporal o hasta nuevo aviso, descripción y foto del puesto, editar producto, varias fotos.)
+- Avisos (RF-07, RF-08, RF-09): existen la pantalla de notificaciones y las preferencias, pero la app
+  no crea los avisos ni manda notificaciones push. Falta revisar si Toldo los genera con triggers.
+- Pruebas automáticas: solo hay de autenticación y de entradas. Faltan chat, apartados, propuestas,
+  moderación y administración.
 
-Mapa visual (flutter_map u OSM), pantallas de propuestas/apartados (el servicio ya existe), pantalla de
-favoritos, ofertas y anuncios de espacios, notificaciones push (FCM + Edge Function), panel de administración.
-
-## Guion de prueba (con el Diagnóstico)
+## Guion de prueba
 1. Entrar como comprador anónimo o iniciar sesión por código de correo.
 2. Perfil > **Diagnóstico de conexión**: todo en verde.
 3. Mi puesto > habilitar vendedor > crear puesto > "YA LLEGUÉ · ABRIR" (da permiso de ubicación).
 4. Mi puesto > MIS PRODUCTOS > agregar con foto y stock.
-5. Con OTRA cuenta: Inicio (debe salir el puesto), Explorar (buscar), detalle: chat, propuesta, apartado, favorito.
+5. Con otra cuenta: Inicio (debe salir el puesto), Explorar (buscar), detalle: chat, propuesta, apartado, favorito.
 6. Vendedor: "Generar código de visita". Comprador: "Ya visité este puesto" > código > calificar.
 
-## Prueba del paso 1
+## Prueba de puestos y productos
 1. Mi puesto > **+ Puesto**: nombre, descripción, foto > crear. Menú ⋮ del puesto > **Editar**.
 2. ⋮ > **Cerrar temporalmente** (motivo y fecha de regreso) o **Cerrar hasta nuevo aviso**.
    Con otra cuenta, abre el puesto desde Inicio: debe verse el estado, el motivo y la fecha.
@@ -55,7 +52,7 @@ favoritos, ofertas y anuncios de espacios, notificaciones push (FCM + Edge Funct
 4. ⋮ > **Eliminar puesto**: desaparece; sus productos siguen en MIS PRODUCTOS sin puesto.
 5. MIS PRODUCTOS > toca un producto: edita datos, agrega hasta 6 fotos, quita fotos, cambia stock.
 
-## Prueba del paso 2 (necesitas DOS cuentas: vendedor y comprador)
+## Prueba de propuestas, apartados y ofertas (necesitas dos cuentas: vendedor y comprador)
 1. Comprador: detalle de un producto > **PROPONER PRECIO** y **SOLICITAR APARTADO**.
 2. Vendedor: Mi puesto > **PROPUESTAS Y APARTADOS** (el número rosa son pendientes).
    Propuesta: Aceptar / Contraofertar / Rechazar. Apartado: Aceptar (descuenta piezas) / Rechazar.

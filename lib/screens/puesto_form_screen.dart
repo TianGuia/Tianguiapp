@@ -6,9 +6,10 @@ import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
 import '../services/vendedor_service.dart';
 import '../widgets/entradas.dart';
+import '../widgets/mensaje.dart';
 
-/// RF-20 / RF-27: crear o editar un puesto (nombre, descripción, foto).
-/// Si [puesto] viene, se edita; si no, se crea uno nuevo.
+// rf-15 se cumple aqui: el vendedor dice en que tianguis pone su puesto
+// si [puesto] viene, se edita; si no, se crea uno nuevo.
 class PuestoFormScreen extends StatefulWidget {
   final String idVendedor;
   final Puesto? puesto;
@@ -51,8 +52,7 @@ class _PuestoFormScreenState extends State<PuestoFormScreen> {
     super.dispose();
   }
 
-  void _msg(String t) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+  void _msg(String t) => mostrarMensaje(context, t);
 
   Future<void> _elegirFoto() async {
     final x = await ImagePicker()
@@ -76,8 +76,7 @@ class _PuestoFormScreenState extends State<PuestoFormScreen> {
           'nombre': nombre, 'codigo': codigo, 'descripcion': desc,
         });
       } else {
-        // RF-20: se asocia el tianguis (si ya estaba asociado, se ignora el error)
-        try { await _svc.agregarTianguis(widget.idVendedor, _idTianguis!); } catch (_) {}
+        try { await _svc.agregarTianguis(widget.idVendedor, _idTianguis!); } catch (_) {} // si ya estaba asociado da error y se ignora
         idPuesto = await _svc.crearPuesto(widget.idVendedor, _idTianguis!, nombre,
             codigo: codigo, descripcion: desc);
       }
@@ -143,7 +142,7 @@ class _PuestoFormScreenState extends State<PuestoFormScreen> {
             decoration: const InputDecoration(hintText: 'Número o letra de tu lugar (opcional)')),
         const SizedBox(height: 10),
         if (_edita)
-          // Cambiar de tianguis implicaría reasignar horarios; se deja fijo.
+          // cambiar de tianguis implicaria reasignar horarios; se deja fijo.
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(children: [

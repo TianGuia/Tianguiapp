@@ -2,11 +2,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/modelos.dart';
 import 'favoritos_cambios.dart';
 
-/// Datos de la pantalla de inicio (funciones SQL del backend en Toldo).
 class InicioService {
   final _db = Supabase.instance.client;
 
-  /// {abiertos: n, en_espera: n}
+  // {abiertos: n, en_espera: n}
   Future<Map<String, dynamic>> resumen() async {
     final r = await _db.rpc('resumen_inicio');
     return Map<String, dynamic>.from(r as Map);
@@ -23,7 +22,8 @@ class InicioService {
     return r.map((e) => PuestoResumen.fromMap(Map<String, dynamic>.from(e))).toList();
   }
 
-  // ---- Favoritos de puestos (RF-11) ----
+  // favoritos de puestos
+  // rf-06 se cumple aqui: se guardan puestos y tianguis como favoritos
   Future<bool> esFavoritoPuesto(String idPuesto) async {
     final uid = _db.auth.currentUser!.id;
     final r = await _db
@@ -35,7 +35,7 @@ class InicioService {
     return r != null;
   }
 
-  /// Devuelve el nuevo estado (true = quedó guardado).
+  // devuelve true si quedo guardado
   Future<bool> alternarFavoritoPuesto(String idPuesto) async {
     final uid = _db.auth.currentUser!.id;
     final ya = await _db
@@ -54,7 +54,7 @@ class InicioService {
     return true;
   }
 
-  /// RF-11: favorito de tianguis.
+  // rf-06 se cumple aqui: se guardan productos, puestos y tianguis como favoritos para verlos despues
   Future<bool> esFavoritoTianguis(String idTianguis) async {
     final r = await _db
         .from('favoritos')
@@ -65,7 +65,7 @@ class InicioService {
     return (r as List).isNotEmpty;
   }
 
-  /// Devuelve el nuevo estado (true = quedó guardado).
+  // devuelve true si quedo guardado
   Future<bool> alternarFavoritoTianguis(String idTianguis) async {
     final uid = _db.auth.currentUser!.id;
     final ya = await _db
@@ -84,13 +84,11 @@ class InicioService {
     return true;
   }
 
-  /// Fila completa del puesto (estado, tipo de cierre, motivo, fecha de regreso).
   Future<Puesto?> puestoPorId(String idPuesto) async {
     final r = await _db.from('puestos').select().eq('id', idPuesto).maybeSingle();
     return r == null ? null : Puesto.fromMap(r);
   }
 
-  /// Productos activos de un puesto.
   Future<List<Producto>> productosDePuesto(String idPuesto) async {
     final r = await _db
         .from('productos')
@@ -102,7 +100,7 @@ class InicioService {
     return r.map<Producto>(Producto.fromMap).toList();
   }
 
-  // ---- Notificaciones (RF-33 a RF-36) ----
+  // rf-07 se cumple a medias: la app solo lee y borra los avisos, crearlos le toca al backend
   Future<int> noLeidas() async {
     final uid = _db.auth.currentUser?.id;
     if (uid == null) return 0;
@@ -117,7 +115,6 @@ class InicioService {
       .order('creada_en', ascending: false)
       .limit(60);
 
-  /// Borra una notificación propia (política notif_delete).
   Future<void> borrarNotificacion(String id) => _db
       .from('notificaciones')
       .delete()

@@ -1,82 +1,70 @@
-# Desarrollo opcional con Docker
+# Desarrollo con Docker
 
-## Verificación local y en CI
+Es opcional. Sirve para analizar, probar y compilar sin instalar Flutter, Java ni
+el SDK de Android en tu equipo.
 
-Para verificar un cambio basta con Docker y Compose v2 en modo Linux:
+## Verificar un cambio
+
+Solo necesitas Docker con Compose v2 y contenedores Linux:
 
 ```powershell
 ./scripts/verify.ps1
 ```
 
-El script usa Docker del host o, si no está en PATH, `wsl --exec docker`.
-Usa la distribución predeterminada de WSL; puedes ejecutar el comando directo
-dentro de otra distribución si ahí está tu motor Docker.
-En Linux/macOS: `bash scripts/check.sh`. El comando compartido con Actions es:
+En Windows usa el Docker del host o, si no hay, `wsl --exec docker`. En
+Linux/macOS: `bash scripts/check.sh`. Los dos corren el mismo comando que
+GitHub Actions:
 
 ```sh
 docker compose -f compose.verify.yaml run --build --rm -T verify
 ```
 
-`docker/verify.Dockerfile` es independiente del entorno Android descrito abajo:
-solo contiene Flutter fijado a la revisión de 3.47.8, Python y las bibliotecas
-Linux necesarias. La imagen base está fijada por digest y los paquetes Debian por una
-fecha de snapshot, para que Python y las bibliotecas no cambien al reconstruir
-en otro equipo. `scripts/verify.sh` define una sola secuencia para ambos
-entornos: pruebas Python de versionado, `flutter pub get --enforce-lockfile`,
-`flutter analyze --no-pub` y `flutter test --no-pub`. Cualquier fallo detiene la
-secuencia y se propaga al comando y a Actions.
+`scripts/verify.sh` hace, en orden: las pruebas de versionado (Python),
+`flutter pub get --enforce-lockfile`, `flutter analyze --no-pub` y
+`flutter test --no-pub`. Si algo falla, se detiene.
 
-La fuente se monta de solo lectura y se copia a un contenedor nuevo. No se
-reutilizan `.dart_tool`, `build` ni rutas del SDK del host. Solo persiste Pub en
-el volumen `verify-pub-cache`, separado del entorno de desarrollo. No hay
-servicios de backend, puertos, ADB ni secretos que configurar. La primera
-construcción descarga Flutter; las siguientes aprovechan las capas de Docker.
-La arquitectura es amd64 también en ARM (mediante emulación). Ambos entornos
-usan UTC y los mismos límites de 4 CPU y 4 GB de RAM por defecto.
+La imagen (`docker/verify.Dockerfile`) trae solo Flutter 3.47.8, Python y las
+librerías de Linux necesarias, con versiones fijas para que no cambien al
+reconstruir. El código se monta de solo lectura y se copia a un contenedor nuevo
+cada vez. Solo se guarda la caché de Pub, en el volumen `verify-pub-cache`. La
+primera vez tarda porque descarga Flutter. En ARM corre con emulación amd64.
 
-Para borrar exclusivamente esta caché:
+Para borrar esa caché:
 
 ```sh
 docker compose -f compose.verify.yaml down --volumes
 ```
 
-Al actualizar Flutter, cambia la revisión completa y su tag de versión en `docker/verify.Dockerfile`
-y mantén alineadas las versiones del contenedor de desarrollo y de los workflows
+Si actualizas Flutter, cambia la revisión y el tag en `docker/verify.Dockerfile`
+y mantén iguales las versiones del contenedor de desarrollo y de los workflows
 de releases. Las pruebas de base de datos de Toldo, la compilación nativa y las
-pruebas manuales de dispositivos quedan fuera de esta suite.
+pruebas en dispositivos quedan fuera.
 
-## Entorno completo de desarrollo
+## Entorno completo
 
-Este entorno usa Debian 13 slim e instala Flutter 3.47.8 (incluye Dart), Java 21
-y las herramientas de Android. Sirve para analizar, probar, compilar APK y ejecutar la
-app en Android o mediante web-server. No necesitas Flutter ni Android Studio
-en el host para estos comandos. La primera construcción descarga varios GB.
-Al construir la imagen aceptas las [licencias del SDK de Android](https://developer.android.com/studio/terms).
+Usa Debian 13 slim con Flutter 3.47.8, Java 21 y las herramientas de Android.
+Permite analizar, probar, compilar APK y correr la app en Android o como
+web-server. La primera construcción baja varios GB, y al construirla aceptas las
+[licencias del SDK de Android](https://developer.android.com/studio/terms).
 
-Compose limita cada contenedor a 4 CPU, 4 GB de RAM y hasta 1 GB adicional de
-swap, si el host lo permite. Estos límites se aplican a la ejecución, no a la
-construcción de la imagen. Una compilación que exceda el límite puede fallar;
-cambiar la distribución base no elimina el consumo de Flutter y Gradle.
-Puedes cambiar la cuota de CPU con la variable `TIANGUIA_CPUS`.
+Cada contenedor tiene 4 CPU, 4 GB de RAM y hasta 1 GB de swap (la cuota de CPU
+se cambia con `TIANGUIA_CPUS`). Si una compilación se pasa, puede fallar.
 
-## Preparación
+### Lo que necesitas
 
-- Docker Engine en Linux con Compose v2, o Docker Desktop 4.34+ en Windows/macOS,
-  usando contenedores Linux. La imagen usa Linux amd64; en Apple Silicon se
-  ejecuta con emulación y puede ser lenta.
-- Para usar un teléfono: [Android SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools)
-  en el host. El script busca `adb` en PATH o en la ubicación habitual del SDK;
-  también admite `ANDROID_HOME` o `ANDROID_SDK_ROOT`.
-- En Docker Desktop, activa **Settings > Resources > Network > Enable host
-  networking** una sola vez para Android. No se necesita para pruebas o web.
+- Docker Engine con Compose v2 en Linux, o Docker Desktop 4.34+ en
+  Windows/macOS, con contenedores Linux. En Apple Silicon va con emulación y es
+  lento.
+- Para usar un teléfono: [Platform-Tools](https://developer.android.com/tools/releases/platform-tools)
+  en tu equipo. El script busca `adb` en el `PATH`, en `ANDROID_HOME` o en
+  `ANDROID_SDK_ROOT`.
+- En Docker Desktop, activa una vez **Settings > Resources > Network > Enable
+  host networking** (solo para Android).
 
-En Windows ejecuta los scripts desde PowerShell con Docker Desktop. Si usas
-Docker Engine dentro de WSL, ejecuta el script Bash y ADB también dentro de WSL;
-el ADB de Windows no comparte su localhost con ese motor de Docker.
+En Windows corre los scripts desde PowerShell con Docker Desktop. Si usas Docker
+Engine dentro de WSL, corre el script Bash y ADB también dentro de WSL.
 
-## Comandos
-
-Desde la raíz del repositorio, en PowerShell:
+### Comandos
 
 ```powershell
 ./scripts/dev.ps1 doctor
@@ -88,22 +76,15 @@ Desde la raíz del repositorio, en PowerShell:
 ./scripts/dev.ps1 stop
 ```
 
-En Linux/macOS, sustituye `./scripts/dev.ps1` por `bash scripts/dev.sh`.
-Los argumentos adicionales se pasan a Flutter, por ejemplo:
+En Linux/macOS cambia `./scripts/dev.ps1` por `bash scripts/dev.sh`. Lo que
+agregues se pasa a Flutter:
 
 ```powershell
 ./scripts/dev.ps1 run -d <id-dispositivo> --dart-define=SUPABASE_URL=<url> --dart-define=SUPABASE_KEY=<clave-publica>
 ```
 
-Los APK se copian a `build/docker/`. El backend se configura según el README y
-[Toldo](https://github.com/Tianguia/Toldo). `localhost` dentro de la app Android
-se refiere al teléfono, no a la computadora: usa una dirección del backend
-accesible desde el dispositivo.
-
-Los APK se compilan para ARM64 por defecto, separados por ABI para evitar incluir
-bibliotecas nativas de otras arquitecturas. Por ejemplo, el APK de depuración es
-`build/docker/app-arm64-v8a-debug.apk`. Las demás arquitecturas se solicitan
-explícitamente:
+Los APK quedan en `build/docker/`. Se compilan para ARM64 por defecto, por
+ejemplo `build/docker/app-arm64-v8a-debug.apk`. Para otras arquitecturas:
 
 ```powershell
 ./scripts/dev.ps1 apk --debug --target-platform android-arm
@@ -111,72 +92,52 @@ explícitamente:
 ./scripts/dev.ps1 apk --debug --target-platform "android-arm,android-arm64,android-x64"
 ```
 
-`android-arm` corresponde a ARM de 32 bits; `android-x64`, a x86 de 64 bits.
-Flutter no ofrece x86 de 32 bits entre los destinos de este comando.
-`run` usa la arquitectura del dispositivo seleccionado. Para iterar sobre
-la app, usa `run` y hot reload en lugar de generar un APK nuevo por cada cambio.
-Docker habilita la compilación incremental de Kotlin y la caché de Gradle; el
-ajuste de Kotlin para las rutas de Windows permanece intacto en el host.
+`android-arm` es ARM de 32 bits y `android-x64` es x86 de 64. Para ir probando
+cambios es mejor `run` con hot reload que armar un APK cada vez.
 
-## Teléfono y hot reload
+`localhost` dentro de la app Android es el teléfono, no tu computadora. Usa una
+dirección del backend que el teléfono pueda alcanzar.
 
-1. Activa la depuración USB en Android, conecta el teléfono y acepta su diálogo
-   de autorización. Windows puede necesitar el controlador USB del fabricante.
-2. Ejecuta `./scripts/dev.ps1 devices` para comprobar la conexión.
-3. Ejecuta `./scripts/dev.ps1 run`; con varios dispositivos, agrega `-d <id>`.
-4. Edita el código en tu editor habitual. Espera aproximadamente un segundo y
-   pulsa `r` para hot reload o `R` para reiniciar. Sal con `q`.
+### Teléfono y hot reload
 
-El script inicia ADB en el host; el cliente del contenedor usa ese mismo
-servidor mediante la red del host. No abre ADB a la red local, no comparte USB
-con el contenedor ni requiere privilegios de Docker adicionales. ADB permanece
-disponible al salir, para no interrumpir Android Studio u otras herramientas.
-Si aparece `unauthorized`, acepta la autorización en el teléfono; si no se ven
-dispositivos desde Docker, revisa primero **Enable host networking**.
+1. Activa la depuración USB, conecta el teléfono y acepta el permiso. En Windows
+   puede hacer falta el controlador del fabricante.
+2. `./scripts/dev.ps1 devices` para ver que lo detecta.
+3. `./scripts/dev.ps1 run`, o con `-d <id>` si hay varios dispositivos.
+4. Edita el código, espera como un segundo y pulsa `r` para hot reload o `R`
+   para reiniciar. `q` para salir.
 
-Para depuración inalámbrica, empareja una vez con las herramientas del host:
-`adb pair IP:PUERTO_EMPAREJAMIENTO` y después `adb connect IP:PUERTO_CONEXION`.
-Android muestra ambos puertos en Depuración inalámbrica. No necesariamente son
-iguales. Luego usa el mismo comando `run`. Si ADB informa versiones incompatibles,
-actualiza Platform-Tools en el host y reconstruye la imagen (`docker compose build --no-cache dev`).
+Si sale `unauthorized`, acepta el permiso en el teléfono. Si Docker no ve
+dispositivos, revisa **Enable host networking**.
 
-## Navegador e iOS
+Para depuración inalámbrica, empareja una vez con `adb pair IP:PUERTO_EMPAREJAMIENTO`
+y luego `adb connect IP:PUERTO_CONEXION`. Los dos puertos aparecen en
+Depuración inalámbrica y no son iguales. Después usa el mismo `run`. Si ADB
+dice que las versiones son incompatibles, actualiza Platform-Tools y reconstruye
+con `docker compose build --no-cache dev`.
 
-`web` publica el servidor solo en `http://localhost:8080`. Ábrelo en Chrome,
-Chromium, Brave u otro navegador del host. Web-server tiene
-[depuración limitada](https://docs.flutter.dev/platform-integration/web/setup);
-no sustituye completamente a `flutter run -d chrome` nativo. El destino web se
-genera únicamente en la copia del contenedor si todavía no existe en el repo.
+### Navegador e iOS
 
-La imagen no incluye Chromium. Los comandos normales deshabilitan web dentro
-del contenedor para que `doctor` no lo pida; `web` lo habilita durante su ejecución.
-No se modifica la configuración de Flutter del host: quienes usan Chrome pueden
-seguir trabajando con su instalación habitual. No se habilitan destinos de
-escritorio. Sin un teléfono conectado, `doctor` puede indicar que no hay
-dispositivos; eso no impide analizar, probar o compilar APK.
+`web` abre el servidor en `http://localhost:8080`. Entra desde cualquier
+navegador de tu equipo. La depuración de web-server es
+[limitada](https://docs.flutter.dev/platform-integration/web/setup), no
+reemplaza a `flutter run -d chrome`. La imagen no trae Chromium. Sin un teléfono
+conectado, `doctor` puede decir que no hay dispositivos, pero igual puedes
+analizar, probar y compilar APK.
 
-iOS requiere macOS, Xcode y Flutter nativos; Docker Linux no puede compilarlo.
-`bash scripts/dev.sh ios -d <id>` delega en ese Flutter y utiliza el proyecto
-oficial de `ios/`. El [workflow por tags](versiones.md) lo compila en un runner
-macOS y genera el IPA sin firmar.
+iOS necesita macOS, Xcode y Flutter instalados: Docker Linux no lo puede
+compilar. `bash scripts/dev.sh ios -d <id>` usa ese Flutter y el proyecto de
+`ios/`. El [workflow por tags](versiones.md) lo compila en macOS y saca el IPA
+sin firmar.
 
-## Archivos y cachés
+### Archivos y cachés
 
-El contenedor lee el repositorio y sincroniza una copia en un volumen. Conserva
-Pub, Gradle y los productos de compilación en volúmenes separados de los del
-host. Durante `run` y `web` sincroniza cambios cada segundo; las rutas locales
-del SDK y los archivos generados de Flutter del host no se copian.
+El contenedor copia el repositorio a un volumen y guarda Pub, Gradle y la
+compilación en volúmenes aparte de los de tu equipo. Con `run` y `web` se
+sincronizan los cambios cada segundo. Usa una sesión a la vez, porque comparten
+la copia de trabajo. Si cambias dependencias o plugins, quizá tengas que cerrar y
+volver a correr el comando.
 
-Los scripts reutilizan el contenedor y mantienen Gradle activo entre comandos
-del mismo flujo. Al cambiar de flujo detienen los servicios que no se usan.
-Ejecuta `./scripts/dev.ps1 stop` (o `bash scripts/dev.sh stop`) al terminar para
-liberar memoria sin borrar las cachés. La primera compilación necesita preparar
-dependencias; las siguientes pueden reutilizar el trabajo anterior. La imagen
-no precarga artefactos para desarrollo interno del motor de Flutter.
-El wrapper descarga Gradle `bin`, que contiene las herramientas de compilación
-sin las fuentes ni la documentación del paquete `all`.
-
-Usa una sesión a la vez: los servicios comparten la copia de trabajo. Cambios en
-dependencias o plugins pueden requerir salir y volver a ejecutar el comando.
-Para borrar las cachés del entorno opcional usa `docker compose down --volumes`;
-esto no borra el código ni los APK ya copiados a `build/docker/`.
+Al terminar, `./scripts/dev.ps1 stop` (o `bash scripts/dev.sh stop`) libera
+memoria sin borrar cachés. Para borrarlas usa `docker compose down --volumes`,
+que no toca el código ni los APK de `build/docker/`.

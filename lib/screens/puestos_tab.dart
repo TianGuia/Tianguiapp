@@ -9,10 +9,8 @@ import '../widgets/pincel.dart';
 import '../widgets/visita_flow.dart';
 import 'mapa_puestos_screen.dart';
 
-/// RF-09, RF-10, RF-41, RF-42: puestos abiertos, confirmar visita y calificar.
-/// (El mapa visual se agrega después sobre esta lista.)
+// aqui se cumplen rf-04, rf-05, rf-41, rf-42, cada parte de abajo dice cual cumple
 class PuestosTab extends StatefulWidget {
-  /// true = abre directo en la vista de mapa.
   final bool iniciaEnMapa;
   const PuestosTab({super.key, this.iniciaEnMapa = false});
   @override
@@ -140,7 +138,7 @@ class _PuestosTabState extends State<PuestosTab> {
                 if (s.connectionState != ConnectionState.done) {
                   return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
                 }
-                if (s.hasError) return Center(child: Text('Error: ${s.error}'));
+                if (s.hasError) return Center(child: Text('No se pudieron cargar los puestos: ${s.error}'));
                 final l = s.data!;
                 if (_mapa) {
                   return MapaPuestos(

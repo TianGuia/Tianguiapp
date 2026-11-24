@@ -7,8 +7,9 @@ import '../services/catalogo_service.dart';
 import '../services/chat_service.dart';
 import '../widgets/moderacion.dart';
 import 'chat_screen.dart';
+import '../widgets/mensaje.dart';
 
-/// RF-33 a RF-36: anuncios de espacios (renta, préstamo o traspaso) entre vendedores.
+// aqui se cumplen rf-28 a rf-31, cada parte de abajo dice cual cumple
 class EspaciosScreen extends StatefulWidget {
   final String idVendedor;
   const EspaciosScreen({super.key, required this.idVendedor});
@@ -30,10 +31,10 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
     }).catchError((_) {});
   }
 
-  void _msg(String t) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+  void _msg(String t) => mostrarMensaje(context, t);
   void _recargar() => setState(() => _futuro = _cargar());
 
-  /// RF-34: consulta y filtro por tianguis y tipo de acuerdo.
+  // rf-29 se cumple aqui: el vendedor ve los anuncios de espacios y los filtra por tianguis y tipo de acuerdo
   Future<List<Map<String, dynamic>>> _cargar() async {
     var q = _db
         .from('anuncios_espacio')
@@ -49,7 +50,7 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
   String _nombreTianguis(String id) => _tianguis.where((t) => t.id == id).firstOrNull?.nombre ?? '';
   String _etiquetaRol(String? r) => r == Enums.rolOfrezco ? 'OFREZCO' : 'BUSCO';
 
-  /// RF-35: conversación privada desde el anuncio.
+  // rf-30 se cumple aqui: el vendedor abre un chat con otro vendedor desde un anuncio
   Future<void> _contactar(Map<String, dynamic> a) async {
     final dueno = (a['perfiles_vendedor'] as Map?)?['id_usuario'] as String?;
     if (dueno == null) return;
@@ -63,7 +64,7 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
     }
   }
 
-  /// RF-44: reportar un anuncio de espacio.
+  // rf-44 se cumple aqui: se manda un reporte cuando algo rompe las reglas
   Future<void> _reportar(Map<String, dynamic> a) async {
     final dueno = (a['perfiles_vendedor'] as Map?)?['id_usuario'] as String?;
     await reportarContenido(
@@ -74,7 +75,7 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
     );
   }
 
-  /// RF-33 (nuevo) y RF-36 (editar).
+  // rf-28 se cumple aqui: el vendedor publica que ofrece o busca un espacio
   Future<void> _formulario({Map<String, dynamic>? anuncio}) async {
     if (_tianguis.isEmpty) {
       _msg('No hay tianguis disponibles');
@@ -144,7 +145,7 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
     }
   }
 
-  /// RF-36: cerrar cuando el espacio deja de estar disponible.
+  // rf-31 se cumple aqui: el vendedor cambia o cierra su anuncio cuando el espacio ya no esta
   Future<void> _cerrar(Map<String, dynamic> a) async {
     try {
       await _db.from('anuncios_espacio').update({'estado': Enums.anuncioCerrado}).eq('id', a['id']);
@@ -196,7 +197,7 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
                 if (s.connectionState != ConnectionState.done) {
                   return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
                 }
-                if (s.hasError) return Center(child: Text('Error: ${s.error}'));
+                if (s.hasError) return Center(child: Text('No se pudieron cargar los anuncios: ${s.error}'));
                 final l = s.data!;
                 if (l.isEmpty) return const Center(child: Text('No hay anuncios por ahora'));
                 return ListView.builder(

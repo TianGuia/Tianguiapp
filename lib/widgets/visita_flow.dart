@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../services/puestos_service.dart';
 import 'entradas.dart';
+import 'mensaje.dart';
 
 const _negro = TextStyle(color: Colors.black);
 
-void _msg(BuildContext c, String t) =>
-    ScaffoldMessenger.of(c).showSnackBar(SnackBar(content: Text(t)));
+void _msg(BuildContext c, String t) => mostrarMensaje(c, t);
 
-/// RF-41 + RF-42: el comprador escribe el código que le muestra el vendedor
-/// y después puede calificar su visita.
+// rf-41 se cumple aqui: el comprador escribe el codigo que le da el vendedor para confirmar que si fue al puesto
+// rf-42 se cumple aqui: despues de una visita confirmada el comprador deja su calificacion
 Future<void> confirmarVisita(BuildContext context) async {
   final svc = PuestosService();
   final c = TextEditingController();

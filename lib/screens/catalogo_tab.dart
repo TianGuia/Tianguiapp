@@ -7,7 +7,9 @@ import '../widgets/pincel.dart';
 import 'producto_detalle_screen.dart';
 import 'puesto_screen.dart' show TarjetaProducto;
 
-/// RF-06, RF-07, RF-08: búsqueda y filtros de productos.
+// rf-01 se cumple aqui: se buscan productos escribiendo una palabra o eligiendo una categoria
+// rf-02 se cumple aqui: los productos se filtran por tianguis, dia, categoria y precio
+// rf-03 se cumple aqui: se muestra todo de un producto, como fotos, precio y quien lo vende
 class CatalogoTab extends StatefulWidget {
   const CatalogoTab({super.key});
   @override
@@ -21,7 +23,7 @@ class _CatalogoTabState extends State<CatalogoTab> {
   String? _cat;
   List<Tianguis> _tianguis = [];
   String? _idTianguis;
-  int? _dia; // 0 = domingo … 6 = sábado
+  int? _dia; // 0 = domingo … 6 = sabado
   num? _precioMin, _precioMax;
   late Future<List<Producto>> _futuro = _svc.buscarProductos();
 
@@ -65,10 +67,9 @@ class _CatalogoTabState extends State<CatalogoTab> {
   static const _negro = TextStyle(color: Colors.black);
   static const _etiquetaCampo = TextStyle(color: Colors.black54);
 
-  /// RF-07: filtros por tianguis, día de operación y rango de precio.
   Future<void> _filtros() async {
     FocusScope.of(context).unfocus();
-    // Si el tianguis elegido ya no está activo, no se ofrece como valor del menú.
+    // si el tianguis elegido ya no esta activo, no se ofrece como valor del menu.
     var idT = _tianguis.any((t) => t.id == _idTianguis) ? _idTianguis : null;
     var dia = _dia;
     final min = TextEditingController(text: _precioMin?.toString() ?? '');
@@ -87,8 +88,7 @@ class _CatalogoTabState extends State<CatalogoTab> {
               const Text('Filtrar productos',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
               const SizedBox(height: 14),
-              // Los campos del tema tienen fondo blanco: el texto se fuerza a negro
-              // (si no, lo escrito o elegido queda blanco sobre blanco).
+              // los campos del tema tienen fondo blanco, se fuerza el texto a negro o sale blanco sobre blanco
               const Text('Tianguis', style: TextStyle(fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
               DropdownButtonFormField<String?>(
@@ -169,8 +169,7 @@ class _CatalogoTabState extends State<CatalogoTab> {
                   child: const Text('LIMPIAR'),
                 ),
                 const SizedBox(width: 12),
-                // El FilledButton del tema ocupa todo el ancho (Size.fromHeight):
-                // dentro de un Row necesita Expanded o el layout falla.
+                // el FilledButton del tema ocupa todo el ancho, en un Row necesita Expanded o falla el layout
                 Expanded(
                   child: FilledButton(
                       onPressed: () => Navigator.pop(ctx, true), child: const Text('APLICAR')),
@@ -213,7 +212,6 @@ class _CatalogoTabState extends State<CatalogoTab> {
     return 'Hasta ${f(_precioMax!)}';
   }
 
-  /// Resumen de lo que está filtrando; cada chip se quita con su «x».
   Widget _chipsFiltros() {
     if (_filtrosActivos == 0) return const SizedBox.shrink();
     final tianguis = _tianguis.where((t) => t.id == _idTianguis).firstOrNull?.nombre;
@@ -325,7 +323,7 @@ class _CatalogoTabState extends State<CatalogoTab> {
               if (s.connectionState != ConnectionState.done) {
                 return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
               }
-              if (s.hasError) return Center(child: Text('Error: ${s.error}'));
+              if (s.hasError) return Center(child: Text('No se pudieron cargar los productos: ${s.error}'));
               final l = s.data!;
               if (l.isEmpty) {
                 return Center(

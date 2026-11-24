@@ -4,8 +4,8 @@ import '../services/auth_service.dart';
 import '../widgets/fondo.dart';
 import '../widgets/pincel.dart';
 
-/// Acceso de administrador: una clave y la respuesta a una pregunta secreta.
-/// La validación la hace el servidor (admin_entrar); la app no guarda ninguna.
+// acceso de administrador: una clave y la respuesta a una pregunta secreta.
+// la validacion la hace el servidor y la app no guarda nada
 class AdminEntradaScreen extends StatefulWidget {
   const AdminEntradaScreen({super.key});
   @override
@@ -38,7 +38,7 @@ class _AdminEntradaScreenState extends State<AdminEntradaScreen> {
     });
     try {
       await _auth.entrarAdministrador(_nombre.text, _clave.text, _respuesta.text);
-      // AuthGate detecta la sesión de administrador y muestra el panel.
+      // AuthGate detecta la sesion de administrador y muestra el panel.
       if (mounted) Navigator.pop(context);
     } on AdminAccesoException {
       if (mounted) setState(() => _error = 'Nombre, clave o respuesta incorrectos');

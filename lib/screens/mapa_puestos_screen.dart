@@ -4,8 +4,9 @@ import 'package:latlong2/latlong.dart';
 import '../config/theme.dart';
 import '../models/modelos.dart';
 
-/// RF-09 / RF-10: mapa de los puestos abiertos con su última ubicación
-/// registrada (no es rastreo continuo). Usa teselas de OpenStreetMap.
+// rf-04 se cumple aqui: se ven en un mapa los puestos que estan abiertos
+// rf-05 se cumple aqui: se ve si el puesto esta abierto o cerrado y donde estaba la ultima vez
+// la ubicacion es la ultima que registro el vendedor, no se le sigue en tiempo real
 class MapaPuestos extends StatelessWidget {
   final List<Puesto> puestos;
   final List<Tianguis> tianguis;
@@ -17,8 +18,8 @@ class MapaPuestos extends StatelessWidget {
     this.idTianguis,
   });
 
-  /// Centro: el tianguis elegido; si no, el primer puesto con ubicación;
-  /// si no, el primer tianguis con coordenadas; si no, Guadalajara.
+  // centro: el tianguis elegido; si no, el primer puesto con ubicacion;
+  // si no, el primer tianguis con coordenadas; si no, guadalajara.
   LatLng _centro(List<Puesto> conUbicacion) {
     final t = tianguis.where((t) => t.id == idTianguis && t.lat != null).firstOrNull;
     if (t != null) return LatLng(t.lat!, t.lng!);

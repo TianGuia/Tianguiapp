@@ -7,9 +7,7 @@ import '../widgets/corazon.dart';
 import '../widgets/pincel.dart';
 import 'puesto_screen.dart';
 
-/// Pantalla de inicio: categorías, resumen, puesto destacado y tendencias.
 class InicioTab extends StatefulWidget {
-  /// Se llama al tocar el contador de puestos abiertos.
   final VoidCallback onVerPuestos;
   final VoidCallback? onVerMapa;
   const InicioTab({super.key, required this.onVerPuestos, this.onVerMapa});
@@ -181,7 +179,6 @@ class _InicioTabState extends State<InicioTab> {
     );
   }
 
-  /// Acceso directo y visible al mapa de puestos abiertos.
   Widget _botonMapa() => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Material(

@@ -1,9 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Id del comprador de la sesión actual (tabla `compradores`).
-/// Las tablas propuestas_precio, apartados, visitas y calificaciones apuntan a
-/// compradores(id_comprador), no a usuarios(id). Si no se puede consultar,
-/// se usa el id del usuario (en TianGuía suelen coincidir).
+// id del comprador de la sesion, tabla compradores
+// propuestas, apartados, visitas y calificaciones apuntan a compradores y no a usuarios
+// si no se puede consultar usa el id del usuario, normalmente son el mismo
 Future<String> miIdComprador() async {
   final db = Supabase.instance.client;
   final uid = db.auth.currentUser!.id;

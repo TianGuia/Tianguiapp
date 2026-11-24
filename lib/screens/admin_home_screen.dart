@@ -9,9 +9,7 @@ import '../widgets/fondo.dart';
 import 'home_screen.dart';
 import '../widgets/entradas.dart';
 
-/// Panel de administración: RF-47 a RF-54.
-///   Resumen · Reportes (RF-50) · Apelaciones (RF-51) · Tianguis (RF-47/48/49)
-///   Términos (RF-52) · Consulta (RF-54)
+// panel del administrador, cada seccion de abajo dice que requisito cumple
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
   @override
@@ -34,8 +32,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       ),
     );
     if (ok != true || !mounted) return;
-    // Cierra pantallas encimadas (p. ej. "Ver la app como usuario") para que no
-    // queden sobre el login al cerrar la sesión.
+    // cierra pantallas encimadas, como "Ver la app como usuario", para que no queden sobre el login
     Navigator.of(context).popUntil((r) => r.isFirst);
     await AuthService().salirAdmin();
   }
@@ -95,7 +92,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   }
 }
 
-// ======================= utilidades =======================
 
 void _aviso(BuildContext c, String t) =>
     ScaffoldMessenger.of(c).showSnackBar(SnackBar(content: Text(t)));
@@ -117,6 +113,7 @@ Future<String?> _pedirTexto(BuildContext c, String titulo, String hint,
         controller: ctl,
         maxLines: 3,
         minLines: 1,
+        style: const TextStyle(color: Colors.black),
         decoration: InputDecoration(hintText: hint),
       ),
       actions: [
@@ -134,30 +131,57 @@ Future<String?> _pedirTexto(BuildContext c, String titulo, String hint,
   );
 }
 
-/// Diálogo con varios campos. [campos]: (etiqueta, ocultar). Devuelve los
-/// textos en orden, o null si se cancela. Ningún campo puede ir vacío.
+// dialogo con varios campos, campos es etiqueta y si se oculta
+// devuelve los textos en orden o null si cancela, ninguno puede ir vacio
 Future<List<String>?> _pedirCampos(BuildContext c, String titulo, List<(String, bool)> campos,
     {String? nota}) {
   final ctl = [for (final _ in campos) TextEditingController()];
   return showDialog<List<String>>(
     context: c,
     builder: (_) => AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
       title: Text(titulo),
-      content: SingleChildScrollView(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
+      scrollable: true,
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           if (nota != null)
-            Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(nota, style: const TextStyle(fontSize: 12))),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Text(nota, style: const TextStyle(fontSize: 13, color: Colors.white70)),
+            ),
           for (var i = 0; i < campos.length; i++)
-            TextField(
-              controller: ctl[i],
-              obscureText: campos[i].$2,
-              decoration: InputDecoration(labelText: campos[i].$1),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: TextField(
+                controller: ctl[i],
+                obscureText: campos[i].$2,
+                enableSuggestions: !campos[i].$2,
+                autocorrect: !campos[i].$2,
+                textInputAction: i == campos.length - 1 ? TextInputAction.done : TextInputAction.next,
+                style: const TextStyle(color: Colors.black, fontSize: 16),
+                cursorColor: Tg.azul,
+                decoration: InputDecoration(
+                  labelText: campos[i].$1,
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
+                  floatingLabelStyle: const TextStyle(color: Colors.black87),
+                  border: const UnderlineInputBorder(
+                    borderSide: BorderSide.none,
+                    borderRadius: BorderRadius.all(Radius.circular(20)),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                ),
+              ),
             ),
         ]),
       ),
+      actionsPadding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+      actionsAlignment: MainAxisAlignment.spaceBetween,
       actions: [
         TextButton(onPressed: () => Navigator.pop(c), child: const Text('CANCELAR')),
         FilledButton(
+          style: FilledButton.styleFrom(minimumSize: const Size(140, 48)),
           onPressed: () {
             final v = [for (final x in ctl) x.text];
             if (v.any((t) => t.trim().isEmpty)) return;
@@ -170,7 +194,6 @@ Future<List<String>?> _pedirCampos(BuildContext c, String titulo, List<(String, 
   );
 }
 
-/// Lista con carga, error y "tirar para recargar".
 class _ListaAsync extends StatelessWidget {
   final Future<List<Map<String, dynamic>>> futuro;
   final Future<void> Function() onRecargar;
@@ -192,7 +215,7 @@ class _ListaAsync extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Text('Error: ${s.error}', textAlign: TextAlign.center),
+                Text('Algo salio mal: ${s.error}', textAlign: TextAlign.center),
                 const SizedBox(height: 12),
                 FilledButton(onPressed: onRecargar, child: const Text('REINTENTAR')),
               ]),
@@ -218,7 +241,7 @@ class _ListaAsync extends StatelessWidget {
   }
 }
 
-// ======================= Administradores =======================
+// administradores
 
 class _AdministradoresScreen extends StatefulWidget {
   const _AdministradoresScreen();
@@ -242,7 +265,7 @@ class _AdministradoresScreenState extends State<_AdministradoresScreen> {
     setState(() => _futuro = _cargar());
     try {
       await _futuro;
-    } catch (_) {}
+    } catch (_) {} // el error ya sale en la lista
   }
 
   Future<void> _ejecutar(Future<void> Function() accion, String ok) async {
@@ -334,7 +357,7 @@ class _AdministradoresScreenState extends State<_AdministradoresScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(24),
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Text('Error: ${s.error}\n(¿ya corriste 10_administradores.sql?)', textAlign: TextAlign.center),
+                      Text('No se pudieron cargar los administradores: ${s.error}\n(revisa que las migraciones de Toldo esten aplicadas)', textAlign: TextAlign.center),
                       const SizedBox(height: 12),
                       FilledButton(onPressed: _recargar, child: const Text('REINTENTAR')),
                     ]),
@@ -372,7 +395,7 @@ class _AdministradoresScreenState extends State<_AdministradoresScreen> {
       );
 }
 
-// ======================= Categorías y etiquetas =======================
+// categorias y etiquetas
 
 class _CatalogosScreen extends StatefulWidget {
   const _CatalogosScreen();
@@ -391,7 +414,7 @@ class _CatalogosScreenState extends State<_CatalogosScreen> {
     setState(() => _futuro = _svc.catalogo(_tabla));
     try {
       await _futuro;
-    } catch (_) {}
+    } catch (_) {} // el error ya sale en la lista
   }
 
   Future<void> _guardar({Map<String, dynamic>? x, String? nombre, bool? activa}) async {
@@ -476,10 +499,9 @@ class _CatalogosScreenState extends State<_CatalogosScreen> {
       );
 }
 
-// ======================= Resumen y medidas activas =======================
+// resumen y medidas activas
 
 class _ResumenTab extends StatefulWidget {
-  /// Cambia a otra pestaña del panel (índice de la barra inferior).
   final void Function(int) ir;
   const _ResumenTab({required this.ir});
   @override
@@ -511,7 +533,7 @@ class _ResumenTabState extends State<_ResumenTab> {
     setState(() => _futuro = _cargar());
     try {
       await _futuro;
-    } catch (_) {}
+    } catch (_) {} // el error ya sale en la lista
   }
 
   Future<void> _levantar(Map<String, dynamic> m) async {
@@ -580,7 +602,7 @@ class _ResumenTabState extends State<_ResumenTab> {
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Text('Error: ${s.error}\n(¿ya corriste 08_resumen_y_medidas_activas.sql?)',
+                  Text('No se pudo cargar el resumen: ${s.error}\n(revisa que las migraciones de Toldo esten aplicadas)',
                       textAlign: TextAlign.center),
                   const SizedBox(height: 12),
                   FilledButton(onPressed: _recargar, child: const Text('REINTENTAR')),
@@ -632,7 +654,8 @@ class _ResumenTabState extends State<_ResumenTab> {
       );
 }
 
-// ======================= Reportes (RF-50) =======================
+// reportes
+// rf-50 se cumple aqui: el administrador revisa los reportes y decide que hacer
 
 class _ReportesTab extends StatefulWidget {
   const _ReportesTab();
@@ -767,7 +790,8 @@ class _ReportesTabState extends State<_ReportesTab> {
       ]);
 }
 
-// ======================= Apelaciones (RF-51) =======================
+// apelaciones
+// rf-51 se cumple aqui: el administrador resuelve las apelaciones
 
 class _ApelacionesTab extends StatefulWidget {
   const _ApelacionesTab();
@@ -874,7 +898,10 @@ class _ApelacionesTabState extends State<_ApelacionesTab> {
       ]);
 }
 
-// ======================= Tianguis (RF-47, RF-48, RF-49) =======================
+// tianguis
+// rf-47 se cumple aqui: el administrador agrega, cambia o quita tianguis
+// rf-48 se cumple aqui: el administrador maneja los horarios del tianguis
+// rf-49 se cumple aqui: el administrador guarda las zonas y coordenadas que usa el mapa
 
 class _TianguisTab extends StatefulWidget {
   const _TianguisTab();
@@ -1093,7 +1120,7 @@ class _TianguisFormState extends State<_TianguisForm> {
           title: const Text('Zona, pasillo o espacio'),
           content: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextField(controller: nombre, decoration: const InputDecoration(hintText: 'Nombre')),
+              TextField(controller: nombre, style: const TextStyle(color: Colors.black), decoration: const InputDecoration(hintText: 'Nombre')),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 initialValue: tipo,
@@ -1109,6 +1136,7 @@ class _TianguisFormState extends State<_TianguisForm> {
                 controller: geo,
                 maxLines: 4,
                 minLines: 2,
+                style: const TextStyle(color: Colors.black),
                 decoration: const InputDecoration(hintText: 'Geometría GeoJSON (opcional)'),
               ),
             ]),
@@ -1256,7 +1284,8 @@ class _TianguisFormState extends State<_TianguisForm> {
   }
 }
 
-// ======================= Términos (RF-52) =======================
+// terminos
+// rf-52 se cumple aqui: el administrador publica nuevas condiciones de uso
 
 class _TerminosTab extends StatefulWidget {
   const _TerminosTab();
@@ -1399,7 +1428,8 @@ class _PublicarVersionState extends State<_PublicarVersion> {
   }
 }
 
-// ======================= Consulta (RF-54) =======================
+// consulta
+// rf-54 se cumple aqui: el administrador consulta usuarios, vendedores, productos y puestos
 
 class _ConsultaTab extends StatefulWidget {
   const _ConsultaTab();
@@ -1444,8 +1474,7 @@ class _ConsultaTabState extends State<_ConsultaTab> {
     setState(() => _guardando = true);
     try {
       await _svc.cambiarEstadoCuenta(u['id'] as String, estado);
-      // La fila cambia de inmediato; enseguida se vuelve a pedir al servidor
-      // para confirmar el estado real.
+      // la fila cambia de inmediato y luego se confirma con el servidor
       final nuevos = [
         for (final x in _ultimos) x['id'] == u['id'] ? {...x, 'estado_cuenta': estado} : x
       ];
@@ -1465,7 +1494,6 @@ class _ConsultaTabState extends State<_ConsultaTab> {
     }
   }
 
-  /// Oculta/suspende o levanta la medida de un puesto, publicación o vendedor.
   Future<void> _moderar(String tipo, Map<String, dynamic> x, String nombre) async {
     final idMedida = x['medida_id'] as String?;
     final levantar = idMedida != null;

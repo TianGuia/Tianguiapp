@@ -6,22 +6,17 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/supabase_config.dart';
 
-/// RF-01 a RF-05, RF-40.
-///
-///  - Los compradores entran SIN correo: signInAnonymously con un nombre de
-///    usuario único (RF-01). Su cuenta vive en el dispositivo: si borran la
-///    app sin verificar el correo, pierden favoritos y mensajes.
-///  - Para ser vendedor se verifica el correo con un código de un solo uso y
-///    se LIGA a la misma cuenta, sin perder favoritos ni chats (RF-02, RF-19).
-///  - Quien ya verificó su correo puede volver a entrar con código (RF-03).
-/// El nombre de usuario ya lo usa otra persona.
+// cuenta y sesion, aqui se cumplen rf-32 a rf-36 y rf-40
+// el comprador entra sin correo y su cuenta vive en el telefono
+// para vender se verifica el correo y se une a esa misma cuenta
+// ya existe otro usuario con ese nombre
 class NombreEnUsoException implements Exception {
   const NombreEnUsoException();
   @override
   String toString() => 'Este nombre de usuario ya existe, elige otro';
 }
 
-/// Clave o respuesta incorrectas al entrar como administrador.
+// clave o respuesta incorrectas del administrador
 class AdminAccesoException implements Exception {
   const AdminAccesoException();
   @override
@@ -29,16 +24,13 @@ class AdminAccesoException implements Exception {
 }
 
 class AuthService {
-  /// true mientras se valida el acceso de administrador: AuthGate espera para
-  /// no mostrar un instante la app de comprador.
+  // true mientras se valida al admin, AuthGate espera para no mostrar la app de comprador
   static final entrandoAdmin = ValueNotifier<bool>(false);
 
-  /// Cambia cuando la sesión pasa a (o deja de) ser de administrador.
   static final cambioRol = ValueNotifier<int>(0);
 
-  /// Nombre de la cuenta anónima en la que se "cerró sesión" en este teléfono.
-  /// La sesión sigue guardada en el dispositivo: quien escriba ese mismo nombre
-  /// aquí vuelve a entrar a la misma cuenta, con sus favoritos y mensajes.
+  // nombre de la cuenta anonima que cerro sesion en este telefono
+  // la sesion sigue guardada, con ese nombre se vuelve a entrar
   static final sesionOculta = ValueNotifier<String?>(null);
   static const _kOculta = 'sesion_anonima_oculta';
 
@@ -46,7 +38,7 @@ class AuthService {
     try {
       final p = await SharedPreferences.getInstance();
       sesionOculta.value = p.getString(_kOculta);
-    } catch (_) {}
+    } catch (_) {} // sin preferencias no hay sesion oculta
   }
 
   static Future<void> _guardarOculta(String? nombre) async {
@@ -58,33 +50,32 @@ class AuthService {
       } else {
         await p.setString(_kOculta, nombre);
       }
-    } catch (_) {}
+    } catch (_) {} // no pasa nada si no se guarda
   }
 
-  /// "Cerrar sesión" de una cuenta anónima: no se revoca la sesión, solo se
-  /// oculta, para poder volver a entrar con el mismo nombre en este teléfono.
+  // cerrar sesion anonima no revoca la sesion, solo la oculta
   Future<void> ocultarSesion() async {
     String? nombre;
     try {
       nombre = (await miPerfil())?['nombre_publico'] as String?;
-    } catch (_) {}
+    } catch (_) {} // sin nombre sigue igual
     nombre ??= usuario?.userMetadata?['nombre_publico'] as String?;
     await _guardarOculta((nombre == null || nombre.trim().isEmpty) ? 'Invitado' : nombre.trim());
   }
 
-  /// Cierra de verdad la cuenta oculta (se pierde: nadie más puede recuperarla).
+  // cierra de verdad la cuenta oculta, ya no se puede recuperar
   Future<void> descartarSesionOculta() async {
     await _guardarOculta(null);
     try {
       await _db.auth.signOut();
-    } catch (_) {}
+    } catch (_) {} // da igual si ya estaba cerrada
   }
 
   Future<void> _reanudarSesion() async {
     await _guardarOculta(null);
     try {
       await _db.auth.refreshSession();
-    } catch (_) {}
+    } catch (_) {} // si no refresca se queda con la sesion actual
   }
 
   AuthService({SupabaseClient? client})
@@ -94,41 +85,43 @@ class AuthService {
 
   User? get usuario => _db.auth.currentUser;
 
-  /// true si la cuenta aún no tiene correo verificado.
   bool get esAnonimo => usuario?.isAnonymous ?? false;
 
-  // ---------------- Entrada anónima (RF-01) ----------------
+  // entrada anonima
+  // rf-32 se cumple aqui: la persona crea su cuenta escribiendo solo un nombre
 
   Future<void> registrar(String nombre) async {
     final n = nombre.trim();
     final oculta = sesionOculta.value;
     if (oculta != null) {
-      // Mismo nombre y misma sesión guardada en este teléfono: vuelve a entrar.
+      // mismo nombre y misma sesion: vuelve a entrar
       if (oculta.toLowerCase() == n.toLowerCase() && usuario != null) {
         await _reanudarSesion();
         return;
       }
-      // Otro nombre: la cuenta anterior se cierra definitivamente.
+      // otro nombre: se cierra la cuenta anterior
       await descartarSesionOculta();
     }
     if (!await nombreDisponible(n)) throw const NombreEnUsoException();
     await _db.auth.signInAnonymously(data: {'nombre_publico': n});
     try {
-      await aceptarTerminosVigentes(); // RF-40
-    } catch (_) {}
+      // rf-40 se cumple aqui: se guarda que la persona acepto las condiciones
+      await aceptarTerminosVigentes();
+    } catch (_) {} // si falla se piden otra vez despues
     try {
       await actualizarPerfil(
-          nombre: n); // respaldo si el trigger no tomó el nombre
-    } catch (_) {}
+          nombre: n); // respaldo si el trigger no tomo el nombre
+    } catch (_) {} // si falla se deja asi
   }
 
-  // ---------------- Vincular correo a la cuenta anónima (RF-02) ----------------
+  // vincular correo a la cuenta anonima
+  // rf-33 se cumple aqui: el correo se verifica con un codigo que llega a ese mismo correo
 
-  /// Envía el código al correo y lo asocia a la cuenta actual.
+  // manda el codigo al correo y lo une a la cuenta
   Future<void> enviarCodigoVinculacion(String correo) =>
       _db.auth.updateUser(UserAttributes(email: correo.trim()));
 
-  /// Confirma el código: la cuenta deja de ser anónima y conserva su id.
+  // confirma el codigo, la cuenta deja de ser anonima y conserva su id
   Future<void> confirmarVinculacion(String correo, String codigo) async {
     await _db.auth.verifyOTP(
       email: correo.trim(),
@@ -138,9 +131,10 @@ class AuthService {
     await _db.auth.refreshSession();
   }
 
-  // ---------------- Volver a entrar con correo (RF-03) ----------------
+  // volver a entrar con correo
+  // rf-34 se cumple aqui: quien ya tiene cuenta entra con un codigo que le llega al correo
 
-  /// Envía el código al correo (para quien ya verificó antes, p. ej. otro celular).
+  // manda el codigo, sirve para entrar desde otro celular
   Future<void> enviarCodigo(String correo, {String? nombre}) =>
       _db.auth.signInWithOtp(
         email: correo.trim(),
@@ -157,7 +151,9 @@ class AuthService {
     await _guardarOculta(null);
   }
 
-  // ---------------- Términos (RF-40 / RF-53) ----------------
+  // terminos
+  // rf-40 se cumple aqui: la persona acepta las condiciones de uso antes de entrar
+  // rf-53 se cumple aqui: si hay condiciones nuevas se pide aceptarlas antes de seguir
 
   Future<void> aceptarTerminosVigentes() async {
     final uid = usuario?.id;
@@ -178,9 +174,7 @@ class AuthService {
     return pendientes is List ? pendientes.isNotEmpty : pendientes == true;
   }
 
-  /// RF-01: los nombres de usuario son únicos (sin distinguir mayúsculas).
-  /// Si la función SQL `nombre_disponible` aún no existe en el backend, no
-  /// bloquea la entrada (ver la migración nombre_publico_unico).
+  // si nombre_disponible no existe en el backend no se bloquea la entrada
   Future<bool> nombreDisponible(String nombre) async {
     try {
       final r = await _db.rpc('nombre_disponible', params: {'p_nombre': nombre.trim()});
@@ -190,7 +184,7 @@ class AuthService {
     }
   }
 
-  /// RF-05: sube la foto de perfil y devuelve su URL pública.
+  // rf-36 se cumple aqui: la persona puede ver y cambiar su nombre y su foto
   Future<String> subirFotoPerfil(File archivo) async {
     final ruta = '${usuario!.id}/perfil/${DateTime.now().millisecondsSinceEpoch}.jpg';
     final bucket = _db.storage.from(SupabaseConfig.bucketProductos);
@@ -198,7 +192,6 @@ class AuthService {
     return bucket.getPublicUrl(ruta);
   }
 
-  /// RF-53: versiones de términos vigentes que el usuario aún no acepta.
   Future<List<Map<String, dynamic>>> terminosPendientes() async {
     final r = await _db.rpc('terminos_pendientes');
     return r is List
@@ -206,19 +199,18 @@ class AuthService {
         : <Map<String, dynamic>>[];
   }
 
-  // ---------------- Administrador ----------------
+  // administrador
 
-  /// Acceso de administrador sin correo: nombre + clave + respuesta a la
-  /// pregunta secreta. Se valida en el servidor ANTES de crear la sesión
-  /// (admin_verificar), así un intento fallido no deja cuentas sueltas. Son
-  /// máximo 4 administradores y la sesión dura 12 h.
+  // acceso de admin sin correo: nombre, clave y respuesta secreta
+  // se valida en el servidor antes de crear la sesion, asi un intento fallido no deja cuentas sueltas
+  // maximo 4 admins y la sesion dura 12 h
   Future<void> entrarAdministrador(String nombre, String clave, String respuesta) async {
     final params = {'p_nombre': nombre.trim(), 'p_clave': clave, 'p_respuesta': respuesta};
-    // 1) Comprobación sin sesión.
+    // primero se comprueba sin sesion
     final valido = await _db.rpc('admin_verificar', params: params);
     if (valido != true) throw const AdminAccesoException();
 
-    // 2) Sesión anónima + apertura de la sesión de administrador.
+    // luego sesion anonima y se abre la de admin
     entrandoAdmin.value = true;
     try {
       if (sesionOculta.value != null) await descartarSesionOculta();
@@ -228,11 +220,11 @@ class AuthService {
       if (ok != true) throw const AdminAccesoException();
       try {
         await aceptarTerminosVigentes();
-      } catch (_) {}
+      } catch (_) {} // se piden despues
     } catch (e) {
       try {
         await _db.auth.signOut();
-      } catch (_) {}
+      } catch (_) {} // no importa si falla
       rethrow;
     } finally {
       entrandoAdmin.value = false;
@@ -248,27 +240,26 @@ class AuthService {
     }
   }
 
-  /// Cierra la sesión de administrador (invalida el acceso por clave).
+  // cierra la sesion de admin
   Future<void> salirAdmin() async {
     try {
-      // Sin red o con el servidor lento no debe quedarse colgado.
+      // sin red no debe quedarse colgado
       await _db.rpc('admin_salir').timeout(const Duration(seconds: 6));
-    } catch (_) {}
+    } catch (_) {} // sin red se sigue con el cierre local
     try {
       await _db.auth.signOut().timeout(const Duration(seconds: 6));
     } catch (_) {
-      // Si no hubo red, cierra al menos la sesión local.
+      // sin red, cierra al menos la local
       try {
         await _db.auth.signOut(scope: SignOutScope.local);
-      } catch (_) {}
+      } catch (_) {} // ya no hay mas que hacer
     }
     cambioRol.value++;
   }
 
-  /// RF-04
+  // rf-35 se cumple aqui: la persona puede salir de su cuenta en este telefono
   Future<void> cerrarSesion() => _db.auth.signOut();
 
-  /// RF-05
   Future<Map<String, dynamic>?> miPerfil() =>
       _db.from('usuarios').select().eq('id', usuario!.id).maybeSingle();
 

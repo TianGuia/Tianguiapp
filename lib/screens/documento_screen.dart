@@ -3,9 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/theme.dart';
 import '../widgets/fondo.dart';
 
-/// Muestra la versión vigente de las condiciones de uso o del aviso de
-/// privacidad, para que la persona pueda leerlas antes de aceptarlas (RF-40).
-/// [tipo] = 'terminos' | 'privacidad' (enum tipo_documento).
+// muestra las condiciones de uso o el aviso de privacidad vigentes
+// tipo puede ser terminos o privacidad
+// rf-40 se cumple aqui: la persona puede leer las condiciones antes de aceptarlas
 class DocumentoScreen extends StatefulWidget {
   final String tipo;
   final String titulo;
@@ -20,13 +20,13 @@ class _DocumentoScreenState extends State<DocumentoScreen> {
 
   Future<Map<String, dynamic>?> _cargar() async {
     final db = Supabase.instance.client;
-    // Sin sesión (pantalla de registro) la tabla no es legible: se usa la función
-    // documento_vigente. Si aún no existe en la base, se intenta la consulta directa.
+    // sin sesion la tabla no se puede leer, se usa documento_vigente
+    // y si no existe en la base se intenta la consulta directa
     try {
       final r = await db.rpc('documento_vigente', params: {'p_tipo': widget.tipo});
       final l = r is List ? r : (r == null ? const [] : [r]);
       if (l.isNotEmpty) return Map<String, dynamic>.from(l.first as Map);
-    } catch (_) {}
+    } catch (_) {} // si falla se intenta la otra consulta
     final r = await db
         .from('versiones_documento')
         .select('version, contenido, publicado_en')

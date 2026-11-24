@@ -6,9 +6,11 @@ import '../models/tratos.dart';
 import '../services/ocultos.dart';
 import '../services/tratos_service.dart';
 import '../widgets/entradas.dart';
+import '../widgets/mensaje.dart';
 
-/// Bandeja de propuestas de precio y apartados (RF-17, 18, 31, 32).
-/// [idVendedor] != null → lo que recibe el vendedor; null → lo que envié como comprador.
+// bandeja de propuestas de precio y apartados
+// si trae idVendedor es lo que recibe el vendedor, si no es lo que mando el comprador
+// rf-12 y rf-13 se ven aqui del lado del comprador, rf-26 y rf-27 del lado del vendedor
 class TratosScreen extends StatefulWidget {
   final String? idVendedor;
   const TratosScreen({super.key, this.idVendedor});
@@ -43,7 +45,6 @@ class _TratosScreenState extends State<TratosScreen> {
     }
   }
 
-  /// Quita un trato terminado de MI lista (solo en este teléfono).
   Future<void> _quitar(String tipo, String id) async {
     setState(() => (tipo == 'propuestas' ? _ocP : _ocA).add(id));
     await Ocultos.agregar(tipo, [id]);
@@ -62,8 +63,7 @@ class _TratosScreenState extends State<TratosScreen> {
     });
   }
 
-  void _msg(String t) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t)));
+  void _msg(String t) => mostrarMensaje(context, t);
 
   String _error(Object e) => e is PostgrestException ? e.message : '$e';
 
@@ -77,6 +77,7 @@ class _TratosScreenState extends State<TratosScreen> {
     if (mounted) _recargar();
   }
 
+  // rf-26 se cumple aqui: el vendedor acepta, rechaza o contesta con otro precio
   Future<void> _contraofertar(Propuesta p) async {
     final c = TextEditingController();
     final ok = await showDialog<bool>(
@@ -119,7 +120,6 @@ class _TratosScreenState extends State<TratosScreen> {
     return r == true;
   }
 
-  // ---- piezas de interfaz ----
 
   ({String texto, Color color}) _chip(String estado) {
     switch (estado) {
@@ -233,6 +233,7 @@ class _TratosScreenState extends State<TratosScreen> {
     final acciones = <Widget>[];
     if (_comoVendedor && a.pendiente) {
       acciones.addAll([
+        // rf-27 se cumple aqui: el vendedor acepta o rechaza un apartado, y si vence el producto queda libre otra vez
         _boton('Aceptar', () => _hacer(() => _svc.aceptarApartado(a.id), 'Apartado aceptado'),
             color: Tg.verde, texto2: Colors.white),
         _boton('Rechazar', () => _hacer(() => _svc.rechazarApartado(a.id), 'Apartado rechazado'),
@@ -262,6 +263,7 @@ class _TratosScreenState extends State<TratosScreen> {
         'Cantidad: ${a.cantidad}',
         if (otro != null) '${_comoVendedor ? 'Comprador' : 'Vendedor'}: $otro',
         if (a.expira != null && (a.pendiente || a.aceptado)) 'Vence: ${fmtFecha(a.expira)}',
+        // rf-39 se cumple aqui: aqui se avisa que la app no cobra y que el pago se arregla directo con el vendedor
         if (!_comoVendedor && a.aceptado) 'Pasa por él antes de que venza. El pago es directo con el vendedor.',
       ],
       acciones: acciones,
@@ -287,7 +289,7 @@ class _TratosScreenState extends State<TratosScreen> {
             }
             if (s.hasError) {
               return ListView(children: [
-                Padding(padding: const EdgeInsets.all(24), child: Text('Error: ${s.error}')),
+                Padding(padding: const EdgeInsets.all(24), child: Text('No se pudieron cargar los tratos: ${s.error}')),
               ]);
             }
             final l = s.data!.where((x) => !ocultos.contains(idDe(x))).toList();
@@ -303,7 +305,7 @@ class _TratosScreenState extends State<TratosScreen> {
               itemBuilder: (_, i) {
                 final x = l[i];
                 if (!terminado(x)) return tarjeta(x);
-                // Los tratos terminados se pueden quitar deslizando hacia la izquierda.
+                // los tratos terminados se pueden quitar deslizando hacia la izquierda.
                 return Dismissible(
                   key: ValueKey(idDe(x)),
                   direction: DismissDirection.endToStart,
