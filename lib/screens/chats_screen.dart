@@ -57,10 +57,20 @@ class _ChatsScreenState extends State<ChatsScreen> {
               itemCount: l.length,
               itemBuilder: (_, i) {
                 final c = l[i];
-                final nombre = '${(c['productos'] as Map?)?['nombre'] ?? (c['anuncios_espacio'] as Map?)?['titulo'] ?? 'Conversación'}';
+                final nombre = ChatService.tituloDe(c);
+                final asunto = ChatService.asuntoDe(c);
+                final ultimo = c['ultimo_texto'] as String?;
+                final noLeidos = (c['no_leidos'] as num?)?.toInt() ?? 0;
+                final sub = [if (asunto != null) asunto, if (ultimo != null) ultimo].join(' · ');
                 return ListTile(
-                  leading: const Icon(Icons.chat_bubble_outline),
-                  title: Text(nombre),
+                  leading: Badge(
+                    isLabelVisible: noLeidos > 0,
+                    label: Text('$noLeidos'),
+                    child: const Icon(Icons.chat_bubble_outline),
+                  ),
+                  title: Text(nombre,
+                      style: TextStyle(fontWeight: noLeidos > 0 ? FontWeight.w800 : FontWeight.w600)),
+                  subtitle: sub.isEmpty ? null : Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete_outline),
                     tooltip: 'Borrar conversación',

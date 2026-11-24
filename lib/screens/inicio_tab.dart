@@ -4,6 +4,7 @@ import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
 import '../services/inicio_service.dart';
 import '../widgets/corazon.dart';
+import '../widgets/panel_mensajes.dart';
 import '../widgets/pincel.dart';
 import 'puesto_screen.dart';
 
@@ -18,6 +19,7 @@ class InicioTab extends StatefulWidget {
 class _InicioTabState extends State<InicioTab> {
   final _catalogo = CatalogoService();
   final _svc = InicioService();
+  final _panelMensajes = GlobalKey<PanelMensajesState>();
 
   List<Map<String, dynamic>> _cats = [];
   String? _catSel;
@@ -37,6 +39,7 @@ class _InicioTabState extends State<InicioTab> {
   }
 
   Future<void> _cargar() async {
+    _panelMensajes.currentState?.recargar();
     setState(() {
       _cargando = true;
       _error = null;
@@ -88,6 +91,7 @@ class _InicioTabState extends State<InicioTab> {
           const SizedBox(height: 12),
           if (widget.onVerMapa != null) _botonMapa(),
           const SizedBox(height: 16),
+          PanelMensajes(key: _panelMensajes),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.all(20),
