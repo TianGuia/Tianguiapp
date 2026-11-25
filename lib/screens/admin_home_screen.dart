@@ -743,7 +743,7 @@ class _ResumenTabState extends State<_ResumenTab> {
 }
 
 // reportes
-// rf-50 se cumple aqui: el administrador revisa los reportes y decide que hacer
+// RF-50 se cumple aqui: el administrador revisa los reportes y decide que hacer
 
 class _ReportesTab extends StatefulWidget {
   const _ReportesTab();
@@ -893,7 +893,7 @@ class _ReportesTabState extends State<_ReportesTab> {
 }
 
 // apelaciones
-// rf-51 se cumple aqui: el administrador resuelve las apelaciones
+// RF-51 se cumple aqui: el administrador resuelve las apelaciones
 
 class _ApelacionesTab extends StatefulWidget {
   const _ApelacionesTab();
@@ -1015,9 +1015,9 @@ class _ApelacionesTabState extends State<_ApelacionesTab> {
 }
 
 // tianguis
-// rf-47 se cumple aqui: el administrador agrega, cambia o quita tianguis
-// rf-48 se cumple aqui: el administrador maneja los horarios del tianguis
-// rf-49 se cumple aqui: el administrador guarda las zonas y coordenadas que usa el mapa
+// RF-47 se cumple aqui: el administrador agrega, cambia o quita tianguis
+// RF-48 se cumple aqui: el administrador maneja los horarios del tianguis
+// RF-49 se cumple aqui: el administrador guarda las zonas y coordenadas que usa el mapa
 
 class _TianguisTab extends StatefulWidget {
   const _TianguisTab();
@@ -1458,7 +1458,7 @@ class _TianguisFormState extends State<_TianguisForm> {
 }
 
 // terminos
-// rf-52 se cumple aqui: el administrador publica nuevas condiciones de uso
+// RF-52 se cumple aqui: el administrador publica nuevas condiciones de uso
 
 class _TerminosTab extends StatefulWidget {
   const _TerminosTab();
@@ -1613,7 +1613,7 @@ class _PublicarVersionState extends State<_PublicarVersion> {
 }
 
 // consulta
-// rf-54 se cumple aqui: el administrador consulta usuarios, vendedores, productos y puestos
+// RF-54 se cumple aqui: el administrador consulta usuarios, vendedores, productos y puestos
 
 class _ConsultaTab extends StatefulWidget {
   const _ConsultaTab();

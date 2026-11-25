@@ -19,7 +19,7 @@ enum FalloUbicacionPuesto implements Exception {
       : Geolocator.openLocationSettings();
 }
 
-// aqui se cumplen rf-14 a rf-25, cada parte de abajo dice cual cumple
+// Operación del vendedor (RF-19 a RF-30), avisos de ausencia (RF-13) y código de visita (RF-41).
 class VendedorService {
   VendedorService({SupabaseClient? client})
       : _db = client ?? Supabase.instance.client;
@@ -29,7 +29,7 @@ class VendedorService {
   Future<Map<String, dynamic>?> miPerfil() =>
       _db.from('perfiles_vendedor').select().eq('id_usuario', _uid).maybeSingle();
 
-  // rf-14 se cumple aqui: la persona activa su perfil de vendedor
+  // RF-19 se cumple aqui: la persona activa su perfil de vendedor
   Future<String> habilitarPerfil({String? nombreNegocio, String? descripcion}) async {
     final r = await _db.from('perfiles_vendedor').insert({
       'id_usuario': _uid,
@@ -39,19 +39,19 @@ class VendedorService {
     return r['id'];
   }
 
-  // rf-15 se cumple aqui: el vendedor dice en que tianguis pone su puesto
+  // RF-20 se cumple aqui: el vendedor dice en que tianguis pone su puesto
   Future<void> agregarTianguis(String idVendedor, String idTianguis) =>
       _db.from('vendedor_tianguis').insert({'id_vendedor': idVendedor, 'id_tianguis': idTianguis});
 
-  // rf-16 se cumple aqui: el vendedor guarda que dias y a que hora trabaja
+  // RF-21 se cumple aqui: el vendedor guarda que dias y a que hora trabaja
   Future<void> registrarHorario(String idVendedor, String idTianguis, int dia, String inicio, String fin) =>
       _db.from('vendedor_horarios').insert({
         'id_vendedor': idVendedor, 'id_tianguis': idTianguis,
         'dia_semana': dia, 'hora_inicio': inicio, 'hora_fin': fin,
       });
 
-  // rf-17 se cumple aqui: el vendedor avisa con tiempo que un dia no va a ir
-  // rf-08 se cumple a medias, aqui solo se guarda la ausencia, avisar al comprador le toca al backend
+  // RF-22 se cumple aqui: el vendedor avisa con tiempo que un dia no va a ir
+  // RF-13: el registro de la ausencia activa el aviso en Toldo.
   Future<void> registrarAusencia(String idVendedor, String idTianguis, DateTime fecha, {String? motivo}) =>
       _db.from('ausencias_programadas').insert({
         'id_vendedor': idVendedor, 'id_tianguis': idTianguis,
@@ -130,8 +130,8 @@ class VendedorService {
   Future<void> eliminarPuesto(String idPuesto) =>
       _db.rpc('retirar_puesto', params: {'p_id_puesto': idPuesto});
 
-  // rf-22 se cumple aqui: el vendedor abre o cierra su puesto
-  // rf-23 se cumple aqui: al abrir el puesto se guarda donde esta ese dia
+  // RF-27 se cumple aqui: el vendedor abre o cierra su puesto
+  // RF-28 se cumple aqui: al abrir el puesto se guarda donde esta ese dia
   Future<String> marcarAbierto(String idPuesto, {bool conUbicacion = true}) async {
     final pos = conUbicacion ? await _ubicacionJornada() : null;
     return await _db.rpc('abrir_puesto', params: {
@@ -171,7 +171,7 @@ class VendedorService {
   Future<void> marcarCerrado(String idPuesto) =>
       _db.rpc('cerrar_puesto', params: {'p_id_puesto': idPuesto});
 
-  // rf-41 se cumple aqui: el comprador escribe el codigo que le da el vendedor para confirmar que si fue al puesto
+  // RF-41 se cumple aqui: el comprador escribe el codigo que le da el vendedor para confirmar que si fue al puesto
   Future<Map<String, dynamic>> generarCodigoVisita(String idPuesto, {int minutos = 10}) async {
     final codigo = await _db.rpc('generar_codigo_visita',
         params: {'p_id_puesto': idPuesto, 'p_minutos': minutos}) as String;
@@ -191,7 +191,7 @@ class VendedorService {
     return r.map<Producto>(Producto.fromMap).toList();
   }
 
-  // rf-18 se cumple aqui: el vendedor agrega un producto con nombre, fotos y precio
+  // RF-23 se cumple aqui: el vendedor agrega un producto con nombre, fotos y precio
   Future<String> crearProducto({
     required String idVendedor,
     String? idPuesto,
@@ -212,8 +212,8 @@ class VendedorService {
     return r['id'];
   }
 
-  // rf-19 se cumple aqui: el vendedor cambia los datos de un producto
-  // rf-21 se cumple aqui: el vendedor actualiza cuantos le quedan de un producto
+  // RF-24 se cumple aqui: el vendedor cambia los datos de un producto
+  // RF-26 se cumple aqui: el vendedor actualiza cuantos le quedan de un producto
   Future<void> actualizarStock(String id, int cantidad) =>
       actualizarProducto(id, {'cantidad_disponible': cantidad});
 
@@ -221,7 +221,7 @@ class VendedorService {
     await _db.from('productos').update(cambios).eq('id', id).select('id').single();
   }
 
-  // rf-20 se cumple aqui: el producto no se borra, solo se oculta para que ya no salga
+  // RF-25 se cumple aqui: el producto no se borra, solo se oculta para que ya no salga
   Future<void> retirarProducto(String id) => actualizarProducto(id, {'activo': false});
 
   Future<void> subirImagen(String idProducto, File archivo, {int orden = 0}) async {
@@ -277,7 +277,7 @@ class VendedorService {
     }
   }
 
-  // rf-25 se cumple aqui: la oferta deja de verse cuando se acaba su tiempo y el vendedor la puede terminar antes
+  // RF-30 se cumple aqui: la oferta deja de verse cuando se acaba su tiempo y el vendedor la puede terminar antes
   Future<void> finalizarOferta(String idOferta) =>
       _db
           .from('ofertas')

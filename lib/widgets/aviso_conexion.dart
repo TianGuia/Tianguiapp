@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../config/supabase_config.dart';
 
-// rnf-5: avisa cuando no hay conexion para que se sepa que lo que se ve puede estar viejo
+// RNF-5: avisa cuando no hay conexion para que se sepa que lo que se ve puede estar viejo
 // si no se puede saber, por ejemplo en web, no muestra nada
 class AvisoConexion extends StatefulWidget {
   const AvisoConexion({super.key});

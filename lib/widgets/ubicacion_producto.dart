@@ -8,7 +8,7 @@ import '../services/inicio_service.dart';
 import '../services/datos_en_vivo.dart';
 import 'aviso_sincronizacion.dart';
 
-// rf-05 se cumple aqui: se ve si el puesto esta abierto o cerrado y donde estaba la ultima vez
+// RF-10 se cumple aqui: se ve si el puesto esta abierto o cerrado y donde estaba la ultima vez
 class UbicacionProducto extends StatefulWidget {
   final String? idPuesto;
   const UbicacionProducto({super.key, required this.idPuesto});

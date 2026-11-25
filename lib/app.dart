@@ -27,7 +27,7 @@ class TianGuiaApp extends StatelessWidget {
 
 // sin sesion va a bienvenida o acceso, con sesion va al home
 // si ya habia sesion y hay terminos nuevos primero se piden aceptar
-// rf-53 se cumple aqui: si hay condiciones nuevas se pide aceptarlas antes de seguir
+// RF-53 se cumple aqui: si hay condiciones nuevas se pide aceptarlas antes de seguir
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
   @override

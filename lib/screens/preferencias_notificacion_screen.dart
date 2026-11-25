@@ -6,7 +6,7 @@ import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
 import '../widgets/mensaje.dart';
 
-// rf-10: permite elegir tipos de avisos, categorías de interés y silenciar tianguis y vendedores.
+// RF-15: permite elegir tipos de avisos, categorías de interés y silenciar tianguis y vendedores.
 class PreferenciasNotificacionScreen extends StatefulWidget {
   const PreferenciasNotificacionScreen({super.key});
   @override
@@ -20,7 +20,7 @@ class _PrefsState extends State<PreferenciasNotificacionScreen> {
   static const _tipos = <String, String>{
     'ofertas': 'Ofertas de mis productos y tianguis',
     'ausencias': 'Ausencias de puestos que me interesan',
-    // rf-09: aquí está el interruptor; el backend genera los recordatorios
+    // RF-14: aquí está el interruptor; el backend genera los recordatorios
     'recordatorios_tianguis': 'Recordatorios de días de tianguis',
     'mensajes': 'Mensajes nuevos',
     'apartados_propuestas': 'Apartados y propuestas de precio',
@@ -110,7 +110,7 @@ class _PrefsState extends State<PreferenciasNotificacionScreen> {
     }
   }
 
-  // rf-10: categorías de las que quiere recibir avisos de ofertas.
+  // RF-15: categorías de las que quiere recibir avisos de ofertas.
   Future<void> _alternarInteres(String idCategoria, bool activo) async {
     final antes = {..._intereses};
     setState(() => activo ? _intereses.add(idCategoria) : _intereses.remove(idCategoria));
@@ -126,7 +126,7 @@ class _PrefsState extends State<PreferenciasNotificacionScreen> {
     }
   }
 
-  // rf-10: silencia a un vendedor concreto, elegido de una lista con buscador.
+  // RF-15: silencia a un vendedor concreto, elegido de una lista con buscador.
   Future<void> _silenciarVendedor() async {
     final yaSilenciados = {for (final s in _silencios) if (s['id_vendedor'] != null) s['id_vendedor']};
     List<Map<String, dynamic>> todos;

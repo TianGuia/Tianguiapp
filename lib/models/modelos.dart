@@ -15,8 +15,8 @@ class Tianguis {
         lat = (m['latitud'] as num?)?.toDouble(),
         lng = (m['longitud'] as num?)?.toDouble();
 
-  // rf-04 se cumple aqui: se ven en un mapa los puestos que estan abiertos
-  // rf-05 se cumple aqui: se ve si el puesto esta abierto o cerrado y donde estaba la ultima vez
+  // RF-09 se cumple aqui: se ven en un mapa los puestos que estan abiertos
+  // RF-10 se cumple aqui: se ve si el puesto esta abierto o cerrado y donde estaba la ultima vez
   Future<List<Puesto>> consultarMapa() => PuestosService().consultarMapa(idTianguis: id);
 }
 
@@ -28,8 +28,8 @@ class Puesto {
   bool get abierto => estado == 'abierto';
   bool get tieneUbicacion => lat != null && lng != null;
 
-  // rf-22 se cumple aqui: el vendedor abre o cierra su puesto
-  // rf-23 se cumple aqui: al abrir el puesto se guarda donde esta ese dia
+  // RF-27 se cumple aqui: el vendedor abre o cierra su puesto
+  // RF-28 se cumple aqui: al abrir el puesto se guarda donde esta ese dia
   Future<String> marcarAbierto({bool conUbicacion = true}) =>
       VendedorService().marcarAbierto(id, conUbicacion: conUbicacion);
 
@@ -118,7 +118,7 @@ class Producto {
         fotos = _fotos(m['producto_imagenes']),
         imagenes = _urls(m['producto_imagenes']);
 
-  // rf-18 se cumple aqui: el vendedor agrega un producto con nombre, fotos y precio
+  // RF-23 se cumple aqui: el vendedor agrega un producto con nombre, fotos y precio
   static Future<String> crearProducto({
     required String idVendedor,
     String? idPuesto,
@@ -140,7 +140,7 @@ class Producto {
         cantidad: cantidad,
       );
 
-  // rf-21 se cumple aqui: el vendedor actualiza cuantos le quedan de un producto
+  // RF-26 se cumple aqui: el vendedor actualiza cuantos le quedan de un producto
   Future<void> actualizarStock(int cantidad) => VendedorService().actualizarStock(id, cantidad);
 
   static List<ImagenProducto> _fotos(dynamic filas) {

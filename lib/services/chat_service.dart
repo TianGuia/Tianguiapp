@@ -3,13 +3,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/enums.dart';
 import 'comprador_id.dart';
 
-// rf-38 se cumple aqui: se revisa si ya bloquee a esta persona
+// RF-38 se cumple aqui: se revisa si ya bloquee a esta persona
 class ChatService {
   final _db = Supabase.instance.client;
   String get _uid => _db.auth.currentUser!.id;
 
-  // rf-11 se cumple aqui: el comprador abre un chat privado con el vendedor desde un producto
-  // rf-30 se cumple aqui: el vendedor abre un chat con otro vendedor desde un anuncio
+  // RF-16 se cumple aqui: el comprador abre un chat privado con el vendedor desde un producto
+  // RF-35 se cumple aqui: el vendedor abre un chat con otro vendedor desde un anuncio
   // idUsuarioReceptor es el dueño del producto o del anuncio
   Future<String> iniciarConversacion({
     String? idProducto,
@@ -184,7 +184,7 @@ class ChatService {
     return conversacion?['id_otro'] as String?;
   }
 
-  // rf-38 se cumple aqui: se quita el bloqueo
+  // RF-38 se cumple aqui: se quita el bloqueo
   Future<bool> estaBloqueado(String idUsuario) async {
     final r = await _db
         .from('bloqueos')
@@ -196,14 +196,14 @@ class ChatService {
     return (r as List).isNotEmpty;
   }
 
-  // rf-38 se cumple aqui: se bloquea a la persona y ya no se pueden mandar mensajes
+  // RF-38 se cumple aqui: se bloquea a la persona y ya no se pueden mandar mensajes
   Future<void> desbloquear(String idUsuario) => _db
       .from('bloqueos')
       .update({'activo': false})
       .eq('id_bloqueador', _uid)
       .eq('id_bloqueado', idUsuario);
 
-  // rf-38 se cumple aqui: se puede bloquear a alguien y ya no se pueden mandar mensajes
+  // RF-38 se cumple aqui: se puede bloquear a alguien y ya no se pueden mandar mensajes
   Future<void> bloquear(String idUsuario) async {
     final ya = await _db
         .from('bloqueos')
@@ -218,7 +218,7 @@ class ChatService {
     }
   }
 
-  // rf-12 se cumple aqui: el comprador manda el precio que propone por un producto
+  // RF-17 se cumple aqui: el comprador manda el precio que propone por un producto
   Future<void> proponerPrecio({
     required String idProducto, required String idVendedor, required num monto,
   }) async {
@@ -228,7 +228,7 @@ class ChatService {
     });
   }
 
-  // rf-13 se cumple aqui: el comprador pide apartar un producto sin pagar dentro de la app
+  // RF-18 se cumple aqui: el comprador pide apartar un producto sin pagar dentro de la app
   Future<void> solicitarApartado({
     required String idProducto, required String idVendedor, int cantidad = 1,
     Duration vigencia = const Duration(hours: 24),
@@ -240,7 +240,7 @@ class ChatService {
     });
   }
 
-  // rf-44 se cumple aqui: se manda un reporte cuando algo rompe las reglas
+  // RF-44 se cumple aqui: se manda un reporte cuando algo rompe las reglas
   Future<void> crearReporte({
     required String tipoObjetivo, required String idObjetivo,
     String? idUsuarioReportado, required String motivo,

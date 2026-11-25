@@ -15,7 +15,7 @@ import 'tratos_screen.dart';
 import 'tutorial_screen.dart';
 import 'verificar_contacto_screen.dart';
 
-// rf-36 se cumple aqui: la persona puede ver y cambiar su nombre y su foto
+// RF-05 se cumple aqui: la persona puede ver y cambiar su nombre y su foto
 class PerfilTab extends StatefulWidget {
   const PerfilTab({super.key});
   @override

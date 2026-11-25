@@ -11,7 +11,7 @@ import '../widgets/urbano.dart';
 import '../widgets/entradas.dart';
 import '../widgets/mensaje.dart';
 
-// rf-36 se cumple aqui: la persona puede ver y cambiar su nombre y su foto
+// RF-05 se cumple aqui: la persona puede ver y cambiar su nombre y su foto
 class EditarPerfilScreen extends StatefulWidget {
   const EditarPerfilScreen({super.key});
   @override

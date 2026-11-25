@@ -9,8 +9,8 @@ const _negro = TextStyle(color: Colors.black);
 
 void _msg(BuildContext c, String t) => mostrarMensaje(c, t);
 
-// rf-41 se cumple aqui: el comprador escribe el codigo que le da el vendedor para confirmar que si fue al puesto
-// rf-42 se cumple aqui: despues de una visita confirmada el comprador deja su calificacion
+// RF-41 se cumple aqui: el comprador escribe el codigo que le da el vendedor para confirmar que si fue al puesto
+// RF-42 se cumple aqui: despues de una visita confirmada el comprador deja su calificacion
 Future<void> confirmarVisita(BuildContext context) async {
   final svc = PuestosService();
   final c = TextEditingController();

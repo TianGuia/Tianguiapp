@@ -3,7 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../config/theme.dart';
 
-// rf-49 se cumple aqui: las zonas, pasillos y espacios que registra el administrador
+// RF-49 se cumple aqui: las zonas, pasillos y espacios que registra el administrador
 // se dibujan sobre el mapa del comprador. La geometria es GeoJSON ([longitud, latitud]):
 // Polygon para zonas y espacios, LineString para pasillos y Point para un espacio puntual.
 class CapasZonas {

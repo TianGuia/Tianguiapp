@@ -16,6 +16,6 @@ class Visita {
         estado = m['estado'],
         fechaHora = DateTime.parse(m['fecha_hora']).toLocal();
 
-  // rf-41 se cumple aqui: el comprador escribe el codigo que le da el vendedor para confirmar que si fue al puesto
+  // RF-41 se cumple aqui: el comprador escribe el codigo que le da el vendedor para confirmar que si fue al puesto
   static Future<String> verificarVisita(String codigo) => PuestosService().verificarVisita(codigo);
 }

@@ -15,7 +15,7 @@ class Apelacion {
         resolucion = m['resolucion']?.toString(),
         fechaCreacion = DateTime.parse(m['creada_en']).toLocal();
 
-  // rf-46 se cumple aqui: la persona pide que el administrador revise otra vez una decision
+  // RF-46 se cumple aqui: la persona pide que el administrador revise otra vez una decision
   static Future<void> solicitarRevision({
     String? idMedida,
     String? idReporte,

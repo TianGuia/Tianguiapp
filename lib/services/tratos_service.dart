@@ -4,7 +4,7 @@ import '../models/tratos.dart';
 import 'comprador_id.dart';
 
 // propuestas de precio y apartados
-// rf-12 y rf-13 las crea el comprador, rf-26 y rf-27 las contesta el vendedor
+// RF-17 y RF-18 las crea el comprador, RF-31 y RF-32 las contesta el vendedor
 // los cambios de estado van por funciones sql para que sean atomicos
 class TratosService {
   final _db = Supabase.instance.client;

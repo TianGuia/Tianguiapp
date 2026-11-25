@@ -4,8 +4,8 @@ import '../config/theme.dart';
 import '../widgets/urbano.dart';
 import '../widgets/moderacion.dart';
 
-// rf-43 se cumple aqui: el vendedor ve las calificaciones que le han dejado
-// rf-46 se cumple aqui: puede pedir que revisen una calificacion que le parece injusta
+// RF-43 se cumple aqui: el vendedor ve las calificaciones que le han dejado
+// Revisión de calificaciones, descrita en el caso de uso del vendedor del SRS.
 class ValoracionesScreen extends StatefulWidget {
   final String idVendedor;
   const ValoracionesScreen({super.key, required this.idVendedor});

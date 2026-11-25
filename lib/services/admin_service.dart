@@ -1,6 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-// todo lo que hace el administrador, rf-47 a rf-54
+// todo lo que hace el administrador, RF-47 a RF-54
 // los permisos los revisa la base de datos y no la app
 class AdminService {
   final _db = Supabase.instance.client;
@@ -15,7 +15,7 @@ class AdminService {
   }
 
   // reportes
-  // rf-50 se cumple aqui: el administrador revisa los reportes y decide que hacer
+  // RF-50 se cumple aqui: el administrador revisa los reportes y decide que hacer
 
   Future<List<Map<String, dynamic>>> reportes({bool soloPendientes = true}) async {
     final base = _db.from('reportes').select();
@@ -105,7 +105,7 @@ class AdminService {
       });
 
   // apelaciones
-  // rf-51 se cumple aqui: el administrador resuelve las apelaciones
+  // RF-51 se cumple aqui: el administrador resuelve las apelaciones
 
   Future<List<Map<String, dynamic>>> apelaciones({bool soloPendientes = true}) async {
     final base = _db
@@ -127,9 +127,9 @@ class AdminService {
       });
 
   // tianguis
-  // rf-47 se cumple aqui: el administrador agrega, cambia o quita tianguis
-  // rf-48 se cumple aqui: el administrador maneja los horarios del tianguis
-  // rf-49 se cumple aqui: el administrador guarda las zonas y coordenadas que usa el mapa
+  // RF-47 se cumple aqui: el administrador agrega, cambia o quita tianguis
+  // RF-48 se cumple aqui: el administrador maneja los horarios del tianguis
+  // RF-49 se cumple aqui: el administrador guarda las zonas y coordenadas que usa el mapa
 
   Future<List<Map<String, dynamic>>> tianguis() async =>
       List<Map<String, dynamic>>.from(await _db.from('tianguis').select().order('nombre'));
@@ -188,7 +188,7 @@ class AdminService {
   Future<void> eliminarZona(String id) => _db.from('tianguis_zonas').delete().eq('id', id);
 
   // terminos y privacidad
-  // rf-52 se cumple aqui: el administrador publica nuevas condiciones de uso
+  // RF-52 se cumple aqui: el administrador publica nuevas condiciones de uso
 
   Future<List<Map<String, dynamic>>> versiones() async =>
       List<Map<String, dynamic>>.from(await _db
@@ -210,7 +210,7 @@ class AdminService {
       });
 
   // consulta
-  // rf-54 se cumple aqui: el administrador consulta usuarios, vendedores, productos y puestos
+  // RF-54 se cumple aqui: el administrador consulta usuarios, vendedores, productos y puestos
 
   // [entidad]: usuarios | vendedores | productos | puestos.
   Future<List<Map<String, dynamic>>> consultar(String entidad, String texto) async {
@@ -345,7 +345,7 @@ class AdminService {
 
   // moderacion directa sin reporte
   // tipoObjetivo: puesto, producto, vendedor, anuncio_espacio, calificacion o mensaje
-  // rf-45 se cumple aqui: la persona se entera de la medida que puso el administrador
+  // RF-45 se cumple aqui: la persona se entera de la medida que puso el administrador
   Future<void> aplicarMedida(
           {required String tipoObjetivo,
           required String id,

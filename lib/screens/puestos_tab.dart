@@ -13,7 +13,7 @@ import '../widgets/visita_flow.dart';
 import 'mapa_puestos_screen.dart';
 import 'puesto_screen.dart';
 
-// aqui se cumplen rf-04, rf-05, rf-41, rf-42, cada parte de abajo dice cual cumple
+// aqui se cumplen RF-09, RF-10, RF-41, RF-42, cada parte de abajo dice cual cumple
 class PuestosTab extends StatefulWidget {
   final bool iniciaEnMapa;
   final String? tianguisInicial;

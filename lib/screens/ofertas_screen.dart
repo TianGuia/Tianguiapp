@@ -10,8 +10,8 @@ import '../widgets/aviso_sincronizacion.dart';
 import '../widgets/entradas.dart';
 import '../widgets/mensaje.dart';
 
-// rf-24 se cumple aqui: el vendedor publica una oferta con descuento y hasta cuando dura
-// rf-25 se cumple aqui: la oferta deja de verse cuando se acaba su tiempo y el vendedor la puede terminar antes
+// RF-29 se cumple aqui: el vendedor publica una oferta con descuento y hasta cuando dura
+// RF-30 se cumple aqui: la oferta deja de verse cuando se acaba su tiempo y el vendedor la puede terminar antes
 class OfertasScreen extends StatefulWidget {
   final String idVendedor;
   const OfertasScreen({super.key, required this.idVendedor});

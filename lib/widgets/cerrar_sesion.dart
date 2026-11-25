@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 
-// rf-35 se cumple aqui: la persona puede salir de su cuenta en este telefono
+// RF-04 se cumple aqui: la persona puede salir de su cuenta en este telefono
 // Una cuenta anónima necesita un correo verificado para recuperarse tras salir.
 Future<void> confirmarCerrarSesion(BuildContext context) async {
   final auth = AuthService();

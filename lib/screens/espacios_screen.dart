@@ -12,7 +12,7 @@ import '../widgets/moderacion.dart';
 import 'chat_screen.dart';
 import '../widgets/mensaje.dart';
 
-// aqui se cumplen rf-28 a rf-31, cada parte de abajo dice cual cumple
+// aqui se cumplen RF-33 a RF-36, cada parte de abajo dice cual cumple
 class EspaciosScreen extends StatefulWidget {
   final String idVendedor;
   const EspaciosScreen({super.key, required this.idVendedor});
@@ -56,7 +56,7 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
       _tianguis.where((t) => t.id == id).firstOrNull?.nombre ?? 'Tianguis desactivado';
   String _etiquetaRol(String? r) => r == Enums.rolOfrezco ? 'OFREZCO' : 'BUSCO';
 
-  // rf-30 se cumple aqui: el vendedor abre un chat con otro vendedor desde un anuncio
+  // RF-35 se cumple aqui: el vendedor abre un chat con otro vendedor desde un anuncio
   Future<void> _contactar(Map<String, dynamic> a) async {
     final dueno = (a['perfiles_vendedor'] as Map?)?['id_usuario'] as String?;
     if (dueno == null) return;
@@ -73,7 +73,7 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
     }
   }
 
-  // rf-44 se cumple aqui: se manda un reporte cuando algo rompe las reglas
+  // RF-44 se cumple aqui: se manda un reporte cuando algo rompe las reglas
   Future<void> _reportar(Map<String, dynamic> a) async {
     final dueno = (a['perfiles_vendedor'] as Map?)?['id_usuario'] as String?;
     await reportarContenido(
@@ -84,7 +84,7 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
     );
   }
 
-  // rf-28 se cumple aqui: el vendedor publica que ofrece o busca un espacio
+  // RF-33 se cumple aqui: el vendedor publica que ofrece o busca un espacio
   Future<void> _formulario({Map<String, dynamic>? anuncio}) async {
     if (_tianguis.isEmpty) {
       _msg('No hay tianguis disponibles');
@@ -177,7 +177,7 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
     }
   }
 
-  // rf-31 se cumple aqui: el vendedor cambia o cierra su anuncio cuando el espacio ya no esta
+  // RF-36 se cumple aqui: el vendedor cambia o cierra su anuncio cuando el espacio ya no esta
   Future<void> _cerrar(Map<String, dynamic> a) async {
     try {
       await _db

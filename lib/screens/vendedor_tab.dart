@@ -18,7 +18,7 @@ import '../widgets/mensaje.dart';
 import '../widgets/pincel.dart';
 import '../widgets/urbano.dart';
 
-// aqui se cumplen rf-14, rf-15, rf-22, rf-23, rf-41, cada parte de abajo dice cual cumple
+// aqui se cumplen RF-19, RF-20, RF-27, RF-28, RF-41, cada parte de abajo dice cual cumple
 class VendedorTab extends StatefulWidget {
   const VendedorTab({super.key});
   @override
@@ -68,7 +68,7 @@ class _VendedorTabState extends State<VendedorTab> {
 
   Future<void> _habilitar() async {
     try {
-      // rf-14 se cumple aqui: la persona activa su perfil de vendedor
+      // RF-19 se cumple aqui: la persona activa su perfil de vendedor
       if (AuthService().esAnonimo) {
         final ok = await Navigator.push<bool>(
           context,

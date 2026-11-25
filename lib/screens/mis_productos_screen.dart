@@ -9,7 +9,7 @@ import '../services/vendedor_service.dart';
 import '../widgets/entradas.dart';
 import '../widgets/mensaje.dart';
 
-// aqui se cumplen rf-18 a rf-21, cada parte de abajo dice cual cumple
+// aqui se cumplen RF-23 a RF-26, cada parte de abajo dice cual cumple
 class MisProductosScreen extends StatefulWidget {
   final String idVendedor;
   const MisProductosScreen({super.key, required this.idVendedor});
@@ -67,7 +67,7 @@ class _MisProductosScreenState extends State<MisProductosScreen> {
     );
     if (ok != true) return;
     try {
-      // rf-20 se cumple aqui: el producto no se borra, solo se oculta para que ya no salga
+      // RF-25 se cumple aqui: el producto no se borra, solo se oculta para que ya no salga
       await _svc.retirarProducto(p.id);
       _recargar();
     } catch (e) {
@@ -201,9 +201,9 @@ class _MisProductosScreenState extends State<MisProductosScreen> {
 }
 
 // crear o editar un producto, la primera foto es la portada
-// rf-18 se cumple aqui: el vendedor agrega un producto con nombre, fotos y precio
-// rf-19 se cumple aqui: el vendedor cambia los datos de un producto
-// rf-21 se cumple aqui: el vendedor actualiza cuantos le quedan de un producto
+// RF-23 se cumple aqui: el vendedor agrega un producto con nombre, fotos y precio
+// RF-24 se cumple aqui: el vendedor cambia los datos de un producto
+// RF-26 se cumple aqui: el vendedor actualiza cuantos le quedan de un producto
 class ProductoFormScreen extends StatefulWidget {
   final String idVendedor;
   final Producto? producto;

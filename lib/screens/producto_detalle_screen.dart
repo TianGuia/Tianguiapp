@@ -17,7 +17,7 @@ import '../widgets/ubicacion_producto.dart';
 import 'chat_screen.dart';
 import '../widgets/mensaje.dart';
 
-// aqui se cumplen rf-03, rf-06, rf-11, rf-12, rf-13, cada parte de abajo dice cual cumple
+// aqui se cumplen RF-08, RF-11, RF-16, RF-17, RF-18, cada parte de abajo dice cual cumple
 class ProductoDetalleScreen extends StatefulWidget {
   final Producto producto;
   const ProductoDetalleScreen({super.key, required this.producto});
@@ -123,7 +123,7 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
     if (mounted) setState(() => _ocupado = false);
   }
 
-  // rf-44 se cumple aqui: se manda un reporte cuando algo rompe las reglas
+  // RF-44 se cumple aqui: se manda un reporte cuando algo rompe las reglas
   Future<void> _reportar() async {
     try {
       final uidV = await _cat.usuarioDeVendedor(p.idVendedor);
@@ -253,7 +253,7 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
         const SizedBox(height: 14),
         UbicacionProducto(key: ValueKey(p.idPuesto), idPuesto: p.idPuesto),
         const SizedBox(height: 8),
-        // rf-39 se cumple aqui: aqui se avisa que la app no cobra y que el pago se arregla directo con el vendedor
+        // RF-39 se cumple aqui: aqui se avisa que la app no cobra y que el pago se arregla directo con el vendedor
         const Text('TianGuía no procesa pagos: el trato es directo con el vendedor.',
             style: TextStyle(fontSize: 12, color: Colors.white70)),
         const SizedBox(height: 20),

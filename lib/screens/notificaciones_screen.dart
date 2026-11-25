@@ -4,7 +4,7 @@ import '../widgets/urbano.dart';
 import '../services/inicio_service.dart';
 import '../widgets/mensaje.dart';
 
-// rf-07 se cumple a medias, aqui se muestran los avisos de ofertas pero la app no los crea, eso le toca al backend
+// RF-12 a RF-14: bandeja de avisos de ofertas, ausencias y recordatorios.
 class NotificacionesScreen extends StatefulWidget {
   const NotificacionesScreen({super.key});
   @override

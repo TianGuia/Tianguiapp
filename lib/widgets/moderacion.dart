@@ -11,7 +11,7 @@ class TipoReporte {
   static const calificacion = Enums.repCalificacion;
 }
 
-// rf-44 se cumple aqui: se manda un reporte cuando algo rompe las reglas
+// RF-44 se cumple aqui: se manda un reporte cuando algo rompe las reglas
 Future<void> reportarContenido(
   BuildContext context, {
   required String tipoObjetivo,
@@ -56,7 +56,7 @@ Future<void> reportarContenido(
   }
 }
 
-// rf-38 se cumple aqui: se puede bloquear a alguien y ya no se pueden mandar mensajes
+// RF-38 se cumple aqui: se puede bloquear a alguien y ya no se pueden mandar mensajes
 Future<bool?> confirmarBloqueo(BuildContext context, String nombre) => showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -69,7 +69,7 @@ Future<bool?> confirmarBloqueo(BuildContext context, String nombre) => showDialo
       ),
     );
 
-// rf-46 se cumple aqui: la persona pide que el administrador revise otra vez una decision
+// RF-46 se cumple aqui: la persona pide que el administrador revise otra vez una decision
 // se manda uno solo de idMedida, idReporte o idCalificacion, devuelve true si se registro
 Future<bool> solicitarRevision(
   BuildContext context, {

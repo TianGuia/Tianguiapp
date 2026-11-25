@@ -5,7 +5,7 @@ import '../widgets/urbano.dart';
 
 // muestra las condiciones de uso o el aviso de privacidad vigentes
 // tipo puede ser terminos o privacidad
-// rf-40 se cumple aqui: la persona puede leer las condiciones antes de aceptarlas
+// RF-40 se cumple aqui: la persona puede leer las condiciones antes de aceptarlas
 class DocumentoScreen extends StatefulWidget {
   final String tipo;
   final String titulo;
