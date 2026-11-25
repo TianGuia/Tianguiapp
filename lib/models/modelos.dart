@@ -92,7 +92,7 @@ class Producto {
   final String? idPuesto, descripcion, categoria, puestoNombre, puestoEstado, vendedorNombre;
   final num? precio;
   final int? cantidad;
-  final bool disponible;
+  final bool disponible, disponibilidadManual;
   bool get sePuedeApartar => disponible && (cantidad == null || cantidad! > 0);
   final List<String> imagenes;
   final List<ImagenProducto> fotos;
@@ -106,6 +106,7 @@ class Producto {
         estadoArticulo = m['estado_articulo'],
         precio = m['precio_referencia'] as num?,
         cantidad = m['cantidad_disponible'] as int?,
+        disponibilidadManual = (m['disponibilidad_manual'] ?? m['disponible'] ?? true) as bool,
         disponible = (m['disponible'] ?? true) &&
             m['activo'] != false && m['moderado'] != true,
         vendedorNombre = (m['perfiles_vendedor'] as Map?)?['nombre_negocio'],

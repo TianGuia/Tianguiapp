@@ -6,6 +6,8 @@ import '../widgets/urbano.dart';
 import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
 import '../services/chat_service.dart';
+import '../services/datos_en_vivo.dart';
+import '../widgets/aviso_sincronizacion.dart';
 import '../widgets/moderacion.dart';
 import 'chat_screen.dart';
 import '../widgets/mensaje.dart';
@@ -20,35 +22,38 @@ class EspaciosScreen extends StatefulWidget {
 
 class _EspaciosScreenState extends State<EspaciosScreen> {
   final _db = Supabase.instance.client;
-  List<Tianguis> _tianguis = [];
   String? _fTianguis, _fAcuerdo;
-  late Future<List<Map<String, dynamic>>> _futuro = _cargar();
+  late final _datos = DatosEnVivo(
+    _cargar,
+    tablas: {'anuncios_espacio': null, 'tianguis': null},
+  );
+
+  List<Tianguis> get _tianguis => _datos.datos?.tianguis ?? [];
+  String? get _tianguisFiltrado => _tianguis.any((t) => t.id == _fTianguis) ? _fTianguis : null;
 
   @override
-  void initState() {
-    super.initState();
-    CatalogoService().tianguis().then((t) {
-      if (mounted) setState(() => _tianguis = t);
-    }).catchError((_) {});
+  void dispose() {
+    _datos.dispose();
+    super.dispose();
   }
 
   void _msg(String t) => mostrarMensaje(context, t);
-  void _recargar() => setState(() => _futuro = _cargar());
 
-  // rf-29 se cumple aqui: el vendedor ve los anuncios de espacios y los filtra por tianguis y tipo de acuerdo
-  Future<List<Map<String, dynamic>>> _cargar() async {
-    var q = _db
-        .from('anuncios_espacio')
-        .select('*, perfiles_vendedor(id_usuario, nombre_negocio)')
-        .eq('estado', Enums.anuncioAbierto)
-        .eq('moderado', false);
-    if (_fTianguis != null) q = q.eq('id_tianguis', _fTianguis!);
-    if (_fAcuerdo != null) q = q.eq('acuerdo', _fAcuerdo!);
-    final r = await q.order('creado_en', ascending: false);
-    return List<Map<String, dynamic>>.from(r);
+  Future<({List<Tianguis> tianguis, List<Map<String, dynamic>> anuncios})> _cargar() async {
+    final (tianguis, anuncios) = await (
+      CatalogoService().tianguis(),
+      _db
+          .from('anuncios_espacio')
+          .select('*, perfiles_vendedor(id_usuario, nombre_negocio)')
+          .eq('estado', Enums.anuncioAbierto)
+          .eq('moderado', false)
+          .order('creado_en', ascending: false),
+    ).wait;
+    return (tianguis: tianguis, anuncios: anuncios);
   }
 
-  String _nombreTianguis(String id) => _tianguis.where((t) => t.id == id).firstOrNull?.nombre ?? '';
+  String _nombreTianguis(String id) =>
+      _tianguis.where((t) => t.id == id).firstOrNull?.nombre ?? 'Tianguis desactivado';
   String _etiquetaRol(String? r) => r == Enums.rolOfrezco ? 'OFREZCO' : 'BUSCO';
 
   // rf-30 se cumple aqui: el vendedor abre un chat con otro vendedor desde un anuncio
@@ -56,10 +61,13 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
     final dueno = (a['perfiles_vendedor'] as Map?)?['id_usuario'] as String?;
     if (dueno == null) return;
     try {
-      final id = await ChatService().iniciarConversacion(idAnuncio: a['id'] as String, idUsuarioReceptor: dueno);
+      final id = await ChatService()
+          .iniciarConversacion(idAnuncio: a['id'] as String, idUsuarioReceptor: dueno);
       if (!mounted) return;
       await Navigator.push(
-          context, MaterialPageRoute(builder: (_) => ChatScreen(idConversacion: id, titulo: '${a['titulo']}')));
+          context,
+          MaterialPageRoute(
+              builder: (_) => ChatScreen(idConversacion: id, titulo: '${a['titulo']}')));
     } catch (e) {
       _msg('$e');
     }
@@ -84,7 +92,10 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
     }
     final titulo = TextEditingController(text: anuncio?['titulo'] ?? '');
     final desc = TextEditingController(text: anuncio?['descripcion'] ?? '');
-    String idT = anuncio?['id_tianguis'] ?? _fTianguis ?? _tianguis.first.id;
+    final actual = anuncio?['id_tianguis'] as String?;
+    String? idT = anuncio == null
+        ? (_tianguisFiltrado ?? _tianguis.first.id)
+        : (_tianguis.any((t) => t.id == actual) ? actual : null);
     String rol = anuncio?['rol'] ?? Enums.rolOfrezco;
     String acuerdo = anuncio?['acuerdo'] ?? Enums.acuerdos.first;
     final ok = await showDialog<bool>(
@@ -111,22 +122,37 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
               ),
               DropdownButton<String>(
                 value: idT,
+                hint: const Text('Elige un tianguis activo'),
                 isExpanded: true,
-                items: [for (final t in _tianguis) DropdownMenuItem(value: t.id, child: Text(t.nombre))],
+                items: [
+                  for (final t in _tianguis) DropdownMenuItem(value: t.id, child: Text(t.nombre))
+                ],
                 onChanged: (v) => set(() => idT = v ?? idT),
               ),
-              TextField(controller: titulo, maxLength: 80, decoration: const InputDecoration(hintText: 'Título')),
-              TextField(controller: desc, maxLines: 3, maxLength: 300, decoration: const InputDecoration(hintText: 'Detalles (opcional)')),
+              TextField(
+                  controller: titulo,
+                  maxLength: 80,
+                  decoration: const InputDecoration(hintText: 'Título')),
+              TextField(
+                  controller: desc,
+                  maxLines: 3,
+                  maxLength: 300,
+                  decoration: const InputDecoration(hintText: 'Detalles (opcional)')),
             ]),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Guardar')),
+            TextButton(
+                onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+            FilledButton(
+                onPressed: () => Navigator.pop(context, true), child: const Text('Guardar')),
           ],
         ),
       ),
     );
-    if (ok != true || titulo.text.trim().isEmpty) return;
+    if (!mounted || ok != true || titulo.text.trim().isEmpty) return;
+    if (idT == null || !_tianguis.any((t) => t.id == idT)) {
+      return _msg('Elige un tianguis activo para este anuncio.');
+    }
     final datos = {
       'id_tianguis': idT,
       'rol': rol,
@@ -138,9 +164,14 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
       if (anuncio == null) {
         await _db.from('anuncios_espacio').insert({...datos, 'id_vendedor': widget.idVendedor});
       } else {
-        await _db.from('anuncios_espacio').update(datos).eq('id', anuncio['id']);
+        await _db
+            .from('anuncios_espacio')
+            .update(datos)
+            .eq('id', anuncio['id'])
+            .select('id')
+            .single();
       }
-      _recargar();
+      if (mounted) await _datos.recargar();
     } catch (e) {
       _msg('$e');
     }
@@ -149,8 +180,13 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
   // rf-31 se cumple aqui: el vendedor cambia o cierra su anuncio cuando el espacio ya no esta
   Future<void> _cerrar(Map<String, dynamic> a) async {
     try {
-      await _db.from('anuncios_espacio').update({'estado': Enums.anuncioCerrado}).eq('id', a['id']);
-      _recargar();
+      await _db
+          .from('anuncios_espacio')
+          .update({'estado': Enums.anuncioCerrado})
+          .eq('id', a['id'])
+          .select('id')
+          .single();
+      if (mounted) await _datos.recargar();
     } catch (e) {
       _msg('$e');
     }
@@ -158,23 +194,27 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
 
   @override
   Widget build(BuildContext context) => ScaffoldTg(
-        appBar: AppBar(title: const Text('Espacios')),
-        floatingActionButton:
-            FloatingActionButton.extended(onPressed: () => _formulario(), icon: const Icon(Icons.add), label: const Text('Anuncio')),
-        body: Column(children: [
+      appBar: AppBar(title: const Text('Espacios')),
+      floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => _formulario(),
+          icon: const Icon(Icons.add),
+          label: const Text('Anuncio')),
+      body: ListenableBuilder(
+        listenable: _datos,
+        builder: (_, __) => Column(children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
             child: Row(children: [
               Expanded(
                 child: DropdownButton<String?>(
-                  value: _fTianguis,
+                  value: _tianguisFiltrado,
                   isExpanded: true,
                   hint: const Text('Todos los tianguis'),
                   items: [
                     const DropdownMenuItem(value: null, child: Text('Todos los tianguis')),
                     for (final t in _tianguis) DropdownMenuItem(value: t.id, child: Text(t.nombre)),
                   ],
-                  onChanged: (v) { _fTianguis = v; _recargar(); },
+                  onChanged: (v) => setState(() => _fTianguis = v),
                 ),
               ),
               const SizedBox(width: 10),
@@ -186,114 +226,121 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
                     const DropdownMenuItem(value: null, child: Text('Cualquier acuerdo')),
                     for (final a in Enums.acuerdos) DropdownMenuItem(value: a, child: Text(a)),
                   ],
-                  onChanged: (v) { _fAcuerdo = v; _recargar(); },
+                  onChanged: (v) => setState(() => _fAcuerdo = v),
                 ),
               ),
             ]),
           ),
-          Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: _futuro,
-              builder: (_, s) {
-                if (s.connectionState != ConnectionState.done) return const CargandoTg();
-                if (s.hasError) {
-                  return EstadoVacio(
-                    icono: Icons.wifi_off_rounded,
-                    color: Tg.rojo,
-                    titulo: '¡Se cayó la señal!',
-                    mensaje: 'No se pudieron cargar los anuncios.\n${s.error}',
-                  );
-                }
-                final l = s.data!;
-                if (l.isEmpty) {
-                  return EstadoVacio(
-                    icono: Icons.crop_free_rounded,
-                    color: const Color(0xFF2EAD5B),
-                    titulo: '¡No hay anuncios por ahora!',
-                    mensaje: 'Aquí los vendedores se avisan de lugares libres, relevos y espacios para compartir. Publica el primero.',
-                    accionTexto: 'Publicar anuncio',
-                    accionIcono: Icons.add,
-                    onAccion: () => _formulario(),
-                  );
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(0, 4, 0, 100),
-                  itemCount: l.length,
-                  itemBuilder: (_, i) {
-                    final a = l[i];
-                    final mio = a['id_vendedor'] == widget.idVendedor;
-                    final negocio = (a['perfiles_vendedor'] as Map?)?['nombre_negocio'];
-                    final desc = (a['descripcion'] ?? '') as String;
-                    return TarjetaTg(
-                      acento: mio ? Tg.amarillo : const Color(0xFF2EAD5B),
-                      padding: const EdgeInsets.fromLTRB(12, 12, 4, 10),
-                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        SelloTg(
-                            icono: Icons.crop_free,
-                            color: mio ? Tg.amarillo : const Color(0xFF2EAD5B),
-                            colorIcono: mio ? Tg.azulOscuro : Colors.white,
-                            tam: 44),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Wrap(spacing: 6, runSpacing: 4, children: [
-                              PildoraTg(_etiquetaRol(a['rol']).toUpperCase(),
-                                  color: Tg.azulClaro, colorTexto: Tg.azulOscuro),
-                              PildoraTg('${a['acuerdo']}'.toUpperCase(),
-                                  color: Colors.white12, colorTexto: Colors.white70),
-                              if (mio) const PildoraTg('TUYO', color: Tg.amarillo),
-                            ]),
-                            const SizedBox(height: 4),
-                            Text('${a['titulo']}',
-                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, height: 1.1)),
-                            const SizedBox(height: 2),
-                            Row(children: [
-                              const Icon(Icons.place, size: 15, color: Tg.rosa),
-                              const SizedBox(width: 3),
-                              Expanded(
-                                child: Text(
-                                    '${_nombreTianguis(a['id_tianguis'])}${negocio != null ? ' · $negocio' : ''}',
-                                    style: const TextStyle(color: Colors.white70, fontSize: 14)),
-                              ),
-                            ]),
-                            if (desc.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Text(desc,
-                                    maxLines: 3,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 14.5, height: 1.15)),
-                              ),
-                          ]),
-                        ),
-                        mio
-                            ? PopupMenuButton<String>(
-                                onSelected: (v) => v == 'editar' ? _formulario(anuncio: a) : _cerrar(a),
-                                itemBuilder: (_) => const [
-                                  PopupMenuItem(value: 'editar', child: Text('Editar')),
-                                  PopupMenuItem(value: 'cerrar', child: Text('Cerrar anuncio')),
-                                ],
-                              )
-                            : Column(mainAxisSize: MainAxisSize.min, children: [
-                                IconButton(
-                                  icon: const Icon(Icons.chat_bubble_outline),
-                                  tooltip: 'Contactar',
-                                  onPressed: () => _contactar(a),
-                                ),
-                                PopupMenuButton<String>(
-                                  onSelected: (_) => _reportar(a),
-                                  itemBuilder: (_) => const [
-                                    PopupMenuItem(value: 'reportar', child: Text('Reportar anuncio')),
-                                  ],
-                                ),
-                              ]),
-                      ]),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
+          if (_datos.desactualizado)
+            AvisoSincronizacion(hayDatos: _datos.hayDatos, onReintentar: _datos.recargar),
+          Expanded(child: _resultados()),
         ]),
+      ));
+
+  Widget _resultados() {
+    final datos = _datos.datos;
+    if (datos == null) {
+      return _datos.desactualizado ? const SizedBox.shrink() : const CargandoTg();
+    }
+    final activos = {for (final t in datos.tianguis) t.id};
+    final l = datos.anuncios
+        .where(
+          (a) =>
+              (activos.contains(a['id_tianguis']) || a['id_vendedor'] == widget.idVendedor) &&
+              (_tianguisFiltrado == null || a['id_tianguis'] == _tianguisFiltrado) &&
+              (_fAcuerdo == null || a['acuerdo'] == _fAcuerdo),
+        )
+        .toList();
+    if (l.isEmpty) {
+      return EstadoVacio(
+        icono: Icons.crop_free_rounded,
+        color: const Color(0xFF2EAD5B),
+        titulo: '¡No hay anuncios por ahora!',
+        mensaje:
+            'Aquí los vendedores se avisan de lugares libres, relevos y espacios para compartir. Publica el primero.',
+        accionTexto: 'Publicar anuncio',
+        accionIcono: Icons.add,
+        onAccion: () => _formulario(),
       );
+    }
+    return RefreshIndicator(
+        onRefresh: _datos.recargar,
+        child: ListView.builder(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(0, 4, 0, 100),
+          itemCount: l.length,
+          itemBuilder: (_, i) {
+            final a = l[i];
+            final mio = a['id_vendedor'] == widget.idVendedor;
+            final negocio = (a['perfiles_vendedor'] as Map?)?['nombre_negocio'];
+            final desc = (a['descripcion'] ?? '') as String;
+            return TarjetaTg(
+              acento: mio ? Tg.amarillo : const Color(0xFF2EAD5B),
+              padding: const EdgeInsets.fromLTRB(12, 12, 4, 10),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                SelloTg(
+                    icono: Icons.crop_free,
+                    color: mio ? Tg.amarillo : const Color(0xFF2EAD5B),
+                    colorIcono: mio ? Tg.azulOscuro : Colors.white,
+                    tam: 44),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Wrap(spacing: 6, runSpacing: 4, children: [
+                      PildoraTg(_etiquetaRol(a['rol']).toUpperCase(),
+                          color: Tg.azulClaro, colorTexto: Tg.azulOscuro),
+                      PildoraTg('${a['acuerdo']}'.toUpperCase(),
+                          color: Colors.white12, colorTexto: Colors.white70),
+                      if (mio) const PildoraTg('TUYO', color: Tg.amarillo),
+                    ]),
+                    const SizedBox(height: 4),
+                    Text('${a['titulo']}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w800, fontSize: 18, height: 1.1)),
+                    const SizedBox(height: 2),
+                    Row(children: [
+                      const Icon(Icons.place, size: 15, color: Tg.rosa),
+                      const SizedBox(width: 3),
+                      Expanded(
+                        child: Text(
+                            '${_nombreTianguis(a['id_tianguis'])}${negocio != null ? ' · $negocio' : ''}',
+                            style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                      ),
+                    ]),
+                    if (desc.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(desc,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 14.5, height: 1.15)),
+                      ),
+                  ]),
+                ),
+                mio
+                    ? PopupMenuButton<String>(
+                        onSelected: (v) => v == 'editar' ? _formulario(anuncio: a) : _cerrar(a),
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(value: 'editar', child: Text('Editar')),
+                          PopupMenuItem(value: 'cerrar', child: Text('Cerrar anuncio')),
+                        ],
+                      )
+                    : Column(mainAxisSize: MainAxisSize.min, children: [
+                        IconButton(
+                          icon: const Icon(Icons.chat_bubble_outline),
+                          tooltip: 'Contactar',
+                          onPressed: () => _contactar(a),
+                        ),
+                        PopupMenuButton<String>(
+                          onSelected: (_) => _reportar(a),
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(value: 'reportar', child: Text('Reportar anuncio')),
+                          ],
+                        ),
+                      ]),
+              ]),
+            );
+          },
+        ));
+  }
 }
