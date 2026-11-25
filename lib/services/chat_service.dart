@@ -81,8 +81,8 @@ class ChatService {
   Future<List<Map<String, dynamic>>> _conversacionesBasicas() async {
     final r = await _db
         .from('conversaciones')
-        .select('*, productos(nombre), anuncios_espacio(titulo)')
-        .or('id_iniciador.eq.$_uid,id_receptor.eq.$_uid')
+        .select('*, participantes!inner(id_usuario), productos(nombre), anuncios_espacio(titulo)')
+        .eq('participantes.id_usuario', _uid)
         .order('ultimo_mensaje_en', ascending: false, nullsFirst: false);
     return [
       for (final c in r)
@@ -180,13 +180,8 @@ class ChatService {
       });
 
   Future<String?> otroParticipante(String idConversacion) async {
-    final c = await _db
-        .from('conversaciones')
-        .select('id_iniciador, id_receptor')
-        .eq('id', idConversacion)
-        .maybeSingle();
-    if (c == null) return null;
-    return c['id_iniciador'] == _uid ? c['id_receptor'] as String? : c['id_iniciador'] as String?;
+    final conversacion = await infoConversacion(idConversacion);
+    return conversacion?['id_otro'] as String?;
   }
 
   // rf-38 se cumple aqui: se quita el bloqueo

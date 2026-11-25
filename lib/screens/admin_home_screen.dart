@@ -912,7 +912,7 @@ class _ApelacionesTabState extends State<_ApelacionesTab> {
 
   static const _opciones = <(String, String, String)>[
     ('mantenida', 'Mantener la medida', 'La medida original se queda igual'),
-    ('modificada', 'Modificar la medida', 'Se ajusta; explícalo en el comentario'),
+    ('modificada', 'Reducir a advertencia', 'Se levanta la restricción y queda una advertencia'),
     ('revertida', 'Revertir la medida', 'Se desactiva y se restaura contenido o cuenta'),
   ];
 
@@ -921,6 +921,8 @@ class _ApelacionesTabState extends State<_ApelacionesTab> {
       _aviso(context, 'Resuelta: ${a['resolucion']} · ${a['comentario_resolucion'] ?? ''}');
       return;
     }
+    final medida = a['medida'] as Map?;
+    final puedeModificar = medida?['activa'] == true && medida?['tipo_medida'] != 'advertencia';
     final resolucion = await showDialog<String>(
       context: context,
       builder: (ctx) => SimpleDialog(
@@ -930,7 +932,7 @@ class _ApelacionesTabState extends State<_ApelacionesTab> {
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
             child: Text('${a['usuario_nombre']}: ${a['motivo']}'),
           ),
-          for (final o in _opciones)
+          for (final o in _opciones.where((o) => o.$1 != 'modificada' || puedeModificar))
             SimpleDialogOption(
               onPressed: () => Navigator.pop(ctx, o.$1),
               child: ListTile(
@@ -943,7 +945,7 @@ class _ApelacionesTabState extends State<_ApelacionesTab> {
     final comentario = await _pedirTexto(context, 'Comentario para el usuario', 'Explica la decisión');
     if (comentario == null) return;
     try {
-      await _svc.resolverApelacion(a, resolucion: resolucion, comentario: comentario);
+      await _svc.resolverApelacion(a['id'] as String, resolucion: resolucion, comentario: comentario);
       if (mounted) {
         _aviso(context, 'Apelación resuelta');
         _recargar();
@@ -1606,9 +1608,15 @@ class _ConsultaTabState extends State<_ConsultaTab> {
   }
 
   Future<void> _cambiarEstado(Map<String, dynamic> u, String estado) async {
+    final motivo = await _pedirTexto(
+      context,
+      estado == 'suspendida' ? 'Motivo de la suspensión' : 'Motivo de la reactivación',
+      'Motivo general (lo verá el usuario)',
+    );
+    if (motivo == null || !mounted) return;
     setState(() => _guardando = true);
     try {
-      await _svc.cambiarEstadoCuenta(u['id'] as String, estado);
+      await _svc.cambiarEstadoCuenta(u['id'] as String, estado, motivo);
       // la fila cambia de inmediato y luego se confirma con el servidor
       final nuevos = [
         for (final x in _ultimos) x['id'] == u['id'] ? {...x, 'estado_cuenta': estado} : x
@@ -1674,12 +1682,14 @@ class _ConsultaTabState extends State<_ConsultaTab> {
             leading: Icon(suspendida ? Icons.block : Icons.person, color: suspendida ? Tg.rojo : null),
             title: Text('${x['nombre_publico']}', style: const TextStyle(fontWeight: FontWeight.w700)),
             subtitle: Text('${x['correo'] ?? 'sin correo'} · ${x['estado_cuenta']}'),
-            trailing: PopupMenuButton<String>(
+            trailing: x['estado_cuenta'] == 'eliminada' ? null : PopupMenuButton<String>(
+              enabled: !_guardando,
               onSelected: (e) => _cambiarEstado(x, e),
               itemBuilder: (_) => [
                 if (!suspendida)
                   const PopupMenuItem(value: 'suspendida', child: Text('Suspender cuenta')),
-                if (suspendida) const PopupMenuItem(value: 'activa', child: Text('Reactivar cuenta')),
+                if (x['estado_cuenta'] == 'suspendida')
+                  const PopupMenuItem(value: 'activa', child: Text('Reactivar cuenta')),
               ],
             ),
           ),

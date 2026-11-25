@@ -37,9 +37,9 @@ class _MedidasScreenState extends State<MedidasScreen> {
         .from('medidas_moderacion')
         .select()
         .eq('id_usuario_afectado', uid)
-        .eq('activa', true) // al levantarla el administrador, deja de aparecerle al usuario
         .order('creada_en', ascending: false);
-    final a = await _db.from('apelaciones').select().eq('id_usuario', uid).not('id_medida', 'is', null);
+    final a = await _db.from('apelaciones').select().eq('id_usuario', uid)
+        .not('id_medida', 'is', null).order('creada_en');
     return (
       medidas: List<Map<String, dynamic>>.from(m),
       apelaciones: {for (final x in a) x['id_medida'] as String: Map<String, dynamic>.from(x)},
@@ -64,7 +64,12 @@ class _MedidasScreenState extends State<MedidasScreen> {
               );
             }
             final d = s.data!;
-            final medidas = d.medidas.where((m) => !_ocultas.contains(m['id'])).toList();
+            final medidas = d.medidas.where((m) {
+              final activa = m['activa'] == true;
+              final ap = d.apelaciones[m['id']];
+              return (activa || ap != null) &&
+                  (activa && ap == null || !_ocultas.contains(m['id']));
+            }).toList();
             if (medidas.isEmpty) {
               return const EstadoVacio(
                 icono: Icons.verified_user_rounded,
@@ -91,7 +96,9 @@ class _MedidasScreenState extends State<MedidasScreen> {
                   final activa = m['activa'] == true;
                   return Dismissible(
                     key: ValueKey(m['id']),
-                    direction: DismissDirection.endToStart,
+                    direction: activa && ap == null
+                        ? DismissDirection.none
+                        : DismissDirection.endToStart,
                     background: const FondoBorrar(),
                     onDismissed: (_) => _quitar(m['id'] as String),
                     child: TarjetaTg(
@@ -115,13 +122,13 @@ class _MedidasScreenState extends State<MedidasScreen> {
                           Padding(
                             padding: const EdgeInsets.only(top: 6),
                             child: Text(
-                                'Revisión: ${ap['estado']}${ap['comentario_resolucion'] != null ? ' · ${ap['comentario_resolucion']}' : ''}',
+                                'Revisión: ${ap['resolucion'] ?? ap['estado']}${ap['comentario_resolucion'] != null ? ' · ${ap['comentario_resolucion']}' : ''}',
                                 style: const TextStyle(color: Colors.white70)),
                           ),
                         Align(
                           alignment: Alignment.centerRight,
                           child: Wrap(spacing: 4, children: [
-                            if (ap == null)
+                            if (activa && ap == null)
                               TextButton(
                                 onPressed: () async {
                                   final ok = await solicitarRevision(context, idMedida: m['id'] as String);

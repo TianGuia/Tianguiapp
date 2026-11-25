@@ -128,7 +128,9 @@ class AdminService {
   // rf-51 se cumple aqui: el administrador resuelve las apelaciones
 
   Future<List<Map<String, dynamic>>> apelaciones({bool soloPendientes = true}) async {
-    final base = _db.from('apelaciones').select();
+    final base = _db
+        .from('apelaciones')
+        .select('*, medida:medidas_moderacion(activa, tipo_medida)');
     final r = await (soloPendientes ? base.eq('estado', 'pendiente') : base)
         .order('creada_en', ascending: false)
         .limit(100);
@@ -136,22 +138,13 @@ class AdminService {
     return [for (final x in r) {...x, 'usuario_nombre': nombres[x['id_usuario']] ?? '—'}];
   }
 
-  // resolucion: mantenida, modificada o revertida. si se revierte se desactiva la medida
-  Future<void> resolverApelacion(Map<String, dynamic> apelacion,
-      {required String resolucion, required String comentario}) async {
-    await _db.from('apelaciones').update({
-      'estado': 'resuelta',
-      'resolucion': resolucion,
-      'comentario_resolucion': comentario,
-      'id_admin': _uid,
-      'resuelta_en': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', apelacion['id']);
-    if (resolucion == 'revertida' && apelacion['id_medida'] != null) {
-      await _db
-          .from('medidas_moderacion')
-          .update({'activa': false}).eq('id', apelacion['id_medida']);
-    }
-  }
+  Future<void> resolverApelacion(String id,
+          {required String resolucion, required String comentario}) =>
+      _db.rpc('admin_resolver_apelacion', params: {
+        'p_id': id,
+        'p_resolucion': resolucion,
+        'p_comentario': comentario,
+      });
 
   // tianguis
   // rf-47 se cumple aqui: el administrador agrega, cambia o quita tianguis
@@ -217,38 +210,18 @@ class AdminService {
           .select('id, tipo, version, vigente, requiere_reaceptacion, publicado_en')
           .order('publicado_en', ascending: false));
 
-  // publica una version nueva y deja viejas las anteriores, si falla las restaura
   Future<void> publicarVersion({
     required String tipo,
     required String version,
     required String contenido,
     required bool requiereReaceptacion,
-  }) async {
-    final previas = await _db
-        .from('versiones_documento')
-        .select('id')
-        .eq('tipo', tipo)
-        .eq('vigente', true);
-    final ids = [for (final p in previas) p['id'] as String];
-    if (ids.isNotEmpty) {
-      await _db.from('versiones_documento').update({'vigente': false}).inFilter('id', ids);
-    }
-    try {
-      await _db.from('versiones_documento').insert({
-        'tipo': tipo,
-        'version': version,
-        'contenido': contenido,
-        'requiere_reaceptacion': requiereReaceptacion,
-        'vigente': true,
-        'publicado_por': _uid,
+  }) =>
+      _db.rpc('admin_publicar_documento', params: {
+        'p_tipo': tipo,
+        'p_version': version,
+        'p_contenido': contenido,
+        'p_requiere_reaceptacion': requiereReaceptacion,
       });
-    } catch (_) {
-      if (ids.isNotEmpty) {
-        await _db.from('versiones_documento').update({'vigente': true}).inFilter('id', ids);
-      }
-      rethrow;
-    }
-  }
 
   // consulta
   // rf-54 se cumple aqui: el administrador consulta usuarios, vendedores, productos y puestos
@@ -402,7 +375,10 @@ class AdminService {
   Future<void> levantarMedida(String idMedida, String motivo) =>
       _db.rpc('admin_levantar_medida', params: {'p_id': idMedida, 'p_motivo': motivo});
 
-  // activa | suspendida
-  Future<void> cambiarEstadoCuenta(String idUsuario, String estado) =>
-      _db.rpc('admin_cambiar_estado_cuenta', params: {'p_id': idUsuario, 'p_estado': estado});
+  Future<void> cambiarEstadoCuenta(String idUsuario, String estado, String motivo) =>
+      _db.rpc('admin_cambiar_estado_cuenta', params: {
+        'p_id': idUsuario,
+        'p_estado': estado,
+        'p_motivo': motivo,
+      });
 }
