@@ -21,7 +21,11 @@ Color _color(String? tipo) => switch (tipo) {
 
 LatLng? _punto(dynamic c) {
   if (c is List && c.length >= 2 && c[0] is num && c[1] is num) {
-    return LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble());
+    final lng = (c[0] as num).toDouble();
+    final lat = (c[1] as num).toDouble();
+    if (lat.isFinite && lng.isFinite && lat.abs() <= 90 && lng.abs() <= 180) {
+      return LatLng(lat, lng);
+    }
   }
   return null;
 }
@@ -31,6 +35,20 @@ List<LatLng> _puntos(dynamic c) => [
         for (final p in c)
           if (_punto(p) != null) _punto(p)!
     ];
+
+bool esGeometriaZona(Object? valor) {
+  final g = valor is Map && valor['type'] == 'Feature' ? valor['geometry'] : valor;
+  if (g is! Map) return false;
+  final c = g['coordinates'];
+  bool linea(Object? puntos, int minimo) =>
+      puntos is List && puntos.length >= minimo && puntos.every((p) => _punto(p) != null);
+  return switch (g['type']) {
+    'Point' => _punto(c) != null,
+    'LineString' => linea(c, 2),
+    'Polygon' => c is List && c.isNotEmpty && c.every((anillo) => linea(anillo, 3)),
+    _ => false,
+  };
+}
 
 CapasZonas capasDeZonas(List<Map<String, dynamic>> zonas) {
   final capas = CapasZonas();
@@ -49,6 +67,7 @@ CapasZonas capasDeZonas(List<Map<String, dynamic>> zonas) {
           if (pts.length < 3) continue;
           capas.poligonos.add(Polygon(
             points: pts,
+            holePointsList: anillos.skip(1).map(_puntos).toList(),
             color: color.withValues(alpha: 0.25),
             borderColor: color,
             borderStrokeWidth: 2,

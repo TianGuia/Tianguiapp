@@ -7,6 +7,7 @@ import '../services/admin_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/fondo.dart';
 import '../widgets/urbano.dart';
+import '../widgets/zonas_mapa.dart';
 import 'admin_fallas_screen.dart';
 import 'home_screen.dart';
 import '../widgets/entradas.dart';
@@ -1233,20 +1234,28 @@ class _TianguisFormState extends State<_TianguisForm> {
     }
   }
 
-  Future<void> _agregarZona() async {
+  Future<void> _editarZona([Map<String, dynamic>? zona]) async {
     final id = _id;
     if (id == null) return;
-    final nombre = TextEditingController();
-    final geo = TextEditingController();
-    var tipo = 'zona';
-    final ok = await showDialog<bool>(
+    var nombre = zona?['nombre'] as String? ?? '';
+    var geo = zona?['geometria'] == null
+        ? ''
+        : const JsonEncoder.withIndent('  ').convert(zona!['geometria']);
+    var tipo = zona?['tipo'] as String? ?? 'zona';
+    String? error;
+    final datos = await showDialog<({String nombre, String tipo, Object? geometria})>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, set) => AlertDialog(
-          title: const Text('Zona, pasillo o espacio'),
+          title: Text(zona == null ? 'Agregar zona, pasillo o espacio' : 'Editar área del mapa'),
           content: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextField(controller: nombre, style: const TextStyle(color: Colors.black), decoration: const InputDecoration(hintText: 'Nombre')),
+              TextFormField(
+                initialValue: nombre,
+                onChanged: (v) => nombre = v,
+                style: const TextStyle(color: Colors.black),
+                decoration: const InputDecoration(labelText: 'Nombre'),
+              ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 initialValue: tipo,
@@ -1258,41 +1267,54 @@ class _TianguisFormState extends State<_TianguisForm> {
                 onChanged: (v) => set(() => tipo = v ?? tipo),
               ),
               const SizedBox(height: 8),
-              TextField(
-                controller: geo,
-                maxLines: 4,
+              TextFormField(
+                initialValue: geo,
+                onChanged: (v) => geo = v,
+                maxLines: 6,
                 minLines: 2,
                 style: const TextStyle(color: Colors.black),
-                decoration: const InputDecoration(hintText: 'GeoJSON [lng, lat]: Polygon, LineString o Point (opcional)'),
+                decoration: const InputDecoration(
+                  labelText: 'GeoJSON (opcional)',
+                  helperText: 'Polygon, LineString o Point · [lng, lat]',
+                ),
               ),
+              if (error != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(error!, style: TextStyle(color: Theme.of(ctx).colorScheme.error)),
+                ),
             ]),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCELAR')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('AGREGAR')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCELAR')),
+            FilledButton(
+              onPressed: () {
+                if (nombre.trim().isEmpty) return set(() => error = 'Escribe el nombre.');
+                Object? geometria;
+                if (geo.trim().isNotEmpty) {
+                  try {
+                    geometria = jsonDecode(geo);
+                    if (!esGeometriaZona(geometria)) throw const FormatException();
+                  } on FormatException {
+                    return set(() => error = 'Escribe una geometría GeoJSON válida.');
+                  }
+                }
+                Navigator.pop(ctx, (nombre: nombre.trim(), tipo: tipo, geometria: geometria));
+              },
+              child: const Text('GUARDAR'),
+            ),
           ],
         ),
       ),
     );
-    final n = nombre.text.trim();
-    final g = geo.text.trim();
-    nombre.dispose();
-    geo.dispose();
-    if (!mounted || ok != true) return;
-    if (n.isEmpty) return _aviso(context, 'Escribe el nombre');
-    Object? geometria;
-    if (g.isNotEmpty) {
-      try {
-        geometria = jsonDecode(g);
-      } catch (_) {
-        return _aviso(context, 'La geometría no es un JSON válido');
-      }
-    }
+    if (!mounted || datos == null) return;
+    final orden = _zonas.isEmpty ? 0 : (_zonas.last['orden'] as int) + 1;
     try {
-      await _svc.agregarZona(id, n, tipo, geometria: geometria, orden: _zonas.length);
-      await _cargarHijos();
+      await _svc.guardarZona(id, datos.nombre, datos.tipo,
+          idZona: zona?['id'] as String?, geometria: datos.geometria, orden: orden);
+      if (mounted) await _cargarHijos();
     } catch (e) {
-      if (mounted) _aviso(context, 'No se pudo agregar: $e');
+      if (mounted) _aviso(context, 'No se pudo guardar: $e');
     }
   }
 
@@ -1389,7 +1411,7 @@ class _TianguisFormState extends State<_TianguisForm> {
                   child: Text('Zonas, pasillos y espacios',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800))),
               TextButton.icon(
-                  onPressed: _agregarZona, icon: const Icon(Icons.add), label: const Text('Agregar')),
+                  onPressed: () => _editarZona(), icon: const Icon(Icons.add), label: const Text('Agregar')),
             ]),
             if (_zonas.isEmpty) const Text('Sin zonas'),
             for (final z in _zonas)
@@ -1397,10 +1419,18 @@ class _TianguisFormState extends State<_TianguisForm> {
                 child: ListTile(
                   title: Text('${z['nombre']}'),
                   subtitle: Text('${z['tipo']}${z['geometria'] == null ? '' : ' · con geometría'}'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () => _borrar(() => _svc.eliminarZona(z['id'] as String)),
-                  ),
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    IconButton(
+                      tooltip: 'Editar',
+                      icon: const Icon(Icons.edit_outlined),
+                      onPressed: () => _editarZona(z),
+                    ),
+                    IconButton(
+                      tooltip: 'Eliminar',
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () => _borrar(() => _svc.eliminarZona(z['id'] as String)),
+                    ),
+                  ]),
                 ),
               ),
           ],

@@ -5,6 +5,8 @@ import '../widgets/urbano.dart';
 import '../models/modelos.dart';
 import '../models/tratos.dart';
 import '../services/vendedor_service.dart';
+import '../services/datos_en_vivo.dart';
+import '../widgets/aviso_sincronizacion.dart';
 import '../widgets/entradas.dart';
 import '../widgets/mensaje.dart';
 
@@ -19,12 +21,23 @@ class OfertasScreen extends StatefulWidget {
 
 class _OfertasScreenState extends State<OfertasScreen> {
   final _svc = VendedorService();
-  late Future<List<Oferta>> _futuro = _svc.misOfertas(widget.idVendedor);
+  late final _datos = DatosEnVivo(
+    () => _svc.misOfertas(widget.idVendedor),
+    tablas: {
+      'ofertas': PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq, column: 'id_vendedor', value: widget.idVendedor,
+      ),
+    },
+    proximoCambio: (ofertas) {
+      final vencimientos = [for (final o in ofertas) if (o.vigente) o.fin]..sort();
+      return vencimientos.firstOrNull;
+    },
+  );
 
-  void _recargar() {
-    setState(() {
-      _futuro = _svc.misOfertas(widget.idVendedor);
-    });
+  @override
+  void dispose() {
+    _datos.dispose();
+    super.dispose();
   }
 
   void _msg(String t) => mostrarMensaje(context, t);
@@ -34,7 +47,7 @@ class _OfertasScreenState extends State<OfertasScreen> {
       context,
       MaterialPageRoute(builder: (_) => OfertaFormScreen(idVendedor: widget.idVendedor)),
     );
-    if (ok == true) _recargar();
+    if (ok == true && mounted) await _datos.recargar();
   }
 
   Future<void> _terminar(Oferta o) async {
@@ -52,7 +65,7 @@ class _OfertasScreenState extends State<OfertasScreen> {
     if (ok != true) return;
     try {
       await _svc.finalizarOferta(o.id);
-      _recargar();
+      if (mounted) await _datos.recargar();
     } catch (e) {
       _msg('$e');
     }
@@ -67,27 +80,20 @@ class _OfertasScreenState extends State<OfertasScreen> {
           label: const Text('Oferta'),
         ),
         body: RefreshIndicator(
-          onRefresh: () async => _recargar(),
-          child: FutureBuilder<List<Oferta>>(
-            future: _futuro,
-            builder: (_, s) {
-              if (s.connectionState != ConnectionState.done) return const CargandoTg();
-              if (s.hasError) {
-                return ListView(children: [
-                  SizedBox(
-                    height: 420,
-                    child: EstadoVacio(
-                      icono: Icons.wifi_off_rounded,
-                      color: Tg.rojo,
-                      titulo: '¡Se cayó la señal!',
-                      mensaje: 'No se pudieron cargar las ofertas.\n${s.error}',
-                    ),
-                  ),
-                ]);
+          onRefresh: _datos.recargar,
+          child: ListenableBuilder(
+            listenable: _datos,
+            builder: (_, __) {
+              final l = _datos.datos;
+              final aviso = _datos.desactualizado
+                  ? AvisoSincronizacion(hayDatos: _datos.hayDatos, onReintentar: _datos.recargar)
+                  : null;
+              if (l == null) {
+                return aviso == null ? const CargandoTg() : ListView(children: [aviso]);
               }
-              final l = s.data!;
               if (l.isEmpty) {
-                return ListView(children: [
+                return ListView(physics: const AlwaysScrollableScrollPhysics(), children: [
+                  if (aviso != null) aviso,
                   SizedBox(
                     height: 460,
                     child: EstadoVacio(
@@ -103,7 +109,11 @@ class _OfertasScreenState extends State<OfertasScreen> {
                 ]);
               }
               final vigentes = l.where((o) => o.vigente).length;
-              return ListView(padding: const EdgeInsets.only(bottom: 100), children: [
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 100),
+                children: [
+                if (aviso != null) aviso,
                 CabeceraTg(
                   titulo: 'Ofertas relámpago',
                   subtitulo: 'Descuentos que duran poco',

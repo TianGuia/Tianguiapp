@@ -3,6 +3,8 @@ import '../config/theme.dart';
 import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
 import '../services/inicio_service.dart';
+import '../services/datos_en_vivo.dart';
+import '../widgets/aviso_sincronizacion.dart';
 import '../widgets/corazon.dart';
 import '../widgets/marcas_puesto.dart';
 import '../widgets/panel_mensajes.dart';
@@ -24,11 +26,40 @@ class _InicioTabState extends State<InicioTab> {
 
   List<Map<String, dynamic>> _cats = [];
   String? _catSel;
-  int _abiertos = 0, _enEspera = 0;
-  PuestoResumen? _destacado;
-  List<PuestoResumen> _tendencias = [];
-  bool _cargando = true;
-  String? _error;
+  late final _datos = DatosEnVivo(
+    _consultar,
+    tablas: {'puestos': null, 'tianguis': null, 'productos': null},
+  );
+
+  Future<
+      ({
+        String? categoria,
+        int abiertos,
+        int enEspera,
+        PuestoResumen? destacado,
+        List<PuestoResumen> tendencias
+      })> _consultar() async {
+    final categoria = _catSel;
+    final (resumen, destacado, tendencias) = await (
+      _svc.resumen(),
+      _svc.destacado(idCategoria: categoria),
+      _svc.tendencias(idCategoria: categoria),
+    ).wait;
+    return (
+      categoria: categoria,
+      abiertos: (resumen['abiertos'] as num?)?.toInt() ?? 0,
+      enEspera: (resumen['en_espera'] as num?)?.toInt() ?? 0,
+      destacado: destacado,
+      tendencias: tendencias,
+    );
+  }
+
+  int get _abiertos => _datos.datos?.abiertos ?? 0;
+  int get _enEspera => _datos.datos?.enEspera ?? 0;
+  PuestoResumen? get _destacado =>
+      _datos.datos?.categoria == _catSel ? _datos.datos?.destacado : null;
+  List<PuestoResumen> get _tendencias =>
+      _datos.datos?.categoria == _catSel ? _datos.datos?.tendencias ?? [] : [];
 
   @override
   void initState() {
@@ -36,51 +67,36 @@ class _InicioTabState extends State<InicioTab> {
     _catalogo.categorias().then((c) {
       if (mounted) setState(() => _cats = c);
     }).catchError((_) {});
-    _cargar();
+  }
+
+  @override
+  void dispose() {
+    _datos.dispose();
+    super.dispose();
   }
 
   Future<void> _cargar() async {
     _panelMensajes.currentState?.recargar();
-    setState(() {
-      _cargando = true;
-      _error = null;
-    });
-    try {
-      final r = await Future.wait<Object?>([
-        _svc.resumen(),
-        _svc.destacado(idCategoria: _catSel),
-        _svc.tendencias(idCategoria: _catSel),
-      ]);
-      final resumen = r[0] as Map<String, dynamic>;
-      if (!mounted) return;
-      setState(() {
-        _abiertos = (resumen['abiertos'] as num?)?.toInt() ?? 0;
-        _enEspera = (resumen['en_espera'] as num?)?.toInt() ?? 0;
-        _destacado = r[1] as PuestoResumen?;
-        _tendencias = r[2] as List<PuestoResumen>;
-        _cargando = false;
-      });
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = '$e';
-          _cargando = false;
-        });
-      }
-    }
+    await _datos.recargar();
   }
 
   void _elegirCategoria(String? id) {
     if (_catSel == id) return;
-    _catSel = id;
-    _cargar();
+    setState(() => _catSel = id);
+    _datos.recargar();
   }
 
   void _abrirPuesto(PuestoResumen p) =>
       Navigator.push(context, MaterialPageRoute(builder: (_) => PuestoScreen(puesto: p)));
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: _datos,
+        builder: (context, _) => _contenido(),
+      );
+
+  Widget _contenido() {
+    final hayCategoria = _datos.hayDatos && _datos.datos?.categoria == _catSel;
     return RefreshIndicator(
       onRefresh: _cargar,
       child: ListView(
@@ -93,18 +109,14 @@ class _InicioTabState extends State<InicioTab> {
           if (widget.onVerMapa != null) _botonMapa(),
           const SizedBox(height: 16),
           PanelMensajes(key: _panelMensajes),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text('No se pudo cargar el inicio.\n$_error\n\n'
-                  'Desliza hacia abajo para volver a intentar.'),
-            )
-          else if (_cargando && _destacado == null && _tendencias.isEmpty)
+          if (_datos.desactualizado)
+            AvisoSincronizacion(hayDatos: _datos.hayDatos, onReintentar: _cargar),
+          if (!hayCategoria && !_datos.desactualizado)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 60),
               child: Center(child: CircularProgressIndicator(color: Tg.amarillo)),
-            )
-          else ...[
+            ),
+          if (hayCategoria) ...[
             if (_destacado != null) _tarjetaDestacado(_destacado!),
             const SizedBox(height: 22),
             const Padding(
@@ -157,11 +169,15 @@ class _InicioTabState extends State<InicioTab> {
               child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Icon(i, color: c, size: 34),
                 const SizedBox(width: 8),
-                Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                  Text('$n', style: Tg.marcador(34, color: colorNum)),
-                  Text(etiqueta,
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, height: 0.9)),
-                ]),
+                Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('$n', style: Tg.marcador(34, color: colorNum)),
+                      Text(etiqueta,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w800, fontSize: 13, height: 0.9)),
+                    ]),
               ]),
             ),
           ),
@@ -176,8 +192,8 @@ class _InicioTabState extends State<InicioTab> {
         border: Border.all(color: Tg.azulClaro.withValues(alpha: 0.45), width: 1.5),
       ),
       child: Row(children: [
-        dato(Icons.check_circle, const Color(0xFF2EAD5B), _abiertos, 'ABIERTOS AHORA',
-            Tg.azulClaro, widget.onVerPuestos),
+        dato(Icons.check_circle, const Color(0xFF2EAD5B), _abiertos, 'ABIERTOS AHORA', Tg.azulClaro,
+            widget.onVerPuestos),
         Container(width: 1.5, height: 46, color: Colors.white24),
         dato(Icons.schedule, Tg.amarillo, _enEspera, 'EN ESPERA', Tg.amarillo, null),
       ]),
@@ -201,7 +217,8 @@ class _InicioTabState extends State<InicioTab> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('VER MAPA DE PUESTOS', style: Tg.marcador(17, color: Tg.azulOscuro)),
                     const Text('Encuentra qué puestos están abiertos y dónde',
-                        style: TextStyle(color: Tg.azulOscuro, fontWeight: FontWeight.w700, fontSize: 13)),
+                        style: TextStyle(
+                            color: Tg.azulOscuro, fontWeight: FontWeight.w700, fontSize: 13)),
                   ]),
                 ),
                 const Icon(Icons.chevron_right, color: Tg.azulOscuro, size: 28),
@@ -228,7 +245,10 @@ class _InicioTabState extends State<InicioTab> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Colors.black.withValues(alpha: 0.10), Tg.azulOscuro.withValues(alpha: 0.94)],
+                colors: [
+                  Colors.black.withValues(alpha: 0.10),
+                  Tg.azulOscuro.withValues(alpha: 0.94)
+                ],
                 stops: const [0.05, 0.72],
               ),
             ),
@@ -242,14 +262,13 @@ class _InicioTabState extends State<InicioTab> {
               const Row(children: [
                 Flexible(
                     child: EtiquetaPincel(
-                        texto: 'DESTACADO DE LA SEMANA', icono: Icons.workspace_premium, angulo: -0.03)),
+                        texto: 'DESTACADO DE LA SEMANA',
+                        icono: Icons.workspace_premium,
+                        angulo: -0.03)),
                 SizedBox(width: 56),
               ]),
               const SizedBox(height: 110),
-              Text(p.nombre,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Tg.marcador(40)),
+              Text(p.nombre, maxLines: 2, overflow: TextOverflow.ellipsis, style: Tg.marcador(40)),
               const SizedBox(height: 4),
               if (p.ubicacion.isNotEmpty)
                 Align(
@@ -276,7 +295,9 @@ class _InicioTabState extends State<InicioTab> {
               ]),
               if ((p.descripcion ?? '').isNotEmpty) ...[
                 const SizedBox(height: 10),
-                Text(p.descripcion!, maxLines: 3, overflow: TextOverflow.ellipsis,
+                Text(p.descripcion!,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 16, height: 1.15)),
               ],
               const SizedBox(height: 16),
@@ -325,7 +346,13 @@ class _InicioTabState extends State<InicioTab> {
     );
   }
 
-  static const _coloresCat = [Color(0xFF1976D2), Tg.rosa, Color(0xFFE65100), Color(0xFF6A1B9A), Color(0xFF00897B)];
+  static const _coloresCat = [
+    Color(0xFF1976D2),
+    Tg.rosa,
+    Color(0xFFE65100),
+    Color(0xFF6A1B9A),
+    Color(0xFF00897B)
+  ];
   Color _colorCategoria(String n) =>
       _coloresCat[n.codeUnits.fold<int>(0, (a, b) => a + b) % _coloresCat.length];
 
@@ -343,7 +370,8 @@ class _InicioTabState extends State<InicioTab> {
           Stack(clipBehavior: Clip.none, children: [
             ClipRRect(
               borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-              child: SizedBox(height: 124, width: double.infinity, child: ImagenPuesto(p.imagenUrl)),
+              child:
+                  SizedBox(height: 124, width: double.infinity, child: ImagenPuesto(p.imagenUrl)),
             ),
             Positioned(top: 8, right: 8, child: BotonCorazon(idPuesto: p.id)),
             if (p.esNuevo || p.esVeterano)

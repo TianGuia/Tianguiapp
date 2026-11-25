@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
+import '../services/datos_en_vivo.dart';
 import '../services/favoritos_cambios.dart';
 import '../services/inicio_service.dart';
 import '../services/puestos_service.dart';
 import '../widgets/pincel.dart';
 import '../widgets/urbano.dart';
+import '../widgets/aviso_sincronizacion.dart';
 import '../widgets/visita_flow.dart';
 import 'mapa_puestos_screen.dart';
 import 'puesto_screen.dart';
@@ -14,7 +16,9 @@ import 'puesto_screen.dart';
 // aqui se cumplen rf-04, rf-05, rf-41, rf-42, cada parte de abajo dice cual cumple
 class PuestosTab extends StatefulWidget {
   final bool iniciaEnMapa;
-  const PuestosTab({super.key, this.iniciaEnMapa = false});
+  final String? tianguisInicial;
+  final String? puestoEnMapa;
+  const PuestosTab({super.key, this.iniciaEnMapa = false, this.tianguisInicial, this.puestoEnMapa});
   @override
   State<PuestosTab> createState() => _PuestosTabState();
 }
@@ -22,12 +26,12 @@ class PuestosTab extends StatefulWidget {
 class _PuestosTabState extends State<PuestosTab> {
   final _catalogo = CatalogoService();
   final _puestos = PuestosService();
-  List<Tianguis> _tianguis = [];
-  String? _filtro;
+  late String? _filtro = widget.tianguisInicial;
   late bool _mapa = widget.iniciaEnMapa;
   bool _favTianguis = false;
   final _inicio = InicioService();
-  late Future<List<Puesto>> _futuro = _puestos.consultarMapa();
+  late final DatosEnVivo<(List<Puesto>, List<Tianguis>, List<Map<String, dynamic>>)> _datos;
+  List<Tianguis> get _tianguis => _datos.datos?.$2 ?? [];
 
   void _refrescarFavTianguis() {
     final id = _filtro;
@@ -40,29 +44,27 @@ class _PuestosTabState extends State<PuestosTab> {
   @override
   void dispose() {
     FavoritosCambios.version.removeListener(_refrescarFavTianguis);
+    _datos.dispose();
     super.dispose();
   }
 
   @override
   void initState() {
     super.initState();
+    _datos = DatosEnVivo(
+      () => (_puestos.consultarMapa(), _catalogo.tianguis(), _puestos.zonasDeTianguis()).wait,
+      tablas: {'puestos': null, 'tianguis': null, 'tianguis_zonas': null},
+    );
     FavoritosCambios.version.addListener(_refrescarFavTianguis);
-    _catalogo.tianguis().then((t) {
-      if (mounted) setState(() => _tianguis = t);
-    }).catchError((_) {});
+    _refrescarFavTianguis();
   }
 
   void _filtrar(String? id) {
     setState(() {
       _filtro = id;
       _favTianguis = false;
-      _futuro = _puestos.consultarMapa(idTianguis: id);
     });
-    if (id != null) {
-      _inicio.esFavoritoTianguis(id).then((v) {
-        if (mounted && _filtro == id) setState(() => _favTianguis = v);
-      }).catchError((_) {});
-    }
+    _refrescarFavTianguis();
   }
 
   Future<void> _alternarFavTianguis() async {
@@ -70,10 +72,11 @@ class _PuestosTabState extends State<PuestosTab> {
     if (id == null) return;
     try {
       final v = await _inicio.alternarFavoritoTianguis(id);
-      if (mounted) setState(() => _favTianguis = v);
+      if (mounted && _filtro == id) setState(() => _favTianguis = v);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No se pudo guardar: $e')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('No se pudo guardar: $e')));
       }
     }
   }
@@ -92,15 +95,19 @@ class _PuestosTabState extends State<PuestosTab> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: _datos,
+        builder: (context, _) => _contenido(context),
+      );
+
+  Widget _contenido(BuildContext context) {
     final nombres = {for (final t in _tianguis) t.id: t.nombre};
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => confirmarVisita(context),
         icon: const Icon(Icons.verified),
-        label: const Text('Ya visité un puesto',
-            style: TextStyle(fontWeight: FontWeight.w800)),
+        label: const Text('Ya visité un puesto', style: TextStyle(fontWeight: FontWeight.w800)),
       ),
       body: Column(children: [
         SizedBox(
@@ -144,114 +151,109 @@ class _PuestosTabState extends State<PuestosTab> {
             ],
           ),
         ),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: () async => _filtrar(_filtro),
-            child: FutureBuilder<List<Puesto>>(
-              future: _futuro,
-              builder: (_, s) {
-                if (s.connectionState != ConnectionState.done) return const CargandoTg();
-                if (s.hasError) {
-                  return ListView(children: [
-                    SizedBox(
-                      height: 420,
-                      child: EstadoVacio(
-                        icono: Icons.cloud_off,
-                        color: Tg.rosa,
-                        titulo: 'No se pudo cargar',
-                        mensaje: 'Revisa tu conexión y jala para intentar otra vez.\n${s.error}',
-                        accionTexto: 'Reintentar',
-                        accionIcono: Icons.refresh,
-                        onAccion: () => _filtrar(_filtro),
-                      ),
-                    ),
-                  ]);
-                }
-                final l = s.data!;
-                if (_mapa) {
-                  return MapaPuestos(
-                    puestos: l,
-                    tianguis: _tianguis,
-                    idTianguis: _filtro,
-                  );
-                }
-                final abiertos = l.where((p) => p.abierto).length;
-                final cabecera = CabeceraTg(
-                  titulo: _filtro == null ? 'Explora los puestos' : (nombres[_filtro] ?? 'Tianguis'),
-                  subtitulo: 'Quién se puso hoy y dónde',
-                  icono: Icons.explore,
-                  color: Tg.verde,
-                  datos: [
-                    DatoTg(Icons.storefront, Tg.verde, '$abiertos', 'ABIERTOS'),
-                    DatoTg(Icons.list_alt, Tg.amarillo, '${l.length}', 'PUESTOS'),
-                    DatoTg(Icons.place, Tg.rosa, '${_tianguis.length}', 'TIANGUIS',
-                        onTap: () => setState(() => _mapa = true)),
-                  ],
-                );
-                if (l.isEmpty) {
-                  return ListView(children: [
-                    cabecera,
-                    const SizedBox(
-                      height: 360,
-                      child: EstadoVacio(
-                        icono: Icons.storefront_outlined,
-                        titulo: '¡Aún no se pone nadie!',
-                        mensaje: 'Ningún puesto abierto por ahora. Vuelve en un rato o prueba otro tianguis.',
-                      ),
-                    ),
-                  ]);
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 96),
-                  itemCount: l.length + 1,
-                  itemBuilder: (_, i) {
-                    if (i == 0) return cabecera;
-                    final p = l[i - 1];
-                    final tia = nombres[p.idTianguis];
-                    return TarjetaTg(
-                      acento: p.abierto ? Tg.verde : Colors.grey,
-                      onTap: () => _abrir(p, tia),
-                      child: Row(children: [
-                        SelloTg(
-                            icono: Icons.storefront,
-                            color: p.abierto ? Tg.verde : Colors.grey.shade600,
-                            colorIcono: Colors.white,
-                            tam: 48),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(p.nombre,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Tg.marcador(19)),
-                            if (tia != null)
-                              Text(tia,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      color: Colors.white70, fontWeight: FontWeight.w700)),
-                            const SizedBox(height: 4),
-                            Wrap(spacing: 6, runSpacing: 4, children: [
-                              PildoraTg(p.textoEstado,
-                                  color: p.abierto ? Tg.verde : Colors.grey.shade700,
-                                  colorTexto: Colors.white,
-                                  icono: p.abierto ? Icons.check_circle : Icons.schedule),
-                              if (p.lat != null)
-                                const PildoraTg('CON UBICACIÓN',
-                                    color: Tg.rosa, colorTexto: Colors.white, icono: Icons.location_on),
-                            ]),
-                          ]),
-                        ),
-                        const Icon(Icons.chevron_right, color: Colors.white54),
-                      ]),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ),
+        if (_datos.desactualizado)
+          AvisoSincronizacion(hayDatos: _datos.hayDatos, onReintentar: _datos.recargar),
+        Expanded(child: _resultados(nombres)),
       ]),
     );
+  }
+
+  Widget _resultados(Map<String, String> nombres) {
+    final datos = _datos.datos;
+    if (datos == null) {
+      return _datos.desactualizado ? const SizedBox.shrink() : const CargandoTg();
+    }
+    final l = datos.$1
+        .where(
+          (p) => nombres.containsKey(p.idTianguis) && (_filtro == null || p.idTianguis == _filtro),
+        )
+        .toList();
+    if (_mapa) {
+      final enfocado = _filtro == widget.tianguisInicial ? widget.puestoEnMapa : null;
+      return MapaPuestos(
+        key: ValueKey(_filtro),
+        puestos: enfocado == null ? l : l.where((p) => p.id == enfocado).toList(),
+        tianguis: _tianguis,
+        zonas: datos.$3,
+        idTianguis: _filtro,
+      );
+    }
+
+    final abiertos = l.where((p) => p.abierto).length;
+    final cabecera = CabeceraTg(
+      titulo: _filtro == null ? 'Explora los puestos' : (nombres[_filtro] ?? 'Tianguis'),
+      subtitulo: 'Quién se puso hoy y dónde',
+      icono: Icons.explore,
+      color: Tg.verde,
+      datos: [
+        DatoTg(Icons.storefront, Tg.verde, '$abiertos', 'ABIERTOS'),
+        DatoTg(Icons.list_alt, Tg.amarillo, '${l.length}', 'PUESTOS'),
+        DatoTg(Icons.place, Tg.rosa, '${_tianguis.length}', 'TIANGUIS',
+            onTap: () => setState(() => _mapa = true)),
+      ],
+    );
+    if (l.isEmpty) {
+      return RefreshIndicator(
+          onRefresh: _datos.recargar,
+          child: ListView(physics: const AlwaysScrollableScrollPhysics(), children: [
+            cabecera,
+            const SizedBox(
+              height: 360,
+              child: EstadoVacio(
+                icono: Icons.storefront_outlined,
+                titulo: '¡Aún no se pone nadie!',
+                mensaje:
+                    'Ningún puesto abierto por ahora. Vuelve en un rato o prueba otro tianguis.',
+              ),
+            ),
+          ]));
+    }
+    return RefreshIndicator(
+        onRefresh: _datos.recargar,
+        child: ListView.builder(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 96),
+          itemCount: l.length + 1,
+          itemBuilder: (_, i) {
+            if (i == 0) return cabecera;
+            final p = l[i - 1];
+            final tia = nombres[p.idTianguis];
+            return TarjetaTg(
+              acento: p.abierto ? Tg.verde : Colors.grey,
+              onTap: () => _abrir(p, tia),
+              child: Row(children: [
+                SelloTg(
+                    icono: Icons.storefront,
+                    color: p.abierto ? Tg.verde : Colors.grey.shade600,
+                    colorIcono: Colors.white,
+                    tam: 48),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(p.nombre,
+                        maxLines: 1, overflow: TextOverflow.ellipsis, style: Tg.marcador(19)),
+                    if (tia != null)
+                      Text(tia,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    Wrap(spacing: 6, runSpacing: 4, children: [
+                      PildoraTg(p.textoEstado,
+                          color: p.abierto ? Tg.verde : Colors.grey.shade700,
+                          colorTexto: Colors.white,
+                          icono: p.abierto ? Icons.check_circle : Icons.schedule),
+                      if (p.lat != null)
+                        const PildoraTg('CON UBICACIÓN',
+                            color: Tg.rosa, colorTexto: Colors.white, icono: Icons.location_on),
+                    ]),
+                  ]),
+                ),
+                const Icon(Icons.chevron_right, color: Colors.white54),
+              ]),
+            );
+          },
+        ));
   }
 }

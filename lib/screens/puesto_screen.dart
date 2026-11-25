@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/theme.dart';
 import '../models/modelos.dart';
 import '../services/inicio_service.dart';
+import '../services/datos_en_vivo.dart';
 import '../services/puestos_service.dart';
 import '../widgets/corazon.dart';
+import '../widgets/aviso_sincronizacion.dart';
 import '../widgets/fondo.dart';
 import '../widgets/marcas_puesto.dart';
 import '../widgets/pincel.dart';
@@ -21,11 +24,24 @@ class PuestoScreen extends StatefulWidget {
 class _PuestoScreenState extends State<PuestoScreen> {
   final _svc = InicioService();
   late Future<List<Producto>> _productos = _svc.productosDePuesto(widget.puesto.id);
-  late Future<Puesto?> _estado = _svc.puestoPorId(widget.puesto.id);
+  late final _estado = DatosEnVivo(
+    () => _svc.puestoPorId(widget.puesto.id),
+    tablas: {
+      'puestos': PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq, column: 'id', value: widget.puesto.id,
+      ),
+    },
+  );
   // numeros y marcas al dia; si falla se usan los que ya traia la pantalla
   late Future<PuestoResumen?> _resumen = _svc.resumenPuesto(widget.puesto.id);
   late Future<List<({String nombre, int total})>> _etiquetas =
       PuestosService().etiquetasDePuesto(widget.puesto.id);
+
+  @override
+  void dispose() {
+    _estado.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,11 +54,10 @@ class _PuestoScreenState extends State<PuestoScreen> {
           onRefresh: () async {
             setState(() {
               _productos = _svc.productosDePuesto(p.id);
-              _estado = _svc.puestoPorId(p.id);
               _resumen = _svc.resumenPuesto(p.id);
               _etiquetas = PuestosService().etiquetasDePuesto(p.id);
             });
-            await _productos;
+            await (_productos, _estado.recargar()).wait;
           },
           child: CustomScrollView(slivers: [
             SliverAppBar(
@@ -83,15 +98,17 @@ class _PuestoScreenState extends State<PuestoScreen> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(p.nombre, style: Tg.marcador(34)),
                   const SizedBox(height: 8),
-                  FutureBuilder<Puesto?>(
-                    future: _estado,
-                    builder: (_, s) {
+                  ListenableBuilder(
+                    listenable: _estado,
+                    builder: (_, __) {
                       // si aun no carga, o falla, se usa el estado del resumen.
-                      final real = s.data;
-                      final abierto = real?.abierto ?? p.abierto;
+                      final real = _estado.datos;
+                      final abierto = real?.abierto ?? (!_estado.hayDatos && p.abierto);
                       final cierreEspecial = !abierto && real?.cierreTipo != null;
-                      final texto = real?.textoEstado ?? (p.abierto ? 'ABIERTO AHORA' : 'CERRADO');
+                      final texto = real?.textoEstado ?? (abierto ? 'ABIERTO AHORA' : 'CERRADO');
                       return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        if (_estado.desactualizado)
+                          AvisoSincronizacion(hayDatos: true, onReintentar: _estado.recargar),
                         Wrap(spacing: 8, runSpacing: 8, children: [
                           EtiquetaPincel(
                             texto: abierto ? 'ABIERTO AHORA' : texto,
