@@ -54,17 +54,77 @@ class ChatService {
   }
 
   // conversaciones que no he borrado, una borrada vuelve a salir si llega mensaje nuevo
+  // cada una trae otro_nombre (la otra persona), producto_nombre o anuncio_titulo,
+  // ultimo_texto y no_leidos. Sale de la funcion mis_conversaciones de Toldo;
+  // si todavia no existe en la base se usa la consulta basica (sin nombre de la persona)
   Future<List<Map<String, dynamic>>> misConversaciones() async {
-    final todas = await _db
-        .from('conversaciones')
-        .select('*, productos(nombre), anuncios_espacio(titulo)')
-        .or('id_iniciador.eq.$_uid,id_receptor.eq.$_uid')
-        .order('ultimo_mensaje_en', ascending: false, nullsFirst: false);
+    List<Map<String, dynamic>> todas;
+    try {
+      final r = await _db.rpc('mis_conversaciones');
+      todas = [for (final c in (r as List)) Map<String, dynamic>.from(c as Map)];
+    } catch (_) {
+      todas = await _conversacionesBasicas();
+    }
     final ocultas = await _ocultas();
     return [
       for (final c in todas)
         if (!_estaOculta(c, ocultas[c['id']])) c
     ];
+  }
+
+  Future<List<Map<String, dynamic>>> _conversacionesBasicas() async {
+    final r = await _db
+        .from('conversaciones')
+        .select('*, productos(nombre), anuncios_espacio(titulo)')
+        .or('id_iniciador.eq.$_uid,id_receptor.eq.$_uid')
+        .order('ultimo_mensaje_en', ascending: false, nullsFirst: false);
+    return [
+      for (final c in r)
+        {
+          ...Map<String, dynamic>.from(c),
+          'producto_nombre': (c['productos'] as Map?)?['nombre'],
+          'anuncio_titulo': (c['anuncios_espacio'] as Map?)?['titulo'],
+          'no_leidos': 0,
+        }
+    ];
+  }
+
+  // datos de una conversacion (nombre de la otra persona y de que trata)
+  Future<Map<String, dynamic>?> infoConversacion(String id) async {
+    try {
+      final r = await _db.rpc('mis_conversaciones');
+      for (final c in (r as List)) {
+        if (c['id'] == id) return Map<String, dynamic>.from(c as Map);
+      }
+    } catch (_) {} // sin la funcion se queda el titulo que ya traia la pantalla
+    return null;
+  }
+
+  // nombre que se muestra de una conversacion: la persona; si no se sabe, el producto o anuncio
+  static String tituloDe(Map<String, dynamic> c) {
+    final otro = (c['otro_nombre'] as String?)?.trim();
+    if (otro != null && otro.isNotEmpty) return otro;
+    return '${c['producto_nombre'] ?? c['anuncio_titulo'] ?? 'Conversación'}';
+  }
+
+  // de que trata la conversacion, solo cuando arriba se muestra a la persona
+  static String? asuntoDe(Map<String, dynamic> c) {
+    final otro = (c['otro_nombre'] as String?)?.trim();
+    if (otro == null || otro.isEmpty) return null;
+    final a = c['producto_nombre'] ?? c['anuncio_titulo'];
+    return a == null ? null : '$a';
+  }
+
+  // marca como leidos los mensajes que me mandaron en esta conversacion
+  Future<void> marcarLeidos(String idConversacion) async {
+    try {
+      await _db
+          .from('mensajes')
+          .update({'leido_en': DateTime.now().toUtc().toIso8601String()})
+          .eq('id_conversacion', idConversacion)
+          .neq('id_remitente', _uid)
+          .isFilter('leido_en', null);
+    } catch (_) {} // si falla solo no baja el contador
   }
 
   Future<Map<String, DateTime>> _ocultas() async {
@@ -82,48 +142,6 @@ class ChatService {
     if (ocultadaEn == null) return false;
     final ultimo = c['ultimo_mensaje_en'] as String?;
     return ultimo == null || !DateTime.parse(ultimo).isAfter(ocultadaEn);
-  }
-
-  // nombre y foto publicos de otras personas, si la consulta falla regresa vacio
-  Future<Map<String, ({String nombre, String? foto})>> perfilesPublicos(Iterable<String> ids) async {
-    final l = ids.toSet().toList();
-    if (l.isEmpty) return {};
-    try {
-      final r = await _db
-          .from('perfiles_publicos')
-          .select('id, nombre_publico, foto_url')
-          .inFilter('id', l);
-      return {
-        for (final u in r)
-          u['id'] as String: (
-            nombre: (u['nombre_publico'] ?? '') as String,
-            foto: u['foto_url'] as String?,
-          )
-      };
-    } catch (_) {
-      return {};
-    }
-  }
-
-  // el ultimo mensaje de cada conversacion para la lista, si falla la lista sale sin vista previa
-  Future<Map<String, Map<String, dynamic>>> ultimosMensajes(Iterable<String> ids) async {
-    final l = ids.toList();
-    if (l.isEmpty) return {};
-    try {
-      final r = await _db
-          .from('mensajes')
-          .select('id_conversacion, id_remitente, contenido, enviado_en')
-          .inFilter('id_conversacion', l)
-          .order('enviado_en', ascending: false)
-          .limit(300);
-      final salida = <String, Map<String, dynamic>>{};
-      for (final m in r) {
-        salida.putIfAbsent(m['id_conversacion'] as String, () => Map<String, dynamic>.from(m));
-      }
-      return salida;
-    } catch (_) {
-      return {};
-    }
   }
 
   // borra la conversacion solo para mi, la otra persona la sigue viendo

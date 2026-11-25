@@ -15,7 +15,6 @@ class MarcasPuesto extends StatelessWidget {
     this.compacta = false,
   });
 
-  static const _verde = Color(0xFF1E8E3E);
 
   @override
   Widget build(BuildContext context) {
