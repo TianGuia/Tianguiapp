@@ -14,7 +14,7 @@ class Reporte {
         estado = m['estado'].toString(),
         fechaCreacion = DateTime.parse(m['creado_en']).toLocal();
 
-  // rf-44 se cumple aqui: se manda un reporte cuando algo rompe las reglas
+  // RF-44 se cumple aqui: se manda un reporte cuando algo rompe las reglas
   static Future<void> crearReporte({
     required String tipoObjetivo,
     required String idObjetivo,

@@ -45,8 +45,7 @@ Toldo para aplicar sus migraciones y configurar autenticación y permisos.
 - **Estilo**: las ventanas emergentes salen con el estilo de la app desde `theme.dart`, sin tocar cada una.
 
 ## Pendiente
-- Avisos (RF-07, RF-08, RF-09): existen la pantalla de notificaciones y las preferencias, pero la app
-  no crea los avisos ni manda notificaciones push. Falta revisar si Toldo los genera con triggers.
+- Avisos (RF-12 a RF-14): Toldo genera los avisos y llama a la función de entrega push. Queda por confirmar la entrega en móvil.
 - Pruebas automáticas: solo hay de autenticación y de entradas. Faltan chat, apartados, propuestas,
   moderación y administración.
 

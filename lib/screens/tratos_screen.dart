@@ -15,7 +15,7 @@ import '../widgets/mensaje.dart';
 
 // bandeja de propuestas de precio y apartados
 // si trae idVendedor es lo que recibe el vendedor, si no es lo que mando el comprador
-// rf-12 y rf-13 se ven aqui del lado del comprador, rf-26 y rf-27 del lado del vendedor
+// RF-17 y RF-18 se ven aqui del lado del comprador, RF-31 y RF-32 del lado del vendedor
 class TratosScreen extends StatefulWidget {
   final String? idVendedor;
   const TratosScreen({super.key, this.idVendedor});
@@ -96,7 +96,7 @@ class _TratosScreenState extends State<TratosScreen> {
     if (mounted) await (_props.recargar(), _aps.recargar()).wait;
   }
 
-  // rf-26 se cumple aqui: el vendedor acepta, rechaza o contesta con otro precio
+  // RF-31 se cumple aqui: el vendedor acepta, rechaza o contesta con otro precio
   Future<void> _contraofertar(Propuesta p) async {
     final c = TextEditingController();
     final ok = await showDialog<bool>(
@@ -253,7 +253,7 @@ class _TratosScreenState extends State<TratosScreen> {
     final acciones = <Widget>[];
     if (_comoVendedor && a.pendiente) {
       acciones.addAll([
-        // rf-27 se cumple aqui: el vendedor acepta o rechaza un apartado, y si vence el producto queda libre otra vez
+        // RF-32 se cumple aqui: el vendedor acepta o rechaza un apartado, y si vence el producto queda libre otra vez
         _boton('Aceptar', () => _hacer(() => _svc.aceptarApartado(a.id), 'Apartado aceptado'),
             color: Tg.verde, texto2: Colors.white),
         _boton('Rechazar', () => _hacer(() => _svc.rechazarApartado(a.id), 'Apartado rechazado'),
@@ -286,7 +286,7 @@ class _TratosScreenState extends State<TratosScreen> {
         'Cantidad: ${a.cantidad}',
         if (otro != null) '${_comoVendedor ? 'Comprador' : 'Vendedor'}: $otro',
         if (a.expira != null && (a.pendiente || a.aceptado)) 'Vence: ${fmtFecha(a.expira)}',
-        // rf-39 se cumple aqui: aqui se avisa que la app no cobra y que el pago se arregla directo con el vendedor
+        // RF-39 se cumple aqui: aqui se avisa que la app no cobra y que el pago se arregla directo con el vendedor
         if (!_comoVendedor && a.aceptado)
           'Pasa por él antes de que venza. El pago es directo con el vendedor.',
       ],

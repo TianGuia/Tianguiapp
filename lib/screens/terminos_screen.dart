@@ -5,7 +5,7 @@ import '../services/auth_service.dart';
 import '../widgets/cerrar_sesion.dart';
 import '../widgets/urbano.dart';
 
-// rf-53 se cumple aqui: si hay condiciones nuevas se pide aceptarlas antes de seguir
+// RF-53 se cumple aqui: si hay condiciones nuevas se pide aceptarlas antes de seguir
 class TerminosScreen extends StatefulWidget {
   final List<Map<String, dynamic>> pendientes;
   final VoidCallback onAceptado;

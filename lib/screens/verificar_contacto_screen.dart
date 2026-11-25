@@ -6,7 +6,7 @@ import '../widgets/urbano.dart';
 import '../widgets/entradas.dart';
 import '../widgets/mensaje.dart';
 
-// rf-33 se cumple aqui: el correo se verifica con un codigo que llega a ese mismo correo
+// RF-02 se cumple aqui: el correo se verifica con un codigo que llega a ese mismo correo
 // hace pop(true) si la cuenta quedo verificada
 class VerificarContactoScreen extends StatefulWidget {
   const VerificarContactoScreen({super.key});

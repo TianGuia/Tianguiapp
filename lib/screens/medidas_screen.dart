@@ -5,8 +5,8 @@ import '../widgets/urbano.dart';
 import '../services/ocultos.dart';
 import '../widgets/moderacion.dart';
 
-// rf-45 se cumple aqui: la persona se entera de la medida que puso el administrador
-// rf-46 se cumple aqui: la persona pide que el administrador revise otra vez una decision
+// RF-45 se cumple aqui: la persona se entera de la medida que puso el administrador
+// RF-46 se cumple aqui: la persona pide que el administrador revise otra vez una decision
 class MedidasScreen extends StatefulWidget {
   const MedidasScreen({super.key});
   @override

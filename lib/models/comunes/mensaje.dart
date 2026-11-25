@@ -14,7 +14,7 @@ class Mensaje {
         estado = m['estado'],
         fechaEnvio = DateTime.parse(m['enviado_en']).toLocal();
 
-  // rf-37 se cumple aqui: las dos personas del chat mandan y reciben mensajes
+  // RF-37 se cumple aqui: las dos personas del chat mandan y reciben mensajes
   static Future<void> enviarMensaje(String idConversacion, String texto) =>
       ChatService().enviarMensaje(idConversacion, texto);
 }

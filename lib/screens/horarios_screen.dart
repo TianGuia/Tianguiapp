@@ -5,8 +5,8 @@ import '../services/catalogo_service.dart';
 import '../services/vendedor_service.dart';
 import '../widgets/mensaje.dart';
 
-// rf-16 se cumple aqui: el vendedor guarda que dias y a que hora trabaja
-// rf-17 se cumple aqui: el vendedor avisa con tiempo que un dia no va a ir
+// RF-21 se cumple aqui: el vendedor guarda que dias y a que hora trabaja
+// RF-22 se cumple aqui: el vendedor avisa con tiempo que un dia no va a ir
 class HorariosScreen extends StatefulWidget {
   final String idVendedor;
 

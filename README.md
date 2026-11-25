@@ -36,9 +36,7 @@ docs/           guías extra
 ```
 
 Si buscas dónde está una clase del diagrama, mira
-[docs/guia-del-codigo.md](docs/guia-del-codigo.md). Cada lugar del código que
-cumple un requisito tiene un comentario que empieza con `rf-` y el número, por
-ejemplo `rf-01`.
+[docs/guia-del-codigo.md](docs/guia-del-codigo.md). Consulta la [guía de evaluación del SRS](docs/guia-evaluacion-srs.md) para recorrer los requisitos en orden y abrir el código y las consultas correspondientes.
 
 ## Probar que todo funciona
 

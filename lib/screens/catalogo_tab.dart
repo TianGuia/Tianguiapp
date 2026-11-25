@@ -9,9 +9,9 @@ import '../widgets/aviso_sincronizacion.dart';
 import 'producto_detalle_screen.dart';
 import 'puesto_screen.dart' show TarjetaProducto;
 
-// rf-01 se cumple aqui: se buscan productos escribiendo una palabra o eligiendo una categoria
-// rf-02 se cumple aqui: los productos se filtran por tianguis, dia, categoria y precio
-// rf-03 se cumple aqui: se muestra todo de un producto, como fotos, precio y quien lo vende
+// RF-06 se cumple aqui: se buscan productos escribiendo una palabra o eligiendo una categoria
+// RF-07 se cumple aqui: los productos se filtran por tianguis, dia, categoria y precio
+// RF-08 se cumple aqui: se muestra todo de un producto, como fotos, precio y quien lo vende
 typedef _Filtros = (String, String?, String?, int?, num?, num?);
 
 class CatalogoTab extends StatefulWidget {

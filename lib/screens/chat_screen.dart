@@ -5,7 +5,7 @@ import '../services/chat_service.dart';
 import '../widgets/moderacion.dart';
 import '../widgets/entradas.dart';
 
-// rf-37 se cumple aqui: las dos personas del chat mandan y reciben mensajes
+// RF-37 se cumple aqui: las dos personas del chat mandan y reciben mensajes
 class ChatScreen extends StatefulWidget {
   final String idConversacion, titulo;
   const ChatScreen({super.key, required this.idConversacion, required this.titulo});
@@ -67,7 +67,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // rf-44 se cumple aqui: se manda un reporte cuando algo rompe las reglas
+  // RF-44 se cumple aqui: se manda un reporte cuando algo rompe las reglas
   Future<void> _reportarMensaje(Map<String, dynamic> m) async {
     final id = m['id'];
     if (id == null) return;

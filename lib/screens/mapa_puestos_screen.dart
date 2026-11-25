@@ -6,8 +6,8 @@ import '../models/modelos.dart';
 import '../widgets/zonas_mapa.dart';
 import '../widgets/urbano.dart';
 
-// rf-04 se cumple aqui: se ven en un mapa los puestos que estan abiertos
-// rf-05 se cumple aqui: se ve si el puesto esta abierto o cerrado y donde estaba la ultima vez
+// RF-09 se cumple aqui: se ven en un mapa los puestos que estan abiertos
+// RF-10 se cumple aqui: se ve si el puesto esta abierto o cerrado y donde estaba la ultima vez
 // la ubicacion es la ultima que registro el vendedor, no se le sigue en tiempo real
 class MapaPuestos extends StatelessWidget {
   final List<Puesto> puestos;

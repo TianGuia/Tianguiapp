@@ -7,7 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/supabase_config.dart';
 import 'push_service.dart';
 
-// cuenta y sesion, aqui se cumplen rf-32 a rf-36 y rf-40
+// cuenta y sesion, aqui se cumplen RF-01 a RF-05 y RF-40
 // el comprador entra sin correo y su cuenta vive en el telefono
 // para vender se verifica el correo y se une a esa misma cuenta
 // ya existe otro usuario con ese nombre
@@ -78,7 +78,7 @@ class AuthService {
   bool get esAnonimo => usuario?.isAnonymous ?? false;
 
   // entrada anonima
-  // rf-32 se cumple aqui: la persona crea su cuenta escribiendo solo un nombre
+  // RF-01 se cumple aqui: la persona crea su cuenta escribiendo solo un nombre
 
   Future<void> registrar(String nombre) async {
     final n = nombre.trim();
@@ -101,7 +101,7 @@ class AuthService {
   }
 
   // vincular correo a la cuenta anonima
-  // rf-33 se cumple aqui: el correo se verifica con un codigo que llega a ese mismo correo
+  // RF-02 se cumple aqui: el correo se verifica con un codigo que llega a ese mismo correo
 
   // manda el codigo al correo y lo une a la cuenta
   Future<void> enviarCodigoVinculacion(String correo) =>
@@ -118,7 +118,7 @@ class AuthService {
   }
 
   // volver a entrar con correo
-  // rf-34 se cumple aqui: quien ya tiene cuenta entra con un codigo que le llega al correo
+  // RF-03 se cumple aqui: quien ya tiene cuenta entra con un codigo que le llega al correo
 
   // manda el codigo, sirve para entrar desde otro celular
   Future<void> enviarCodigo(String correo, {String? nombre}) =>
@@ -138,8 +138,8 @@ class AuthService {
   }
 
   // terminos
-  // rf-40 se cumple aqui: la persona acepta las condiciones de uso antes de entrar
-  // rf-53 se cumple aqui: si hay condiciones nuevas se pide aceptarlas antes de seguir
+  // RF-40 se cumple aqui: la persona acepta las condiciones de uso antes de entrar
+  // RF-53 se cumple aqui: si hay condiciones nuevas se pide aceptarlas antes de seguir
 
   Future<void> aceptarTerminosVigentes(List<Map<String, dynamic>> documentos) =>
       _db.rpc<void>('aceptar_terminos_vigentes', params: {
@@ -156,7 +156,7 @@ class AuthService {
     }
   }
 
-  // rf-36 se cumple aqui: la persona puede ver y cambiar su nombre y su foto
+  // RF-05 se cumple aqui: la persona puede ver y cambiar su nombre y su foto
   Future<String> subirFotoPerfil(File archivo) async {
     final ruta = '${usuario!.id}/perfil/${DateTime.now().millisecondsSinceEpoch}.jpg';
     final bucket = _db.storage.from(SupabaseConfig.bucketProductos);
@@ -220,7 +220,7 @@ class AuthService {
     cambioRol.value++;
   }
 
-  // rf-35 se cumple aqui: la persona puede salir de su cuenta en este telefono
+  // RF-04 se cumple aqui: la persona puede salir de su cuenta en este telefono
   Future<void> cerrarSesion() async {
     await PushService.quitarDispositivo();
     await _cerrarAuth();

@@ -21,7 +21,7 @@ class Calificacion {
         ]..removeWhere((e) => e.isEmpty),
         fechaCreacion = DateTime.parse(m['creada_en']).toLocal();
 
-  // rf-42 se cumple aqui: despues de una visita confirmada el comprador deja su calificacion
+  // RF-42 se cumple aqui: despues de una visita confirmada el comprador deja su calificacion
   static Future<void> registrarCalificacion({
     required String idVisita,
     required int puntuacion,

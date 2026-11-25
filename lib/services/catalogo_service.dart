@@ -4,9 +4,9 @@ import '../models/modelos.dart';
 import '../models/tratos.dart';
 import 'favoritos_cambios.dart';
 
-// rf-01 se cumple aqui: se buscan productos escribiendo una palabra o eligiendo una categoria
-// rf-02 se cumple aqui: los productos se filtran por tianguis, dia, categoria y precio
-// rf-03 se cumple aqui: se muestra todo de un producto, como fotos, precio y quien lo vende
+// RF-06 se cumple aqui: se buscan productos escribiendo una palabra o eligiendo una categoria
+// RF-07 se cumple aqui: los productos se filtran por tianguis, dia, categoria y precio
+// RF-08 se cumple aqui: se muestra todo de un producto, como fotos, precio y quien lo vende
 class CatalogoService {
   CatalogoService({SupabaseClient? client})
       : _db = client ?? Supabase.instance.client;
@@ -61,7 +61,7 @@ class CatalogoService {
       _db.rpc<String?>('nombre_vendedor_producto', params: {'p_producto': idProducto});
 
   // favoritos
-  // rf-06 se cumple aqui: se guardan productos como favoritos
+  // RF-11 se cumple aqui: se guardan productos como favoritos
   Future<void> alternarFavoritoProducto(String idProducto) async {
     final uid = _db.auth.currentUser!.id;
     final ya = await _db.from('favoritos').select('id').eq('id_usuario', uid).eq('id_producto', idProducto).maybeSingle();
@@ -94,7 +94,7 @@ class CatalogoService {
     return r != null;
   }
 
-  // rf-25: solo se consultan ofertas activas que aún no vencen.
+  // RF-30: solo se consultan ofertas activas que aún no vencen.
   Future<OfertaVigente?> ofertaVigente(String idProducto, num? precioRef) async {
     final ahora = DateTime.now().toUtc().toIso8601String();
     final r = await _db
