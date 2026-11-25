@@ -14,6 +14,13 @@ class PuestosService {
     return r.map<Puesto>(Puesto.fromMap).toList();
   }
 
+  // zonas, pasillos y espacios que el administrador registro para pintarlos en el mapa
+  Future<List<Map<String, dynamic>>> zonasDeTianguis(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final r = await _db.from('tianguis_zonas').select().inFilter('id_tianguis', ids);
+    return List<Map<String, dynamic>>.from(r);
+  }
+
   // horarios generales del tianguis.
   Future<List<Map<String, dynamic>>> horarios(String idTianguis) =>
       _db.from('tianguis_horarios').select().eq('id_tianguis', idTianguis).order('dia_semana');

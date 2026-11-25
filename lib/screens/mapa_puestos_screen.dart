@@ -3,12 +3,14 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../config/theme.dart';
 import '../models/modelos.dart';
+import '../services/puestos_service.dart';
+import '../widgets/zonas_mapa.dart';
 import '../widgets/urbano.dart';
 
 // rf-04 se cumple aqui: se ven en un mapa los puestos que estan abiertos
 // rf-05 se cumple aqui: se ve si el puesto esta abierto o cerrado y donde estaba la ultima vez
 // la ubicacion es la ultima que registro el vendedor, no se le sigue en tiempo real
-class MapaPuestos extends StatelessWidget {
+class MapaPuestos extends StatefulWidget {
   final List<Puesto> puestos;
   final List<Tianguis> tianguis;
   final String? idTianguis;
@@ -18,6 +20,46 @@ class MapaPuestos extends StatelessWidget {
     required this.tianguis,
     this.idTianguis,
   });
+
+  @override
+  State<MapaPuestos> createState() => _MapaPuestosState();
+}
+
+class _MapaPuestosState extends State<MapaPuestos> {
+  CapasZonas _zonas = CapasZonas();
+  String _clave = '';
+
+  List<Puesto> get puestos => widget.puestos;
+  List<Tianguis> get tianguis => widget.tianguis;
+  String? get idTianguis => widget.idTianguis;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarZonas();
+  }
+
+  @override
+  void didUpdateWidget(MapaPuestos old) {
+    super.didUpdateWidget(old);
+    _cargarZonas();
+  }
+
+  // zonas del tianguis elegido, o de los tianguis de los puestos que se estan viendo
+  Future<void> _cargarZonas() async {
+    final ids = idTianguis != null
+        ? [idTianguis!]
+        : (puestos.map((p) => p.idTianguis).toSet().toList()..sort());
+    final clave = ids.join(',');
+    if (clave == _clave) return;
+    _clave = clave;
+    try {
+      final z = await PuestosService().zonasDeTianguis(ids);
+      if (mounted) setState(() => _zonas = capasDeZonas(z));
+    } catch (_) {
+      // sin zonas el mapa se ve igual, solo con los puestos
+    }
+  }
 
   // centro: el tianguis elegido; si no, el primer puesto con ubicacion;
   // si no, el primer tianguis con coordenadas; si no, guadalajara.
@@ -94,6 +136,9 @@ class MapaPuestos extends StatelessWidget {
             urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
             userAgentPackageName: 'mx.udg.alumnos.tianguia',
           ),
+          PolygonLayer(polygons: _zonas.poligonos),
+          PolylineLayer(polylines: _zonas.lineas),
+          MarkerLayer(markers: _zonas.etiquetas),
           MarkerLayer(markers: [
             for (final p in conUbicacion)
               Marker(
