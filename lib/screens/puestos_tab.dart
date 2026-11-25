@@ -6,8 +6,10 @@ import '../services/favoritos_cambios.dart';
 import '../services/inicio_service.dart';
 import '../services/puestos_service.dart';
 import '../widgets/pincel.dart';
+import '../widgets/urbano.dart';
 import '../widgets/visita_flow.dart';
 import 'mapa_puestos_screen.dart';
+import 'puesto_screen.dart';
 
 // aqui se cumplen rf-04, rf-05, rf-41, rf-42, cada parte de abajo dice cual cumple
 class PuestosTab extends StatefulWidget {
@@ -76,6 +78,19 @@ class _PuestosTabState extends State<PuestosTab> {
     }
   }
 
+  // abre la ficha del puesto con los datos que ya tenemos, la ficha trae lo demas
+  void _abrir(Puesto p, String? tianguis) {
+    final r = PuestoResumen.fromMap({
+      'id': p.id,
+      'nombre': p.nombre,
+      'id_tianguis': p.idTianguis,
+      'tianguis_nombre': tianguis,
+      'descripcion': p.descripcion,
+      'abierto': p.abierto,
+    });
+    Navigator.push(context, MaterialPageRoute(builder: (_) => PuestoScreen(puesto: r)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final nombres = {for (final t in _tianguis) t.id: t.nombre};
@@ -135,10 +150,23 @@ class _PuestosTabState extends State<PuestosTab> {
             child: FutureBuilder<List<Puesto>>(
               future: _futuro,
               builder: (_, s) {
-                if (s.connectionState != ConnectionState.done) {
-                  return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
+                if (s.connectionState != ConnectionState.done) return const CargandoTg();
+                if (s.hasError) {
+                  return ListView(children: [
+                    SizedBox(
+                      height: 420,
+                      child: EstadoVacio(
+                        icono: Icons.cloud_off,
+                        color: Tg.rosa,
+                        titulo: 'No se pudo cargar',
+                        mensaje: 'Revisa tu conexión y jala para intentar otra vez.\n${s.error}',
+                        accionTexto: 'Reintentar',
+                        accionIcono: Icons.refresh,
+                        onAccion: () => _filtrar(_filtro),
+                      ),
+                    ),
+                  ]);
                 }
-                if (s.hasError) return Center(child: Text('No se pudieron cargar los puestos: ${s.error}'));
                 final l = s.data!;
                 if (_mapa) {
                   return MapaPuestos(
@@ -147,30 +175,75 @@ class _PuestosTabState extends State<PuestosTab> {
                     idTianguis: _filtro,
                   );
                 }
+                final abiertos = l.where((p) => p.abierto).length;
+                final cabecera = CabeceraTg(
+                  titulo: _filtro == null ? 'Explora los puestos' : (nombres[_filtro] ?? 'Tianguis'),
+                  subtitulo: 'Quién se puso hoy y dónde',
+                  icono: Icons.explore,
+                  color: Tg.verde,
+                  datos: [
+                    DatoTg(Icons.storefront, Tg.verde, '$abiertos', 'ABIERTOS'),
+                    DatoTg(Icons.list_alt, Tg.amarillo, '${l.length}', 'PUESTOS'),
+                    DatoTg(Icons.place, Tg.rosa, '${_tianguis.length}', 'TIANGUIS',
+                        onTap: () => setState(() => _mapa = true)),
+                  ],
+                );
                 if (l.isEmpty) {
-                  return ListView(children: const [
-                    SizedBox(height: 120),
-                    Center(child: Text('Ningún puesto abierto por ahora')),
+                  return ListView(children: [
+                    cabecera,
+                    const SizedBox(
+                      height: 360,
+                      child: EstadoVacio(
+                        icono: Icons.storefront_outlined,
+                        titulo: '¡Aún no se pone nadie!',
+                        mensaje: 'Ningún puesto abierto por ahora. Vuelve en un rato o prueba otro tianguis.',
+                      ),
+                    ),
                   ]);
                 }
                 return ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 90, top: 4),
-                  itemCount: l.length,
+                  padding: const EdgeInsets.only(bottom: 96),
+                  itemCount: l.length + 1,
                   itemBuilder: (_, i) {
-                    final p = l[i];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                      child: ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: Tg.verde,
-                          child: Icon(Icons.storefront, color: Colors.white),
+                    if (i == 0) return cabecera;
+                    final p = l[i - 1];
+                    final tia = nombres[p.idTianguis];
+                    return TarjetaTg(
+                      acento: p.abierto ? Tg.verde : Colors.grey,
+                      onTap: () => _abrir(p, tia),
+                      child: Row(children: [
+                        SelloTg(
+                            icono: Icons.storefront,
+                            color: p.abierto ? Tg.verde : Colors.grey.shade600,
+                            colorIcono: Colors.white,
+                            tam: 48),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(p.nombre,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Tg.marcador(19)),
+                            if (tia != null)
+                              Text(tia,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      color: Colors.white70, fontWeight: FontWeight.w700)),
+                            const SizedBox(height: 4),
+                            Wrap(spacing: 6, runSpacing: 4, children: [
+                              PildoraTg(p.textoEstado,
+                                  color: p.abierto ? Tg.verde : Colors.grey.shade700,
+                                  colorTexto: Colors.white,
+                                  icono: p.abierto ? Icons.check_circle : Icons.schedule),
+                              if (p.lat != null)
+                                const PildoraTg('CON UBICACIÓN',
+                                    color: Tg.rosa, colorTexto: Colors.white, icono: Icons.location_on),
+                            ]),
+                          ]),
                         ),
-                        title: Text(p.nombre,
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-                        subtitle: Text('${nombres[p.idTianguis] ?? ''}'
-                            '${p.lat != null ? '\n📍 ${p.lat!.toStringAsFixed(5)}, ${p.lng!.toStringAsFixed(5)}' : ''}'),
-                        isThreeLine: p.lat != null,
-                      ),
+                        const Icon(Icons.chevron_right, color: Colors.white54),
+                      ]),
                     );
                   },
                 );
