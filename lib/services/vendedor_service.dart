@@ -40,8 +40,18 @@ class VendedorService {
   }
 
   // RF-20 se cumple aqui: el vendedor dice en que tianguis pone su puesto
-  Future<void> agregarTianguis(String idVendedor, String idTianguis) =>
-      _db.from('vendedor_tianguis').insert({'id_vendedor': idVendedor, 'id_tianguis': idTianguis});
+  Future<void> agregarTianguis(
+    String idVendedor,
+    String idTianguis,
+  ) =>
+      _db.from('vendedor_tianguis').upsert(
+        {
+          'id_vendedor': idVendedor,
+          'id_tianguis': idTianguis,
+        },
+        onConflict: 'id_vendedor,id_tianguis',
+        ignoreDuplicates: true,
+      );
 
   // RF-21 se cumple aqui: el vendedor guarda que dias y a que hora trabaja
   Future<void> registrarHorario(String idVendedor, String idTianguis, int dia, String inicio, String fin) =>
@@ -82,17 +92,38 @@ class VendedorService {
     return r.map<Puesto>(Puesto.fromMap).toList();
   }
 
-  Future<String> crearPuesto(String idVendedor, String idTianguis, String nombre,
-      {String? codigo, String? descripcion}) async {
-    final r = await _db.from('puestos').insert({
-      'id_vendedor': idVendedor, 'id_tianguis': idTianguis,
-      'nombre': nombre, 'codigo': codigo, 'descripcion': descripcion,
-    }).select('id').single();
-    return r['id'];
+  Future<String> crearPuesto(
+    String idVendedor,
+    String idTianguis,
+    String nombre, {
+    required String idPuesto,
+    String? codigo,
+    String? descripcion,
+  }) async {
+    return await _db.rpc(
+      'crear_puesto_transaccional',
+      params: {
+        'p_id': idPuesto,
+        'p_id_vendedor': idVendedor,
+        'p_id_tianguis': idTianguis,
+        'p_nombre': nombre,
+        'p_codigo': codigo,
+        'p_descripcion': descripcion,
+      },
+    ) as String;
   }
 
-  Future<void> actualizarPuesto(String idPuesto, Map<String, dynamic> cambios) =>
-      _db.from('puestos').update(cambios).eq('id', idPuesto);
+  Future<void> actualizarPuesto(
+    String idPuesto,
+    Map<String, dynamic> cambios,
+  ) async {
+    await _db
+        .from('puestos')
+        .update(cambios)
+        .eq('id', idPuesto)
+        .select('id')
+        .single();
+  }
 
   // sube o cambia la foto del puesto y borra la anterior
   Future<void> subirFotoPuesto(String idPuesto, File archivo, {String? rutaAnterior}) async {

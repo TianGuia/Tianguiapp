@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:uuid/uuid.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../config/theme.dart';
@@ -28,6 +29,7 @@ class _PuestoFormScreenState extends State<PuestoFormScreen> {
   String? _idTianguis;
   File? _foto;
   bool _guardando = false;
+  String? _idNuevoPuesto;
 
   bool get _edita => widget.puesto != null;
   static const _negro = TextStyle(color: Colors.black);
@@ -56,38 +58,114 @@ class _PuestoFormScreenState extends State<PuestoFormScreen> {
   void _msg(String t) => mostrarMensaje(context, t);
 
   Future<void> _elegirFoto() async {
-    final x = await ImagePicker()
-        .pickImage(source: ImageSource.gallery, imageQuality: 70, maxWidth: 1280);
-    if (x != null) setState(() => _foto = File(x.path));
+    if (_guardando) return;
+
+    final x = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+      maxWidth: 1280,
+    );
+
+    if (x != null && mounted && !_guardando) {
+      setState(() => _foto = File(x.path));
+    }
   }
 
   Future<void> _guardar() async {
+    if (_guardando) return;
+
     final nombre = _nombre.text.trim();
-    if (nombre.isEmpty) return _msg('Escribe el nombre del puesto');
-    if (_idTianguis == null) return _msg('Elige el tianguis');
-    final codigo = _codigo.text.trim().isEmpty ? null : _codigo.text.trim();
-    final desc = _desc.text.trim().isEmpty ? null : _desc.text.trim();
+    final idTianguis = _idTianguis;
+    final foto = _foto;
+
+    if (nombre.isEmpty) {
+      return _msg('Escribe el nombre del puesto');
+    }
+
+    if (idTianguis == null) {
+      return _msg('Elige el tianguis');
+    }
+
+    final codigo = _codigo.text.trim().isEmpty
+        ? null
+        : _codigo.text.trim();
+
+    final desc = _desc.text.trim().isEmpty
+        ? null
+        : _desc.text.trim();
 
     setState(() => _guardando = true);
+
     try {
-      String idPuesto;
+      final String idPuesto;
+
       if (_edita) {
         idPuesto = widget.puesto!.id;
+
         await _svc.actualizarPuesto(idPuesto, {
-          'nombre': nombre, 'codigo': codigo, 'descripcion': desc,
+          'nombre': nombre,
+          'codigo': codigo,
+          'descripcion': desc,
         });
       } else {
-        try { await _svc.agregarTianguis(widget.idVendedor, _idTianguis!); } catch (_) {} // si ya estaba asociado da error y se ignora
-        idPuesto = await _svc.crearPuesto(widget.idVendedor, _idTianguis!, nombre,
-            codigo: codigo, descripcion: desc);
+        _idNuevoPuesto ??= const Uuid().v4();
+
+        idPuesto = await _svc.crearPuesto(
+          widget.idVendedor,
+          idTianguis,
+          nombre,
+          idPuesto: _idNuevoPuesto!,
+          codigo: codigo,
+          descripcion: desc,
+        );
       }
-      if (_foto != null) {
-        await _svc.subirFotoPuesto(idPuesto, _foto!, rutaAnterior: widget.puesto?.fotoRuta);
+
+      // En este punto el puesto ya fue guardado.
+
+      if (foto != null) {
+        try {
+          await _svc.subirFotoPuesto(
+            idPuesto,
+            foto,
+            rutaAnterior: widget.puesto?.fotoRuta,
+          );
+        } catch (e, stackTrace) {
+          debugPrint('Error al guardar fotografía: $e');
+          debugPrintStack(stackTrace: stackTrace);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'El puesto se guardó, pero no se pudo '
+                  'confirmar el guardado de su fotografía.',
+                ),
+              ),
+            );
+
+            Navigator.pop(context, true);
+          }
+
+          return;
+        }
       }
-      if (mounted) Navigator.pop(context, true);
-    } catch (e) {
-      _msg('No se guardó: $e');
-      if (mounted) setState(() => _guardando = false);
+
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
+
+    } catch (e, stackTrace) {
+      debugPrint('Error al guardar puesto: $e');
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (mounted) {
+        _msg('No se pudo confirmar el guardado del puesto.');
+      }
+
+    } finally {
+      if (mounted) {
+        setState(() => _guardando = false);
+      }
     }
   }
 
@@ -98,7 +176,7 @@ class _PuestoFormScreenState extends State<PuestoFormScreen> {
       appBar: AppBar(title: Text(_edita ? 'Editar puesto' : 'Nuevo puesto')),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         GestureDetector(
-          onTap: _elegirFoto,
+          onTap: _guardando ? null : _elegirFoto,
           child: Container(
             height: 180,
             decoration: BoxDecoration(
@@ -162,7 +240,7 @@ class _PuestoFormScreenState extends State<PuestoFormScreen> {
             value: _tianguis.any((t) => t.id == _idTianguis) ? _idTianguis : null,
             hint: const Text('Tianguis donde estás'),
             items: [for (final t in _tianguis) DropdownMenuItem(value: t.id, child: Text(t.nombre))],
-            onChanged: (v) => setState(() => _idTianguis = v),
+            onChanged: _guardando || _idNuevoPuesto != null ? null : (v) => setState(() => _idTianguis = v),
           ),
         const SizedBox(height: 16),
         FilledButton(
