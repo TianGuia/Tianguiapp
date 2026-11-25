@@ -139,7 +139,7 @@ class _AccesoScreenState extends State<AccesoScreen> {
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: _cargando ? null : widget.onTengoCuenta,
-                    child: const Text('Ya tengo cuenta con correo'),
+                    child: const Text('Iniciar sesión con correo'),
                   ),
                   TextButton(
                     onPressed: _cargando
