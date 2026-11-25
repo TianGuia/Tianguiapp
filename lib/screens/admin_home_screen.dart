@@ -52,7 +52,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               tooltip: 'Ver la app como usuario',
               icon: const Icon(Icons.storefront),
               onPressed: () => Navigator.push(
-                  context, MaterialPageRoute(builder: (_) => const HomeScreen())),
+                  context, MaterialPageRoute(builder: (_) => const HomeScreen(vistaPrueba: true))),
             ),
             IconButton(
               tooltip: 'Administradores',
@@ -1261,7 +1261,7 @@ class _TianguisFormState extends State<_TianguisForm> {
                 maxLines: 4,
                 minLines: 2,
                 style: const TextStyle(color: Colors.black),
-                decoration: const InputDecoration(hintText: 'Geometría GeoJSON (opcional)'),
+                decoration: const InputDecoration(hintText: 'GeoJSON [lng, lat]: Polygon, LineString o Point (opcional)'),
               ),
             ]),
           ),

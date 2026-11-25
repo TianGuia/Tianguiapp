@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../widgets/urbano.dart';
+import '../services/chat_service.dart';
 import '../services/inicio_service.dart';
 import '../services/tutorial.dart';
 import '../widgets/aviso_conexion.dart';
@@ -18,7 +19,9 @@ import 'puestos_tab.dart';
 import 'vendedor_tab.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  // vistaPrueba: el administrador la abre desde su panel y puede volver con un toque
+  final bool vistaPrueba;
+  const HomeScreen({super.key, this.vistaPrueba = false});
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -28,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _inicio = InicioService();
   int _i = 0;
   int _noLeidas = 0;
+  int _mensajesSinLeer = 0;
 
   @override
   void initState() {
@@ -47,6 +51,10 @@ class _HomeScreenState extends State<HomeScreen> {
       final n = await _inicio.noLeidas();
       if (mounted) setState(() => _noLeidas = n);
     } catch (_) {/* la campana simplemente no muestra número */}
+    try {
+      final m = await ChatService().totalNoLeidos();
+      if (mounted) setState(() => _mensajesSinLeer = m);
+    } catch (_) {/* sin número en la insignia de mensajes */}
   }
 
   Future<void> _ir(Widget pantalla) async {
@@ -117,7 +125,12 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () => _ir(const NotificacionesScreen()),
             ),
             IconButton(
-              icon: const Icon(Icons.chat_bubble_outline, size: 26),
+              icon: Badge(
+                backgroundColor: Tg.rosa,
+                label: Text('$_mensajesSinLeer'),
+                isLabelVisible: _mensajesSinLeer > 0,
+                child: const Icon(Icons.chat_bubble_outline, size: 26),
+              ),
               tooltip: 'Mensajes',
               onPressed: () => _ir(const ChatsScreen()),
             ),
@@ -125,17 +138,54 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         drawer: _menu(),
         body: Column(children: [
+          if (widget.vistaPrueba)
+            Material(
+              color: Tg.amarillo,
+              child: InkWell(
+                onTap: () => Navigator.of(context).pop(),
+                child: const SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    child: Row(children: [
+                      Icon(Icons.arrow_back, size: 20, color: Tg.azulOscuro),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text('Modo prueba · Volver al panel de administración',
+                            style: TextStyle(color: Tg.azulOscuro, fontWeight: FontWeight.w900)),
+                      ),
+                    ]),
+                  ),
+                ),
+              ),
+            ),
           const AvisoConexion(),
           Expanded(child: IndexedStack(index: _i, children: tabs)),
         ]),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _i,
-          onDestinationSelected: (v) => setState(() => _i = v),
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.home_rounded), label: 'Inicio'),
-            NavigationDestination(icon: Icon(Icons.search), label: 'Explorar'),
-            NavigationDestination(icon: Icon(Icons.store_mall_directory), label: 'Mi puesto'),
-            NavigationDestination(icon: Icon(Icons.person), label: 'Perfil'),
+          onDestinationSelected: (v) {
+            if (v == 4) {
+              _ir(const ChatsScreen()); // Mensajes abre su pantalla, no es una pestaña
+            } else {
+              setState(() => _i = v);
+              _contarNoLeidas();
+            }
+          },
+          destinations: [
+            const NavigationDestination(icon: Icon(Icons.home_rounded), label: 'Inicio'),
+            const NavigationDestination(icon: Icon(Icons.search), label: 'Explorar'),
+            const NavigationDestination(icon: Icon(Icons.store_mall_directory), label: 'Mi puesto'),
+            const NavigationDestination(icon: Icon(Icons.person), label: 'Perfil'),
+            NavigationDestination(
+              icon: Badge(
+                backgroundColor: Tg.rosa,
+                label: Text('$_mensajesSinLeer'),
+                isLabelVisible: _mensajesSinLeer > 0,
+                child: const Icon(Icons.chat_bubble_outline),
+              ),
+              label: 'Mensajes',
+            ),
           ],
         ),
       ),
@@ -197,7 +247,10 @@ class _HomeScreenState extends State<HomeScreen> {
               item(Icons.person, 'Mi perfil', () => setState(() => _i = 3), activo: _i == 3, color: Tg.azulClaro),
               item(Icons.bug_report_outlined, 'Diagnóstico de conexión',
                   () => _ir(const DiagnosticoScreen()), color: Tg.verde),
-              item(Icons.logout, 'Cerrar sesión', () => confirmarCerrarSesion(context), color: Tg.rojo),
+              if (widget.vistaPrueba)
+                item(Icons.arrow_back, 'Volver al panel', () => Navigator.of(context).pop(), color: Tg.amarillo)
+              else
+                item(Icons.logout, 'Cerrar sesión', () => confirmarCerrarSesion(context), color: Tg.rojo),
             ]),
           ),
           Padding(
