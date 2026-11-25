@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/theme.dart';
-import '../widgets/fondo.dart';
+import '../widgets/urbano.dart';
 
 // muestra las condiciones de uso o el aviso de privacidad vigentes
 // tipo puede ser terminos o privacidad
@@ -39,38 +39,35 @@ class _DocumentoScreenState extends State<DocumentoScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Fondo(
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
+  Widget build(BuildContext context) => ScaffoldTg(
           appBar: AppBar(title: Text(widget.titulo)),
           body: FutureBuilder<Map<String, dynamic>?>(
             future: _futuro,
             builder: (_, s) {
-              if (s.connectionState != ConnectionState.done) {
-                return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
-              }
+              if (s.connectionState != ConnectionState.done) return const CargandoTg();
               final d = s.data;
               if (s.hasError || d == null) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text(
-                      'No se pudo cargar el documento. Revisa tu conexión e inténtalo de nuevo.',
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+                return const EstadoVacio(
+                  icono: Icons.cloud_off,
+                  color: Tg.rosa,
+                  titulo: 'No se pudo cargar',
+                  mensaje: 'No se pudo cargar el documento. Revisa tu conexión e inténtalo de nuevo.',
                 );
               }
               return SafeArea(
-                child: ListView(padding: const EdgeInsets.all(18), children: [
-                  Text('Versión ${d['version']}',
-                      style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 12),
-                  Text('${d['contenido']}', style: const TextStyle(fontSize: 15, height: 1.4)),
+                child: ListView(padding: const EdgeInsets.only(bottom: 24), children: [
+                  CabeceraTg(
+                    titulo: widget.titulo,
+                    subtitulo: 'Versión ${d['version']}',
+                    icono: widget.tipo == 'privacidad' ? Icons.privacy_tip : Icons.description,
+                  ),
+                  TarjetaTg(
+                    padding: const EdgeInsets.all(18),
+                    child: Text('${d['contenido']}', style: const TextStyle(fontSize: 15, height: 1.4)),
+                  ),
                 ]),
               );
             },
           ),
-        ),
       );
 }

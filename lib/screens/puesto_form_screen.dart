@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../config/theme.dart';
+import '../widgets/urbano.dart';
 import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
 import '../services/vendedor_service.dart';
@@ -93,7 +94,7 @@ class _PuestoFormScreenState extends State<PuestoFormScreen> {
   @override
   Widget build(BuildContext context) {
     final fotoActual = widget.puesto?.fotoUrl;
-    return Scaffold(
+    return ScaffoldTg(
       appBar: AppBar(title: Text(_edita ? 'Editar puesto' : 'Nuevo puesto')),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         GestureDetector(

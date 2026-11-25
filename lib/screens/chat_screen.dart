@@ -20,11 +20,32 @@ class _ChatScreenState extends State<ChatScreen> {
 
   String? _otro;
   bool _bloqueado = false;
+  String? _nombreOtro, _asunto; // la otra persona y de que trata el chat
+  bool _marcando = false;
 
   @override
   void initState() {
     super.initState();
     _cargarOtro();
+    _cargarInfo();
+  }
+
+  // pone arriba el nombre de la otra persona en vez del nombre del producto
+  Future<void> _cargarInfo() async {
+    final c = await _svc.infoConversacion(widget.idConversacion);
+    if (c == null || !mounted) return;
+    final n = (c['otro_nombre'] as String?)?.trim();
+    setState(() {
+      _nombreOtro = (n == null || n.isEmpty) ? null : n;
+      _asunto = ChatService.asuntoDe(c);
+    });
+  }
+
+  // los mensajes que llegan con el chat abierto se marcan como leidos
+  void _marcarLeidos() {
+    if (_marcando) return;
+    _marcando = true;
+    _svc.marcarLeidos(widget.idConversacion).whenComplete(() => _marcando = false);
   }
 
   Future<void> _cargarOtro() async {
@@ -65,7 +86,7 @@ class _ChatScreenState extends State<ChatScreen> {
       if (_bloqueado) {
         await _svc.desbloquear(otro);
       } else {
-        final ok = await confirmarBloqueo(context, widget.titulo);
+        final ok = await confirmarBloqueo(context, _nombreOtro ?? widget.titulo);
         if (ok != true) return;
         await _svc.bloquear(otro);
       }
@@ -96,7 +117,14 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
-          title: Text(widget.titulo),
+          title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(_nombreOtro ?? widget.titulo, maxLines: 1, overflow: TextOverflow.ellipsis),
+            if (_asunto != null)
+              Text(_asunto!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w400)),
+          ]),
           actions: [
             if (_otro != null)
               PopupMenuButton<String>(
@@ -118,6 +146,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 if (s.hasError) return Center(child: Text('No se pudieron cargar los mensajes: ${s.error}'));
                 if (!s.hasData) return const Center(child: CircularProgressIndicator());
                 final l = s.data!;
+                if (l.any((m) => m['id_remitente'] != _yo && m['leido_en'] == null)) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) => _marcarLeidos());
+                }
                 if (l.isEmpty) return const Center(child: Text('Escribe el primer mensaje'));
                 return ListView.builder(
                   reverse: true, // el mensaje mas nuevo queda abajo

@@ -4,6 +4,8 @@ import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
 import '../services/inicio_service.dart';
 import '../widgets/corazon.dart';
+import '../widgets/marcas_puesto.dart';
+import '../widgets/panel_mensajes.dart';
 import '../widgets/pincel.dart';
 import 'puesto_screen.dart';
 
@@ -18,6 +20,7 @@ class InicioTab extends StatefulWidget {
 class _InicioTabState extends State<InicioTab> {
   final _catalogo = CatalogoService();
   final _svc = InicioService();
+  final _panelMensajes = GlobalKey<PanelMensajesState>();
 
   List<Map<String, dynamic>> _cats = [];
   String? _catSel;
@@ -37,6 +40,7 @@ class _InicioTabState extends State<InicioTab> {
   }
 
   Future<void> _cargar() async {
+    _panelMensajes.currentState?.recargar();
     setState(() {
       _cargando = true;
       _error = null;
@@ -88,6 +92,7 @@ class _InicioTabState extends State<InicioTab> {
           const SizedBox(height: 12),
           if (widget.onVerMapa != null) _botonMapa(),
           const SizedBox(height: 16),
+          PanelMensajes(key: _panelMensajes),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.all(20),
@@ -258,9 +263,13 @@ class _InicioTabState extends State<InicioTab> {
                   ),
                 ),
               const SizedBox(height: 10),
+              if (p.esNuevo || p.esVeterano) ...[
+                MarcasPuesto(esNuevo: p.esNuevo, esVeterano: p.esVeterano),
+                const SizedBox(height: 8),
+              ],
               Wrap(spacing: 8, runSpacing: 6, children: [
                 _pildora(Icons.star, Tg.amarillo,
-                    p.calificaciones == 0 ? 'Nuevo' : p.promedio.toStringAsFixed(1),
+                    p.calificaciones == 0 ? 'Sin calificar' : p.promedio.toStringAsFixed(1),
                     fondo: Tg.azulOscuro, borde: Tg.azulClaro),
                 _pildora(Icons.favorite, Colors.white, '${p.guardados} Guardados',
                     fondo: Tg.rosa, borde: Tg.rosa),
@@ -337,6 +346,12 @@ class _InicioTabState extends State<InicioTab> {
               child: SizedBox(height: 124, width: double.infinity, child: ImagenPuesto(p.imagenUrl)),
             ),
             Positioned(top: 8, right: 8, child: BotonCorazon(idPuesto: p.id)),
+            if (p.esNuevo || p.esVeterano)
+              Positioned(
+                top: 8,
+                left: 8,
+                child: MarcasPuesto(esNuevo: p.esNuevo, esVeterano: p.esVeterano, compacta: true),
+              ),
             Positioned(
               left: 10,
               bottom: -22,

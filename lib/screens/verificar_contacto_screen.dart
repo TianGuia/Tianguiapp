@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../config/theme.dart';
 import '../services/auth_service.dart';
 import '../widgets/fondo.dart';
+import '../widgets/urbano.dart';
 import '../widgets/entradas.dart';
 import '../widgets/mensaje.dart';
 
@@ -72,6 +74,14 @@ class _VerificarContactoScreenState extends State<VerificarContactoScreen> {
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
+                SelloTg(
+                    icono: _enviado ? Icons.mark_email_read : Icons.mail, color: Tg.amarillo, tam: 80),
+                const SizedBox(height: 16),
+                TarjetaTg(
+                  margen: EdgeInsets.zero,
+                  acento: Tg.amarillo,
+                  padding: const EdgeInsets.all(16),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
                 if (!_enviado) ...[
                   const Text(
                     'Para vender necesitamos verificar tu correo. '
@@ -112,6 +122,8 @@ class _VerificarContactoScreenState extends State<VerificarContactoScreen> {
                     child: const Text('Cambiar correo'),
                   ),
                 ],
+                  ]),
+                ),
               ]),
             ),
           ),

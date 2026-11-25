@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../services/puestos_service.dart';
 import 'entradas.dart';
+import 'urbano.dart';
 import 'mensaje.dart';
 
 const _negro = TextStyle(color: Colors.black);
@@ -15,19 +16,27 @@ Future<void> confirmarVisita(BuildContext context) async {
   final c = TextEditingController();
   final ok = await showDialog<bool>(
     context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Text('Código de visita'),
-      content: TextField(
-        controller: c,
-        keyboardType: TextInputType.number,
-        inputFormatters: Entradas.formatoCodigoVisita,
-        style: _negro,
-        decoration: const InputDecoration(hintText: 'Código que te muestra el vendedor'),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirmar')),
+    builder: (ctx) => DialogoTg(
+      icono: Icons.verified,
+      titulo: 'Código de visita',
+      acciones: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCELAR')),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('CONFIRMAR')),
       ],
+      child: Column(children: [
+        const Text('Pídele al vendedor el código que ve en su celular y escríbelo aquí.',
+            style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700, height: 1.15)),
+        const SizedBox(height: 12),
+        TextField(
+          controller: c,
+          autofocus: true,
+          textAlign: TextAlign.center,
+          keyboardType: TextInputType.number,
+          inputFormatters: Entradas.formatoCodigoVisita,
+          style: const TextStyle(color: Colors.black, fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: 6),
+          decoration: const InputDecoration(hintText: '······'),
+        ),
+      ]),
     ),
   );
   if (ok != true || c.text.trim().isEmpty || !context.mounted) return;
@@ -50,47 +59,55 @@ Future<void> _calificar(BuildContext context, PuestosService svc, String idVisit
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => StatefulBuilder(
-      builder: (ctx, set) => AlertDialog(
-        title: const Text('Califica tu visita'),
-        content: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              for (var i = 1; i <= 5; i++)
-                IconButton(
-                  icon: Icon(i <= estrellas ? Icons.star : Icons.star_border,
-                      color: Tg.amarillo, size: 32),
-                  onPressed: () => set(() => estrellas = i),
+      builder: (ctx, set) => DialogoTg(
+        icono: Icons.star_rounded,
+        titulo: 'Califica tu visita',
+        acciones: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('DESPUÉS')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('ENVIAR')),
+        ],
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            for (var i = 1; i <= 5; i++)
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: Icon(i <= estrellas ? Icons.star_rounded : Icons.star_border_rounded,
+                    color: Tg.amarillo, size: 38),
+                onPressed: () => set(() => estrellas = i),
+              ),
+          ]),
+          if (etiquetas.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            const Text('¿Cómo fue? (opcional)',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+            const Text('Las etiquetas las verá todo el mundo en el puesto.',
+                style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Wrap(spacing: 6, runSpacing: 6, children: [
+              for (final e in etiquetas)
+                FichaTg(
+                  texto: '${e['nombre']}',
+                  elegida: elegidas.contains(e['id']),
+                  onCambio: (v) => set(() {
+                    v ? elegidas.add(e['id'] as String) : elegidas.remove(e['id']);
+                  }),
                 ),
             ]),
-            if (etiquetas.isNotEmpty) ...[
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text('¿Cómo fue? (opcional)'),
-              ),
-              const SizedBox(height: 6),
-              Wrap(spacing: 6, runSpacing: 6, children: [
-                for (final e in etiquetas)
-                  FilterChip(
-                    label: Text('${e['nombre']}'),
-                    selected: elegidas.contains(e['id']),
-                    onSelected: (v) => set(() {
-                      v ? elegidas.add(e['id'] as String) : elegidas.remove(e['id']);
-                    }),
-                  ),
-              ]),
-              const SizedBox(height: 10),
-            ],
-            TextField(
-                controller: com,
-                style: _negro,
-                inputFormatters: Entradas.texto(300),
-                decoration: const InputDecoration(hintText: 'Comentario (opcional)')),
-          ]),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Después')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Enviar')),
-        ],
+            const SizedBox(height: 14),
+          ],
+          const Text('Comentario (opcional)',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+          const Text('Solo lo lee el vendedor, no se muestra al público.',
+              style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          TextField(
+              controller: com,
+              maxLines: 3,
+              minLines: 2,
+              style: _negro,
+              inputFormatters: Entradas.texto(300),
+              decoration: const InputDecoration(hintText: 'Cuéntale al vendedor cómo te fue')),
+        ]),
       ),
     ),
   );

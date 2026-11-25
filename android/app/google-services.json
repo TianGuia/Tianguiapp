@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "768190392588",
+    "project_id": "tianguia",
+    "storage_bucket": "tianguia.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:768190392588:android:abd8046160485a4c8b8129",
+        "android_client_info": {
+          "package_name": "mx.udg.alumnos.tianguia"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHVux5m6oPjtdobqu7MRHzzffIrMI14p4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

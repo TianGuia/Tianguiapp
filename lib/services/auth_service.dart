@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/supabase_config.dart';
+import 'push_service.dart';
 
 // cuenta y sesion, aqui se cumplen rf-32 a rf-36 y rf-40
 // el comprador entra sin correo y su cuenta vive en el telefono
@@ -66,6 +67,7 @@ class AuthService {
   // cierra de verdad la cuenta oculta, ya no se puede recuperar
   Future<void> descartarSesionOculta() async {
     await _guardarOculta(null);
+    await PushService.quitarDispositivo();
     try {
       await _db.auth.signOut();
     } catch (_) {} // da igual si ya estaba cerrada
@@ -242,6 +244,7 @@ class AuthService {
 
   // cierra la sesion de admin
   Future<void> salirAdmin() async {
+    await PushService.quitarDispositivo();
     try {
       // sin red no debe quedarse colgado
       await _db.rpc('admin_salir').timeout(const Duration(seconds: 6));
@@ -258,7 +261,10 @@ class AuthService {
   }
 
   // rf-35 se cumple aqui: la persona puede salir de su cuenta en este telefono
-  Future<void> cerrarSesion() => _db.auth.signOut();
+  Future<void> cerrarSesion() async {
+    await PushService.quitarDispositivo(); // antes de cerrar: sin sesion no se puede borrar
+    await _db.auth.signOut();
+  }
 
   Future<Map<String, dynamic>?> miPerfil() =>
       _db.from('usuarios').select().eq('id', usuario!.id).maybeSingle();

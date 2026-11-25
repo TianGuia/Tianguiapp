@@ -13,6 +13,8 @@ import 'tratos_screen.dart';
 import 'valoraciones_screen.dart';
 import 'verificar_contacto_screen.dart';
 import '../widgets/mensaje.dart';
+import '../widgets/pincel.dart';
+import '../widgets/urbano.dart';
 
 // aqui se cumplen rf-14, rf-15, rf-22, rf-23, rf-41, cada parte de abajo dice cual cumple
 class VendedorTab extends StatefulWidget {
@@ -104,12 +106,41 @@ class _VendedorTabState extends State<VendedorTab> {
     try {
       final c = await _svc.generarCodigoVisita(p.id);
       if (!mounted) return;
+      final codigo = '${c['codigo']}';
+      final hasta = DateTime.parse(c['expira_en']).toLocal().toString().substring(11, 16);
       showDialog(
         context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Código de visita'),
-          content: Text('${c['codigo']}\n\nVálido hasta ${DateTime.parse(c['expira_en']).toLocal().toString().substring(11, 16)}',
-              textAlign: TextAlign.center, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+        builder: (ctx) => DialogoTg(
+          icono: Icons.qr_code_2,
+          titulo: 'Código de visita',
+          acciones: [FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('LISTO'))],
+          child: Column(children: [
+            const Text('Díctaselo al comprador para que confirme que está en tu puesto.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700, height: 1.15)),
+            const SizedBox(height: 14),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                for (final d in codigo.split(''))
+                  Container(
+                    width: 42,
+                    height: 58,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Tg.amarillo, width: 2.5),
+                      boxShadow: const [BoxShadow(color: Color(0x66000000), offset: Offset(2, 3), blurRadius: 0)],
+                    ),
+                    child: Text(d, style: Tg.marcador(32, color: Tg.azulOscuro)),
+                  ),
+              ]),
+            ),
+            const SizedBox(height: 14),
+            PildoraTg('VÁLIDO HASTA LAS $hasta', color: Tg.amarillo, icono: Icons.schedule),
+          ]),
         ),
       );
     } catch (e) {
@@ -176,7 +207,8 @@ class _VendedorTabState extends State<VendedorTab> {
       builder: (ctx) => AlertDialog(
         title: const Text('¿Eliminar puesto?'),
         content: Text('"${p.nombre}" dejará de mostrarse a los compradores. '
-            'Tus productos se conservan en tu catálogo, sin puesto asignado.\n\n'
+            'También se retirarán sus productos y se terminarán sus ofertas activas. '
+            'Las visitas y calificaciones se conservan.\n\n'
             'Si solo te ausentas un tiempo, mejor usa "Cerrar temporalmente".'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
@@ -221,92 +253,175 @@ class _VendedorTabState extends State<VendedorTab> {
     }
   }
 
+  Widget _bannerPuesto(Puesto p) {
+    final placeholder = Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF123BB5), Tg.azulOscuro],
+        ),
+      ),
+      child: const Center(child: Icon(Icons.storefront, size: 64, color: Colors.white24)),
+    );
+    return p.fotoUrl == null
+        ? placeholder
+        : Image.network(p.fotoUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => placeholder);
+  }
+
   Widget _tarjetaPuesto(Puesto p) {
     final cierreEspecial = !p.abierto && p.cierreTipo != null;
-    final colorPunto = p.abierto ? Tg.verde : (cierreEspecial ? Tg.naranja : Colors.grey);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
+    final colorEstado = p.abierto ? Tg.verde : (cierreEspecial ? Tg.naranja : Colors.grey.shade700);
+    final radio = BorderRadius.circular(22);
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+      decoration: BoxDecoration(
+        borderRadius: radio,
+        boxShadow: const [BoxShadow(color: Color(0x59000000), offset: Offset(3, 4), blurRadius: 0)],
+      ),
+      child: Material(
+        color: Tg.azulOscuro.withValues(alpha: 0.92),
+        shape: RoundedRectangleBorder(
+          borderRadius: radio,
+          side: BorderSide(color: Tg.azulClaro.withValues(alpha: 0.5), width: 1.5),
+        ),
+        clipBehavior: Clip.antiAlias,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            if (p.fotoUrl != null)
-              Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.network(p.fotoUrl!, width: 48, height: 48, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const SizedBox(width: 48, height: 48)),
+          SizedBox(
+            height: 130,
+            child: Stack(fit: StackFit.expand, children: [
+              _bannerPuesto(p),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.black.withValues(alpha: 0.25), Tg.azulOscuro.withValues(alpha: 0.85)],
+                  ),
                 ),
               ),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(p.nombre, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                Row(children: [
-                  Icon(Icons.circle, size: 12, color: colorPunto),
-                  const SizedBox(width: 6),
-                  Flexible(child: Text(p.textoEstado, style: const TextStyle(fontSize: 13))),
-                ]),
-              ]),
-            ),
-            PopupMenuButton<_Accion>(
-              tooltip: 'Opciones del puesto',
-              onSelected: (a) => _accion(a, p),
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: _Accion.editar, child: ListTile(leading: Icon(Icons.edit), title: Text('Editar puesto'))),
-                PopupMenuItem(value: _Accion.temporal, child: ListTile(leading: Icon(Icons.schedule), title: Text('Cerrar temporalmente'))),
-                PopupMenuItem(value: _Accion.indefinido, child: ListTile(leading: Icon(Icons.pause_circle_outline), title: Text('Cerrar hasta nuevo aviso'))),
-                PopupMenuItem(value: _Accion.eliminar, child: ListTile(leading: Icon(Icons.delete_outline, color: Tg.rojo), title: Text('Eliminar puesto'))),
-              ],
-            ),
-          ]),
-          if ((p.descripcion ?? '').isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(p.descripcion!, maxLines: 2, overflow: TextOverflow.ellipsis),
-            ),
-          if (p.detalleCierre != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(p.detalleCierre!, style: const TextStyle(color: Tg.naranja, fontWeight: FontWeight.w700)),
-            ),
-          const SizedBox(height: 12),
-          FilledButton(
-            style: FilledButton.styleFrom(
-                backgroundColor: p.abierto ? Tg.rojo : Tg.amarillo,
-                foregroundColor: p.abierto ? Colors.white : Tg.azulOscuro),
-            onPressed: () => _alternar(p),
-            child: Text(p.abierto ? 'CERRAR PUESTO' : 'YA LLEGUÉ · ABRIR'),
+              Positioned(
+                left: 12,
+                top: 12,
+                child: PildoraTg(p.textoEstado,
+                    color: colorEstado,
+                    colorTexto: Colors.white,
+                    icono: p.abierto ? Icons.check_circle : Icons.pause_circle),
+              ),
+              Positioned(
+                right: 6,
+                top: 6,
+                child: Container(
+                  decoration: const BoxDecoration(color: Colors.black38, shape: BoxShape.circle),
+                  child: PopupMenuButton<_Accion>(
+                    tooltip: 'Opciones del puesto',
+                    onSelected: (a) => _accion(a, p),
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(value: _Accion.editar, child: ListTile(leading: Icon(Icons.edit), title: Text('Editar puesto'))),
+                      PopupMenuItem(value: _Accion.temporal, child: ListTile(leading: Icon(Icons.schedule), title: Text('Cerrar temporalmente'))),
+                      PopupMenuItem(value: _Accion.indefinido, child: ListTile(leading: Icon(Icons.pause_circle_outline), title: Text('Cerrar hasta nuevo aviso'))),
+                      PopupMenuItem(value: _Accion.eliminar, child: ListTile(leading: Icon(Icons.delete_outline, color: Tg.rojo), title: Text('Eliminar puesto'))),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 14,
+                right: 14,
+                bottom: 10,
+                child: Text(p.nombre,
+                    maxLines: 1, overflow: TextOverflow.ellipsis, style: Tg.marcador(26)),
+              ),
+            ]),
           ),
-          if (p.abierto)
-            TextButton.icon(
-                onPressed: () => _codigo(p),
-                icon: const Icon(Icons.qr_code),
-                label: const Text('Generar código de visita')),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if ((p.descripcion ?? '').isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(p.descripcion!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.15)),
+                ),
+              if (p.detalleCierre != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(children: [
+                    const Icon(Icons.info_outline, size: 18, color: Tg.naranja),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(p.detalleCierre!,
+                          style: const TextStyle(color: Tg.naranja, fontWeight: FontWeight.w800)),
+                    ),
+                  ]),
+                ),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                    backgroundColor: p.abierto ? Tg.rojo : Tg.amarillo,
+                    foregroundColor: p.abierto ? Colors.white : Tg.azulOscuro),
+                onPressed: () => _alternar(p),
+                icon: Icon(p.abierto ? Icons.lock_outline : Icons.storefront),
+                label: Text(p.abierto ? 'CERRAR PUESTO' : 'YA LLEGUÉ · ABRIR'),
+              ),
+              if (p.abierto)
+                Center(
+                  child: TextButton.icon(
+                      onPressed: () => _codigo(p),
+                      icon: const Icon(Icons.qr_code),
+                      label: const Text('Generar código de visita')),
+                ),
+            ]),
+          ),
         ]),
       ),
     );
   }
 
+  Widget _beneficio(IconData icono, Color color, String titulo, String texto) => TarjetaTg(
+        margen: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Row(children: [
+          SelloTg(icono: icono, color: color, tam: 44),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(titulo, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17, height: 1.1)),
+              Text(texto, style: const TextStyle(color: Colors.white70, fontSize: 13.5, height: 1.1)),
+            ]),
+          ),
+        ]),
+      );
+
   @override
   Widget build(BuildContext context) {
-    if (_cargando) return const Center(child: CircularProgressIndicator());
+    if (_cargando) return const CargandoTg();
     if (_perfil == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text('¿Tienes un puesto en el tianguis?', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            if (AuthService().esAnonimo) ...[
-              const SizedBox(height: 8),
-              const Text('Te pediremos verificar tu correo para activar tu perfil de vendedor.',
-                  textAlign: TextAlign.center),
-            ],
-            const SizedBox(height: 16),
-            FilledButton(onPressed: _habilitar, child: const Text('HABILITAR PERFIL DE VENDEDOR')),
-          ]),
+      return ListView(padding: const EdgeInsets.only(bottom: 30), children: [
+        const CabeceraTg(
+          titulo: '¿Tienes un puesto en el tianguis?',
+          subtitulo: 'Súbelo a TianGuía y que te encuentren',
+          icono: Icons.store_mall_directory,
         ),
-      );
+        _beneficio(Icons.inventory_2, Tg.amarillo, 'Publica tus productos', 'Con fotos, precio y cuántos te quedan.'),
+        _beneficio(Icons.storefront, const Color(0xFF2EAD5B), 'Avisa cuando abres', 'Con un toque tu puesto sale en el mapa.'),
+        _beneficio(Icons.handshake, Tg.rosa, 'Recibe propuestas y apartados', 'Contesta, contraoferta y cierra el trato.'),
+        _beneficio(Icons.bolt, Tg.naranja, 'Lanza ofertas relámpago', 'Mueve tu mercancía antes de que se acabe el día.'),
+        if (AuthService().esAnonimo)
+          const Padding(
+            padding: EdgeInsets.fromLTRB(24, 14, 24, 0),
+            child: Text('Te pediremos verificar tu correo para activar tu perfil de vendedor.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w600)),
+          ),
+        const SizedBox(height: 18),
+        Center(child: BotonPincel(texto: 'Habilitar perfil de vendedor', icono: Icons.rocket_launch, onPressed: _habilitar)),
+      ]);
     }
+    final id = _perfil!['id'] as String;
+    final negocio = (_perfil!['nombre_negocio'] as String?)?.trim();
+    final abiertos = _puestos.where((p) => p.abierto).length;
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
@@ -314,53 +429,83 @@ class _VendedorTabState extends State<VendedorTab> {
       ),
       body: RefreshIndicator(
         onRefresh: _cargar,
-        child: ListView(padding: const EdgeInsets.fromLTRB(12, 12, 12, 90), children: [
-          FilledButton.icon(
-            onPressed: () => _ir(MisProductosScreen(idVendedor: _perfil!['id'] as String)),
-            icon: const Icon(Icons.inventory_2),
-            label: const Text('MIS PRODUCTOS'),
+        child: ListView(padding: const EdgeInsets.only(bottom: 100), children: [
+          CabeceraTg(
+            titulo: (negocio ?? '').isEmpty ? 'Mi puesto' : negocio!,
+            subtitulo: 'Panel de vendedor',
+            icono: Icons.store_mall_directory,
+            datos: [
+              DatoTg(Icons.check_circle, const Color(0xFF2EAD5B), '$abiertos', 'ABIERTOS'),
+              DatoTg(Icons.storefront, Tg.azulClaro, '${_puestos.length}', 'PUESTOS'),
+              DatoTg(Icons.handshake, Tg.rosa, '$_pendientes', 'POR ATENDER',
+                  onTap: () => _ir(TratosScreen(idVendedor: id))),
+            ],
           ),
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: () => _ir(TratosScreen(idVendedor: _perfil!['id'] as String)),
-            icon: Badge(
-              isLabelVisible: _pendientes > 0,
-              backgroundColor: Tg.rosa,
-              label: Text('$_pendientes'),
-              child: const Icon(Icons.handshake_outlined),
+          const SeccionTg('Mi negocio'),
+          RejillaMosaicos(hijos: [
+            MosaicoTg(
+              icono: Icons.inventory_2,
+              color: Tg.amarillo,
+              titulo: 'Mis productos',
+              angulo: -0.012,
+              onTap: () => _ir(MisProductosScreen(idVendedor: id)),
             ),
-            label: const Text('PROPUESTAS Y APARTADOS'),
-          ),
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: () => _ir(OfertasScreen(idVendedor: _perfil!['id'] as String)),
-            icon: const Icon(Icons.bolt),
-            label: const Text('OFERTAS RELÁMPAGO'),
-          ),
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: () => _ir(HorariosScreen(
-              idVendedor: _perfil!['id'] as String,
-              tianguis: {for (final p in _puestos) p.idTianguis: p.nombre},
-            )),
-            icon: const Icon(Icons.event_busy),
-            label: const Text('HORARIO Y AUSENCIAS'),
-          ),
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: () => _ir(EspaciosScreen(idVendedor: _perfil!['id'] as String)),
-            icon: const Icon(Icons.crop_free),
-            label: const Text('ESPACIOS'),
-          ),
-          const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: () => _ir(ValoracionesScreen(idVendedor: _perfil!['id'] as String)),
-            icon: const Icon(Icons.star_outline),
-            label: const Text('MIS VALORACIONES'),
-          ),
-          const SizedBox(height: 8),
-          if (_puestos.isEmpty) const Padding(padding: EdgeInsets.all(24), child: Text('Aún no tienes puestos. Crea uno con el botón +.')),
-          for (final p in _puestos) Padding(padding: const EdgeInsets.only(bottom: 8), child: _tarjetaPuesto(p)),
+            MosaicoTg(
+              icono: Icons.handshake,
+              color: Tg.rosa,
+              colorTexto: Colors.white,
+              titulo: 'Propuestas y apartados',
+              badge: _pendientes,
+              angulo: 0.012,
+              onTap: () => _ir(TratosScreen(idVendedor: id)),
+            ),
+            MosaicoTg(
+              icono: Icons.bolt,
+              color: Tg.naranja,
+              titulo: 'Ofertas relámpago',
+              angulo: 0.012,
+              onTap: () => _ir(OfertasScreen(idVendedor: id)),
+            ),
+            MosaicoTg(
+              icono: Icons.event_busy,
+              color: Tg.azulClaro,
+              titulo: 'Horario y ausencias',
+              angulo: -0.012,
+              onTap: () => _ir(HorariosScreen(
+                idVendedor: id,
+                tianguis: {for (final p in _puestos) p.idTianguis: p.nombre},
+              )),
+            ),
+            MosaicoTg(
+              icono: Icons.crop_free,
+              color: const Color(0xFF1E8E3E),
+              colorTexto: Colors.white,
+              titulo: 'Espacios',
+              angulo: -0.012,
+              onTap: () => _ir(EspaciosScreen(idVendedor: id)),
+            ),
+            MosaicoTg(
+              icono: Icons.star_rounded,
+              color: Colors.white,
+              titulo: 'Mis valoraciones',
+              angulo: 0.012,
+              onTap: () => _ir(ValoracionesScreen(idVendedor: id)),
+            ),
+          ]),
+          const SeccionTg('Mis puestos'),
+          if (_puestos.isEmpty)
+            const TarjetaTg(
+              acento: Tg.amarillo,
+              child: Row(children: [
+                SelloTg(icono: Icons.add_business, color: Tg.amarillo, tam: 46),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text('Aún no tienes puestos. Crea el primero con el botón + Puesto.',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, height: 1.15)),
+                ),
+              ]),
+            ),
+          for (final p in _puestos) _tarjetaPuesto(p),
         ]),
       ),
     );

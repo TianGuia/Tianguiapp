@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../models/modelos.dart';
 import '../services/inicio_service.dart';
+import '../services/puestos_service.dart';
 import '../widgets/corazon.dart';
 import '../widgets/fondo.dart';
+import '../widgets/marcas_puesto.dart';
 import '../widgets/pincel.dart';
+import '../widgets/urbano.dart';
 import '../widgets/visita_flow.dart';
 import 'producto_detalle_screen.dart';
 
@@ -19,6 +22,10 @@ class _PuestoScreenState extends State<PuestoScreen> {
   final _svc = InicioService();
   late Future<List<Producto>> _productos = _svc.productosDePuesto(widget.puesto.id);
   late Future<Puesto?> _estado = _svc.puestoPorId(widget.puesto.id);
+  // numeros y marcas al dia; si falla se usan los que ya traia la pantalla
+  late Future<PuestoResumen?> _resumen = _svc.resumenPuesto(widget.puesto.id);
+  late Future<List<({String nombre, int total})>> _etiquetas =
+      PuestosService().etiquetasDePuesto(widget.puesto.id);
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +39,8 @@ class _PuestoScreenState extends State<PuestoScreen> {
             setState(() {
               _productos = _svc.productosDePuesto(p.id);
               _estado = _svc.puestoPorId(p.id);
+              _resumen = _svc.resumenPuesto(p.id);
+              _etiquetas = PuestosService().etiquetasDePuesto(p.id);
             });
             await _productos;
           },
@@ -114,24 +123,55 @@ class _PuestoScreenState extends State<PuestoScreen> {
                     },
                   ),
                   const SizedBox(height: 12),
-                  Row(children: [
-                    const Icon(Icons.star, color: Tg.amarillo),
-                    const SizedBox(width: 4),
-                    Text(
-                      p.calificaciones == 0
-                          ? 'Sin calificaciones'
-                          : '${p.promedio.toStringAsFixed(1)}  (${p.calificaciones})',
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
-                    ),
-                    const SizedBox(width: 16),
-                    const Icon(Icons.favorite, color: Tg.rosa, size: 20),
-                    const SizedBox(width: 4),
-                    Text('${p.guardados} guardados',
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                  ]),
+                  FutureBuilder<PuestoResumen?>(
+                    future: _resumen,
+                    builder: (_, s) {
+                      final r = s.data ?? p;
+                      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        if (r.esNuevo || r.esVeterano) ...[
+                          MarcasPuesto(esNuevo: r.esNuevo, esVeterano: r.esVeterano),
+                          const SizedBox(height: 10),
+                        ],
+                        Row(children: [
+                          const Icon(Icons.star, color: Tg.amarillo),
+                          const SizedBox(width: 4),
+                          Text(
+                            r.calificaciones == 0
+                                ? 'Sin calificaciones'
+                                : '${r.promedio.toStringAsFixed(1)}  (${r.calificaciones})',
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+                          ),
+                          const SizedBox(width: 16),
+                          const Icon(Icons.favorite, color: Tg.rosa, size: 20),
+                          const SizedBox(width: 4),
+                          Text('${r.guardados} guardados',
+                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                        ]),
+                      ]);
+                    },
+                  ),
+                  FutureBuilder<List<({String nombre, int total})>>(
+                    future: _etiquetas,
+                    builder: (_, s) {
+                      final l = s.data ?? const <({String nombre, int total})>[];
+                      if (l.isEmpty) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Wrap(spacing: 8, runSpacing: 8, children: [
+                          for (final e in l)
+                            PildoraTg('${e.nombre}  ×${e.total}',
+                                color: Tg.azulClaro, icono: Icons.thumb_up_alt_rounded),
+                        ]),
+                      );
+                    },
+                  ),
                   if ((p.descripcion ?? '').isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    Text(p.descripcion!, style: const TextStyle(fontSize: 16)),
+                    TarjetaTg(
+                      margen: EdgeInsets.zero,
+                      acento: Tg.amarillo,
+                      child: Text(p.descripcion!, style: const TextStyle(fontSize: 16, height: 1.15)),
+                    ),
                   ],
                   const SizedBox(height: 16),
                   BotonPincel(
@@ -150,21 +190,35 @@ class _PuestoScreenState extends State<PuestoScreen> {
               builder: (_, s) {
                 if (s.connectionState != ConnectionState.done) {
                   return const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.all(30),
-                      child: Center(child: CircularProgressIndicator(color: Tg.amarillo)),
-                    ),
+                    child: SizedBox(height: 160, child: CargandoTg()),
                   );
                 }
                 if (s.hasError) {
-                  return SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(20), child: Text('No se pudieron cargar los productos: ${s.error}')));
+                  return SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 340,
+                      child: EstadoVacio(
+                        icono: Icons.cloud_off,
+                        color: Tg.rosa,
+                        titulo: 'No se pudieron cargar',
+                        mensaje: 'Revisa tu conexión e inténtalo otra vez.\n${s.error}',
+                        accionTexto: 'Reintentar',
+                        accionIcono: Icons.refresh,
+                        onAccion: () => setState(() => _productos = _svc.productosDePuesto(p.id)),
+                      ),
+                    ),
+                  );
                 }
                 final l = s.data!;
                 if (l.isEmpty) {
                   return const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text('Este puesto aún no publica productos.'),
+                    child: SizedBox(
+                      height: 300,
+                      child: EstadoVacio(
+                        icono: Icons.inventory_2_outlined,
+                        titulo: '¡Aún no hay nada!',
+                        mensaje: 'Este puesto todavía no publica productos.',
+                      ),
                     ),
                   );
                 }
@@ -199,71 +253,66 @@ class TarjetaProducto extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = producto;
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Row(children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: SizedBox(
-                width: 84,
-                height: 84,
-                child: p.imagenes.isEmpty
-                    ? Container(
-                        color: const Color(0xFFE8ECF8),
-                        child: const Icon(Icons.image_not_supported, color: Tg.azul, size: 34),
-                      )
-                    : Image.network(p.imagenes.first,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                              color: const Color(0xFFE8ECF8),
-                              child: const Icon(Icons.broken_image, color: Tg.azul),
-                            )),
+    final abierto = p.puestoEstado == 'abierto';
+    return TarjetaTg(
+      margen: EdgeInsets.zero,
+      acento: p.puestoNombre == null ? Tg.amarillo : (abierto ? Tg.verde : Tg.rosa),
+      padding: const EdgeInsets.all(10),
+      onTap: onTap,
+      child: Row(children: [
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white, width: 2),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: SizedBox(
+            width: 84,
+            height: 84,
+            child: p.imagenes.isEmpty
+                ? Container(
+                    color: const Color(0xFFE8ECF8),
+                    child: const Icon(Icons.image_not_supported, color: Tg.azul, size: 34),
+                  )
+                : Image.network(p.imagenes.first,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                          color: const Color(0xFFE8ECF8),
+                          child: const Icon(Icons.broken_image, color: Tg.azul),
+                        )),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(p.nombre, maxLines: 1, overflow: TextOverflow.ellipsis, style: Tg.marcador(19)),
+            if ((p.descripcion ?? '').isNotEmpty)
+              Text(p.descripcion!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.05)),
+            const SizedBox(height: 3),
+            Text(p.precio == null ? 'Precio a tratar' : '\$${p.precio}',
+                style: Tg.marcador(20, color: Tg.amarillo)),
+            if (p.puestoNombre != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 3),
+                child: PildoraTg(
+                  '${p.puestoNombre} · ${abierto ? 'ABIERTO' : 'CERRADO'}',
+                  color: abierto ? Tg.verde : Tg.rosa,
+                  colorTexto: Colors.white,
+                  icono: Icons.location_on,
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(p.nombre,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        color: Tg.azulOscuro, fontWeight: FontWeight.w800, fontSize: 18)),
-                if ((p.descripcion ?? '').isNotEmpty)
-                  Text(p.descripcion!,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.black54, fontSize: 13, height: 1.05)),
-                const SizedBox(height: 2),
-                Text(p.precio == null ? 'Precio a tratar' : '\$${p.precio}',
-                    style: const TextStyle(
-                        color: Tg.azulOscuro, fontWeight: FontWeight.w900, fontSize: 18)),
-                if (p.puestoNombre != null)
-                  Text(
-                    '📍 ${p.puestoNombre} · ${p.puestoEstado == 'abierto' ? 'ABIERTO' : 'CERRADO'}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: p.puestoEstado == 'abierto' ? Tg.verde : Tg.rojo),
-                  ),
-              ]),
-            ),
-            const SizedBox(width: 8),
-            const CircleAvatar(
-              radius: 18,
-              backgroundColor: Tg.amarillo,
-              child: Icon(Icons.add, color: Tg.azulOscuro),
-            ),
           ]),
         ),
-      ),
+        const SizedBox(width: 8),
+        const CircleAvatar(
+          radius: 18,
+          backgroundColor: Tg.amarillo,
+          child: Icon(Icons.add, color: Tg.azulOscuro),
+        ),
+      ]),
     );
   }
 }

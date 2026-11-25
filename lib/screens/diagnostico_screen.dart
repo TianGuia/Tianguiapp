@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/theme.dart';
+import '../widgets/urbano.dart';
 
 class DiagnosticoScreen extends StatefulWidget {
   const DiagnosticoScreen({super.key});
@@ -118,7 +119,7 @@ class _DiagnosticoScreenState extends State<DiagnosticoScreen> {
   @override
   Widget build(BuildContext context) {
     final fallas = _pruebas.where((p) => p.ok == false).length;
-    return Scaffold(
+    return ScaffoldTg(
       appBar: AppBar(title: const Text('Diagnóstico de conexión')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _corriendo ? null : _correr,

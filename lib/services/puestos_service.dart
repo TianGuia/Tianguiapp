@@ -14,6 +14,13 @@ class PuestosService {
     return r.map<Puesto>(Puesto.fromMap).toList();
   }
 
+  // zonas, pasillos y espacios que el administrador registro para pintarlos en el mapa
+  Future<List<Map<String, dynamic>>> zonasDeTianguis(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final r = await _db.from('tianguis_zonas').select().inFilter('id_tianguis', ids);
+    return List<Map<String, dynamic>>.from(r);
+  }
+
   // horarios generales del tianguis.
   Future<List<Map<String, dynamic>>> horarios(String idTianguis) =>
       _db.from('tianguis_horarios').select().eq('id_tianguis', idTianguis).order('dia_semana');
@@ -55,6 +62,19 @@ class PuestosService {
       await _db.from('calificacion_etiquetas').insert([
         for (final e in idEtiquetas) {'id_calificacion': c['id'], 'id_etiqueta': e}
       ]);
+    }
+  }
+
+  // lo que ve cualquier usuario: cuantas veces le pusieron cada etiqueta al puesto
+  // nunca trae comentarios, esos solo los ve el vendedor. si falla devuelve lista vacia
+  Future<List<({String nombre, int total})>> etiquetasDePuesto(String idPuesto) async {
+    try {
+      final r = await _db.rpc('etiquetas_puesto', params: {'p_puesto': idPuesto}) as List;
+      return [
+        for (final x in r) (nombre: '${x['nombre']}', total: (x['total'] as num).toInt()),
+      ];
+    } catch (_) {
+      return const [];
     }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../widgets/fondo.dart';
+import '../widgets/urbano.dart';
 import '../services/auth_service.dart';
 import '../widgets/entradas.dart';
 import '../widgets/enlaces_legales.dart';
@@ -80,6 +81,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Text('VÁMONOS DE TIANGUIS', style: Tg.marcador(15)),
                   ),
                   const SizedBox(height: 26),
+              TarjetaTg(
+                margen: EdgeInsets.zero,
+                acento: Tg.amarillo,
+                padding: const EdgeInsets.all(16),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
               if (!_codigoEnviado) ...[
                 TextField(
                   controller: _correo,
@@ -126,6 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: const Text('Cambiar correo'),
                 ),
               ],
+                ])),
                 ]),
               ),
             ),

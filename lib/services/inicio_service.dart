@@ -16,6 +16,16 @@ class InicioService {
     return r.isEmpty ? null : PuestoResumen.fromMap(Map<String, dynamic>.from(r.first));
   }
 
+  // un puesto con sus numeros y marcas al dia, o null si no se pudo leer
+  Future<PuestoResumen?> resumenPuesto(String idPuesto) async {
+    try {
+      final r = await _db.from('v_puestos_resumen').select().eq('id', idPuesto).maybeSingle();
+      return r == null ? null : PuestoResumen.fromMap(Map<String, dynamic>.from(r));
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<List<PuestoResumen>> tendencias({String? idCategoria, int limite = 12}) async {
     final r = await _db.rpc('puestos_tendencia',
         params: {'p_categoria': idCategoria, 'p_limite': limite}) as List;

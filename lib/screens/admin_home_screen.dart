@@ -6,6 +6,8 @@ import '../config/theme.dart';
 import '../services/admin_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/fondo.dart';
+import '../widgets/urbano.dart';
+import 'admin_fallas_screen.dart';
 import 'home_screen.dart';
 import '../widgets/entradas.dart';
 
@@ -43,14 +45,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     return Fondo(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(
+        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, scrolledUnderElevation: 0, surfaceTintColor: Colors.transparent, 
           title: Text('Admin · ${titulos[_i]}'),
           actions: [
             IconButton(
               tooltip: 'Ver la app como usuario',
               icon: const Icon(Icons.storefront),
               onPressed: () => Navigator.push(
-                  context, MaterialPageRoute(builder: (_) => const HomeScreen())),
+                  context, MaterialPageRoute(builder: (_) => const HomeScreen(vistaPrueba: true))),
             ),
             IconButton(
               tooltip: 'Administradores',
@@ -63,6 +65,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               icon: const Icon(Icons.category_outlined),
               onPressed: () => Navigator.push(
                   context, MaterialPageRoute(builder: (_) => const _CatalogosScreen())),
+            ),
+            IconButton(
+              tooltip: 'Fallas reportadas',
+              icon: const Icon(Icons.bug_report_outlined),
+              onPressed: () => Navigator.push(
+                  context, MaterialPageRoute(builder: (_) => const AdminFallasScreen())),
             ),
             IconButton(tooltip: 'Salir', icon: const Icon(Icons.logout), onPressed: _salir),
           ],
@@ -194,46 +202,74 @@ Future<List<String>?> _pedirCampos(BuildContext c, String titulo, List<(String, 
   );
 }
 
+class _ErrorTg extends StatelessWidget {
+  final String mensaje;
+  final VoidCallback onReintentar;
+  const _ErrorTg({required this.mensaje, required this.onReintentar});
+
+  @override
+  Widget build(BuildContext context) => EstadoVacio(
+        icono: Icons.cloud_off,
+        color: Tg.rosa,
+        titulo: 'No se pudo cargar',
+        mensaje: mensaje,
+        accionTexto: 'Reintentar',
+        accionIcono: Icons.refresh,
+        onAccion: onReintentar,
+      );
+}
+
 class _ListaAsync extends StatelessWidget {
   final Future<List<Map<String, dynamic>>> futuro;
   final Future<void> Function() onRecargar;
   final Widget Function(Map<String, dynamic>) item;
   final String vacio;
-  const _ListaAsync(
-      {required this.futuro, required this.onRecargar, required this.item, required this.vacio});
+  final IconData icono;
+  // banner de arriba con numeritos, recibe la lista ya cargada
+  final Widget Function(List<Map<String, dynamic>>)? cabecera;
+  const _ListaAsync({
+    required this.futuro,
+    required this.onRecargar,
+    required this.item,
+    required this.vacio,
+    this.icono = Icons.inbox_outlined,
+    this.cabecera,
+  });
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: futuro,
       builder: (_, s) {
-        if (s.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
-        }
+        if (s.connectionState != ConnectionState.done) return const CargandoTg();
         if (s.hasError) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Text('Algo salio mal: ${s.error}', textAlign: TextAlign.center),
-                const SizedBox(height: 12),
-                FilledButton(onPressed: onRecargar, child: const Text('REINTENTAR')),
-              ]),
-            ),
-          );
+          return _ErrorTg(mensaje: 'Algo salió mal: ${s.error}', onReintentar: onRecargar);
         }
         final l = s.data!;
+        final conCabecera = cabecera != null;
         return RefreshIndicator(
           onRefresh: onRecargar,
           child: l.isEmpty
-              ? ListView(children: [
-                  Padding(padding: const EdgeInsets.all(40), child: Center(child: Text(vacio)))
+              ? ListView(physics: const AlwaysScrollableScrollPhysics(), children: [
+                  if (conCabecera) cabecera!(l),
+                  SizedBox(
+                    height: 360,
+                    child: EstadoVacio(
+                        icono: icono, titulo: vacio, mensaje: 'Jala hacia abajo para actualizar.'),
+                  ),
                 ])
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                  itemCount: l.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (_, i) => item(l[i]),
+              : ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.only(bottom: 96),
+                  itemCount: l.length + (conCabecera ? 1 : 0),
+                  itemBuilder: (_, i) {
+                    if (conCabecera && i == 0) return cabecera!(l);
+                    final x = l[conCabecera ? i - 1 : i];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: item(x),
+                    );
+                  },
                 ),
         );
       },
@@ -321,7 +357,7 @@ class _AdministradoresScreenState extends State<_AdministradoresScreen> {
   Widget _fila(Map<String, dynamic> a) {
     final yo = a['es_yo'] == true;
     final sesion = a['sesion_hasta'];
-    return Card(
+    return CardTg(
       child: ListTile(
         leading: Icon(yo ? Icons.verified_user_outlined : Icons.person_outline),
         title: Text('${a['nombre']}${yo ? ' (tú)' : ''}', style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -343,49 +379,56 @@ class _AdministradoresScreenState extends State<_AdministradoresScreen> {
   Widget build(BuildContext context) => Fondo(
         child: Scaffold(
           backgroundColor: Colors.transparent,
-          appBar: AppBar(title: const Text('Admin · Administradores')),
+          appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, scrolledUnderElevation: 0, surfaceTintColor: Colors.transparent, title: const Text('Admin · Administradores')),
           floatingActionButton: FloatingActionButton.extended(
               onPressed: _guardando ? null : _nuevo, icon: const Icon(Icons.add), label: const Text('NUEVO')),
           body: FutureBuilder<({List<Map<String, dynamic>> admins, List<Map<String, dynamic>> bitacora})>(
             future: _futuro,
             builder: (_, s) {
               if (s.connectionState != ConnectionState.done) {
-                return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
+                return const CargandoTg();
               }
               if (s.hasError) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Text('No se pudieron cargar los administradores: ${s.error}\n(revisa que las migraciones de Toldo esten aplicadas)', textAlign: TextAlign.center),
-                      const SizedBox(height: 12),
-                      FilledButton(onPressed: _recargar, child: const Text('REINTENTAR')),
-                    ]),
-                  ),
-                );
+                return _ErrorTg(
+                    mensaje: 'No se pudieron cargar los administradores: ${s.error}\n(revisa que las migraciones de Toldo estén aplicadas)',
+                    onReintentar: _recargar);
               }
               final admins = s.data!.admins;
               final bit = s.data!.bitacora;
               return RefreshIndicator(
                 onRefresh: _recargar,
-                child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 90), children: [
+                child: ListView(padding: const EdgeInsets.fromLTRB(0, 0, 0, 96), children: [
+                  CabeceraTg(
+                    titulo: 'Administradores',
+                    subtitulo: 'Quién puede entrar a este panel',
+                    icono: Icons.admin_panel_settings,
+                    datos: [
+                      DatoTg(Icons.people, Tg.amarillo, '${admins.length}/4', 'LUGARES'),
+                      DatoTg(Icons.history, Tg.verde, '${bit.length}', 'MOVIMIENTOS'),
+                    ],
+                  ),
                   if (_guardando) const LinearProgressIndicator(color: Tg.amarillo),
-                  Text('Administradores (${admins.length} de 4)',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 8),
-                  for (final a in admins) ...[_fila(a), const SizedBox(height: 8)],
-                  const SizedBox(height: 12),
-                  const Text('Historial', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 8),
+                  for (final a in admins)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: _fila(a),
+                    ),
+                  const SeccionTg('Historial'),
                   if (bit.isEmpty)
-                    const Padding(padding: EdgeInsets.all(16), child: Center(child: Text('Sin movimientos')))
+                    const Padding(
+                        padding: EdgeInsets.all(20), child: Center(child: Text('Sin movimientos')))
                   else
                     for (final b in bit)
-                      ListTile(
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                        title: Text('${'${b['accion']}'.replaceAll('_', ' ')} · ${b['objetivo'] ?? ''}'),
-                        subtitle: Text('por ${b['quien'] ?? '—'} · ${_fecha(b['creado_en'])}'),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        child: CardTg(
+                          child: ListTile(
+                            dense: true,
+                            leading: const Icon(Icons.bolt, color: Tg.amarillo),
+                            title: Text('${'${b['accion']}'.replaceAll('_', ' ')} · ${b['objetivo'] ?? ''}'),
+                            subtitle: Text('por ${b['quien'] ?? '—'} · ${_fecha(b['creado_en'])}'),
+                          ),
+                        ),
                       ),
                 ]),
               );
@@ -448,7 +491,7 @@ class _CatalogosScreenState extends State<_CatalogosScreen> {
 
   Widget _fila(Map<String, dynamic> x) {
     final activa = x['activa'] == true;
-    return Card(
+    return CardTg(
       child: ListTile(
         title: Text('${x['nombre']}',
             style: TextStyle(fontWeight: FontWeight.w700, color: activa ? null : Colors.grey)),
@@ -468,10 +511,16 @@ class _CatalogosScreenState extends State<_CatalogosScreen> {
   Widget build(BuildContext context) => Fondo(
         child: Scaffold(
           backgroundColor: Colors.transparent,
-          appBar: AppBar(title: const Text('Admin · Catálogos')),
+          appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, scrolledUnderElevation: 0, surfaceTintColor: Colors.transparent, title: const Text('Admin · Catálogos')),
           floatingActionButton: FloatingActionButton.extended(
               onPressed: _guardando ? null : _nuevo, icon: const Icon(Icons.add), label: const Text('NUEVA')),
           body: Column(children: [
+            const CabeceraTg(
+              titulo: 'Categorías y etiquetas',
+              subtitulo: 'Lo que usa la gente para publicar y valorar',
+              icono: Icons.category,
+              color: Tg.rosa,
+            ),
             if (_guardando) const LinearProgressIndicator(color: Tg.amarillo),
             SizedBox(
               height: 52,
@@ -492,7 +541,11 @@ class _CatalogosScreenState extends State<_CatalogosScreen> {
             ),
             Expanded(
               child: _ListaAsync(
-                  futuro: _futuro, onRecargar: _recargar, vacio: 'Sin elementos', item: _fila),
+                  futuro: _futuro,
+                  onRecargar: _recargar,
+                  vacio: 'Sin elementos',
+                  icono: Icons.category_outlined,
+                  item: _fila),
             ),
           ]),
         ),
@@ -553,31 +606,39 @@ class _ResumenTabState extends State<_ResumenTab> {
     }
   }
 
-  Widget _dato(String etiqueta, int? v, IconData icono, {bool alerta = false, VoidCallback? onTap}) =>
-      SizedBox(
-        width: 156,
-        child: Card(
-          margin: EdgeInsets.zero,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Icon(icono, color: alerta && (v ?? 0) > 0 ? Tg.amarillo : null),
-                const SizedBox(height: 6),
-                Text('${v ?? 0}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
-                Text(etiqueta, style: const TextStyle(fontSize: 12)),
-              ]),
-            ),
+  // cuadro con numerote, mismo estilo sticker que los demas apartados
+  Widget _dato(String etiqueta, int? v, IconData icono, Color color,
+      {bool alerta = false, VoidCallback? onTap}) {
+    final ancho = (MediaQuery.of(context).size.width - 16 * 2 - 10) / 2;
+    final aviso = alerta && (v ?? 0) > 0;
+    return SizedBox(
+      width: ancho,
+      child: TarjetaTg(
+        margen: EdgeInsets.zero,
+        acento: aviso ? Tg.rosa : color,
+        onTap: onTap,
+        padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+        child: Row(children: [
+          Icon(icono, color: color, size: 30),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('${v ?? 0}', style: Tg.marcador(28, color: aviso ? Tg.rosa : Colors.white)),
+              Text(etiqueta,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, height: 1)),
+            ]),
           ),
-        ),
-      );
+        ]),
+      ),
+    );
+  }
 
   Widget _medida(Map<String, dynamic> m) {
     final objetivo = _objetivos['${m['tipo_objetivo']}'] ?? '${m['tipo_objetivo']}';
     final medida = '${m['tipo_medida']}'.replaceAll('_', ' ');
-    return Card(
+    return CardTg(
       margin: EdgeInsets.zero,
       child: ListTile(
         isThreeLine: true,
@@ -595,59 +656,85 @@ class _ResumenTabState extends State<_ResumenTab> {
         future: _futuro,
         builder: (_, s) {
           if (s.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
+            return const CargandoTg();
           }
           if (s.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Text('No se pudo cargar el resumen: ${s.error}\n(revisa que las migraciones de Toldo esten aplicadas)',
-                      textAlign: TextAlign.center),
-                  const SizedBox(height: 12),
-                  FilledButton(onPressed: _recargar, child: const Text('REINTENTAR')),
-                ]),
-              ),
-            );
+            return _ErrorTg(
+                mensaje: 'No se pudo cargar el resumen: ${s.error}\n(revisa que las migraciones de Toldo estén aplicadas)',
+                onReintentar: _recargar);
           }
           final d = s.data!.datos;
           final medidas = s.data!.medidas;
           return RefreshIndicator(
             onRefresh: _recargar,
-            child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 24), children: [
+            child: ListView(padding: const EdgeInsets.only(bottom: 24), children: [
+              CabeceraTg(
+                titulo: 'Panel de control',
+                subtitulo: 'Lo que pide tu atención hoy',
+                icono: Icons.admin_panel_settings,
+                datos: [
+                  DatoTg(Icons.flag, Tg.rosa, '${d['reportes_pendientes'] ?? 0}', 'REPORTES',
+                      onTap: () => widget.ir(1)),
+                  DatoTg(Icons.gavel, Tg.amarillo, '${d['apelaciones_pendientes'] ?? 0}', 'APELACIONES',
+                      onTap: () => widget.ir(2)),
+                  DatoTg(Icons.shield, Tg.verde, '${d['medidas_activas'] ?? 0}', 'MEDIDAS'),
+                ],
+              ),
               if (_guardando) const LinearProgressIndicator(color: Tg.amarillo),
-              const Text('Pendientes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 8),
-              Wrap(spacing: 8, runSpacing: 8, children: [
-                _dato('Reportes pendientes', d['reportes_pendientes'], Icons.flag_outlined,
-                    alerta: true, onTap: () => widget.ir(1)),
-                _dato('Apelaciones pendientes', d['apelaciones_pendientes'], Icons.gavel,
-                    alerta: true, onTap: () => widget.ir(2)),
-                _dato('Medidas activas', d['medidas_activas'], Icons.shield_outlined),
-              ]),
-              const SizedBox(height: 16),
-              const Text('Plataforma', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 8),
-              Wrap(spacing: 8, runSpacing: 8, children: [
-                _dato('Usuarios', d['usuarios'], Icons.people_outline, onTap: () => widget.ir(5)),
-                _dato('Cuentas suspendidas', d['usuarios_suspendidos'], Icons.block),
-                _dato('Vendedores', d['vendedores'], Icons.store_mall_directory_outlined),
-                _dato('Perfiles suspendidos', d['vendedores_suspendidos'], Icons.person_off_outlined),
-                _dato('Puestos abiertos ahora', d['puestos_abiertos'], Icons.storefront),
-                _dato('Puestos activos', d['puestos_activos'], Icons.storefront_outlined),
-                _dato('Publicaciones activas', d['productos_activos'], Icons.inventory_2_outlined),
-                _dato('Publicaciones ocultas', d['productos_ocultos'], Icons.visibility_off_outlined),
-                _dato('Tianguis activos', d['tianguis_activos'], Icons.map_outlined, onTap: () => widget.ir(3)),
-              ]),
-              const SizedBox(height: 20),
-              Text('Medidas activas (${medidas.length})',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 8),
+              const SeccionTg('Pendientes'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Wrap(spacing: 10, runSpacing: 10, children: [
+                  _dato('Reportes pendientes', d['reportes_pendientes'], Icons.flag_outlined, Tg.rosa,
+                      alerta: true, onTap: () => widget.ir(1)),
+                  _dato('Apelaciones pendientes', d['apelaciones_pendientes'], Icons.gavel, Tg.amarillo,
+                      alerta: true, onTap: () => widget.ir(2)),
+                  _dato('Medidas activas', d['medidas_activas'], Icons.shield_outlined, Tg.verde),
+                ]),
+              ),
+              const SeccionTg('Gente'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Wrap(spacing: 10, runSpacing: 10, children: [
+                  _dato('Usuarios', d['usuarios'], Icons.people_outline, Tg.azulClaro,
+                      onTap: () => widget.ir(5)),
+                  _dato('Cuentas suspendidas', d['usuarios_suspendidos'], Icons.block, Tg.rosa),
+                  _dato('Vendedores', d['vendedores'], Icons.store_mall_directory_outlined, Tg.amarillo),
+                  _dato('Perfiles suspendidos', d['vendedores_suspendidos'], Icons.person_off_outlined,
+                      Tg.rosa),
+                ]),
+              ),
+              const SeccionTg('Tianguis y publicaciones'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Wrap(spacing: 10, runSpacing: 10, children: [
+                  _dato('Puestos abiertos ahora', d['puestos_abiertos'], Icons.storefront, Tg.verde),
+                  _dato('Puestos activos', d['puestos_activos'], Icons.storefront_outlined, Tg.azulClaro),
+                  _dato('Publicaciones activas', d['productos_activos'], Icons.inventory_2_outlined,
+                      Tg.amarillo),
+                  _dato('Publicaciones ocultas', d['productos_ocultos'], Icons.visibility_off_outlined,
+                      Tg.naranja),
+                  _dato('Tianguis activos', d['tianguis_activos'], Icons.map_outlined, Tg.verde,
+                      onTap: () => widget.ir(3)),
+                ]),
+              ),
+              SeccionTg('Medidas activas (${medidas.length})'),
               if (medidas.isEmpty)
-                const Padding(
-                    padding: EdgeInsets.all(20), child: Center(child: Text('No hay medidas activas')))
+                const SizedBox(
+                  height: 320,
+                  child: EstadoVacio(
+                    icono: Icons.verified_user,
+                    color: Tg.verde,
+                    titulo: '¡Todo en orden!',
+                    mensaje: 'No hay medidas activas en este momento.',
+                  ),
+                )
               else
-                for (final m in medidas) ...[_medida(m), const SizedBox(height: 8)],
+                for (final m in medidas)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: _medida(m),
+                  ),
             ]),
           );
         },
@@ -770,7 +857,19 @@ class _ReportesTabState extends State<_ReportesTab> {
             futuro: _futuro,
             onRecargar: _recargar,
             vacio: 'No hay reportes',
-            item: (r) => Card(
+            icono: Icons.flag_outlined,
+            cabecera: (l) => CabeceraTg(
+              titulo: 'Reportes',
+              subtitulo: 'Lo que la gente reporta',
+              icono: Icons.flag,
+              color: Tg.rosa,
+              datos: [
+                DatoTg(Icons.list_alt, Tg.amarillo, '${l.length}', 'MOSTRADOS'),
+                DatoTg(Icons.pending_actions, Tg.rosa,
+                    '${l.where((r) => r['estado'] != 'resuelto').length}', 'POR REVISAR'),
+              ],
+            ),
+            item: (r) => CardTg(
               child: ListTile(
                 leading: Icon(r['estado'] == 'resuelto' ? Icons.check_circle : Icons.flag,
                     color: r['estado'] == 'resuelto' ? Tg.verde : Tg.rojo),
@@ -875,13 +974,25 @@ class _ApelacionesTabState extends State<_ApelacionesTab> {
             futuro: _futuro,
             onRecargar: _recargar,
             vacio: 'No hay apelaciones',
+            icono: Icons.gavel,
+            cabecera: (l) => CabeceraTg(
+              titulo: 'Apelaciones',
+              subtitulo: 'Quien pide que se revise una decisión',
+              icono: Icons.gavel,
+              color: Tg.naranja,
+              datos: [
+                DatoTg(Icons.list_alt, Tg.amarillo, '${l.length}', 'MOSTRADAS'),
+                DatoTg(Icons.pending_actions, Tg.naranja,
+                    '${l.where((a) => a['estado'] != 'resuelta').length}', 'POR RESOLVER'),
+              ],
+            ),
             item: (a) {
               final tipo = a['id_medida'] != null
                   ? 'medida'
                   : a['id_reporte'] != null
                       ? 'reporte'
                       : 'calificación';
-              return Card(
+              return CardTg(
                 child: ListTile(
                   leading: Icon(a['estado'] == 'resuelta' ? Icons.check_circle : Icons.gavel,
                       color: a['estado'] == 'resuelta' ? Tg.verde : Tg.naranja),
@@ -932,7 +1043,20 @@ class _TianguisTabState extends State<_TianguisTab> {
           futuro: _futuro,
           onRecargar: _recargar,
           vacio: 'No hay tianguis registrados',
-          item: (t) => Card(
+          icono: Icons.storefront_outlined,
+          cabecera: (l) => CabeceraTg(
+            titulo: 'Tianguis',
+            subtitulo: 'Horarios, zonas y ubicación',
+            icono: Icons.storefront,
+            color: Tg.verde,
+            datos: [
+              DatoTg(Icons.map_outlined, Tg.verde,
+                  '${l.where((t) => t['activo'] == true).length}', 'ACTIVOS'),
+              DatoTg(Icons.visibility_off_outlined, Colors.white70,
+                  '${l.where((t) => t['activo'] != true).length}', 'APAGADOS'),
+            ],
+          ),
+          item: (t) => CardTg(
             child: ListTile(
               leading: Icon(Icons.storefront, color: t['activo'] == true ? Tg.verde : Colors.grey),
               title: Text('${t['nombre']}', style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -1137,7 +1261,7 @@ class _TianguisFormState extends State<_TianguisForm> {
                 maxLines: 4,
                 minLines: 2,
                 style: const TextStyle(color: Colors.black),
-                decoration: const InputDecoration(hintText: 'Geometría GeoJSON (opcional)'),
+                decoration: const InputDecoration(hintText: 'GeoJSON [lng, lat]: Polygon, LineString o Point (opcional)'),
               ),
             ]),
           ),
@@ -1185,7 +1309,7 @@ class _TianguisFormState extends State<_TianguisForm> {
     return Fondo(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(title: Text(widget.tianguis == null && _id == null ? 'Nuevo tianguis' : 'Tianguis')),
+        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, scrolledUnderElevation: 0, surfaceTintColor: Colors.transparent, title: Text(widget.tianguis == null && _id == null ? 'Nuevo tianguis' : 'Tianguis')),
         body: ListView(padding: const EdgeInsets.all(16), children: [
           TextField(
               controller: _nombre,
@@ -1246,7 +1370,7 @@ class _TianguisFormState extends State<_TianguisForm> {
             ]),
             if (_horarios.isEmpty) const Text('Sin horarios'),
             for (final h in _horarios)
-              Card(
+              CardTg(
                 child: ListTile(
                   title: Text(_dias[(h['dia_semana'] as num).toInt() % 7]),
                   subtitle: Text(
@@ -1267,7 +1391,7 @@ class _TianguisFormState extends State<_TianguisForm> {
             ]),
             if (_zonas.isEmpty) const Text('Sin zonas'),
             for (final z in _zonas)
-              Card(
+              CardTg(
                 child: ListTile(
                   title: Text('${z['nombre']}'),
                   subtitle: Text('${z['tipo']}${z['geometria'] == null ? '' : ' · con geometría'}'),
@@ -1316,7 +1440,18 @@ class _TerminosTabState extends State<_TerminosTab> {
           futuro: _futuro,
           onRecargar: _recargar,
           vacio: 'Aún no hay versiones publicadas',
-          item: (v) => Card(
+          icono: Icons.description_outlined,
+          cabecera: (l) => CabeceraTg(
+            titulo: 'Términos y privacidad',
+            subtitulo: 'Versiones que acepta la gente',
+            icono: Icons.description,
+            datos: [
+              DatoTg(Icons.history, Tg.amarillo, '${l.length}', 'VERSIONES'),
+              DatoTg(Icons.verified, Tg.verde,
+                  '${l.where((v) => v['vigente'] == true).length}', 'VIGENTES'),
+            ],
+          ),
+          item: (v) => CardTg(
             child: ListTile(
               leading: Icon(v['tipo'] == 'privacidad' ? Icons.privacy_tip_outlined : Icons.description_outlined),
               title: Text(
@@ -1390,7 +1525,7 @@ class _PublicarVersionState extends State<_PublicarVersion> {
     return Fondo(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(title: const Text('Publicar versión')),
+        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, scrolledUnderElevation: 0, surfaceTintColor: Colors.transparent, title: const Text('Publicar versión')),
         body: ListView(padding: const EdgeInsets.all(16), children: [
           DropdownButtonFormField<String>(
             initialValue: _tipo,
@@ -1534,7 +1669,7 @@ class _ConsultaTabState extends State<_ConsultaTab> {
     switch (_entidad) {
       case 'usuarios':
         final suspendida = x['estado_cuenta'] != 'activa';
-        return Card(
+        return CardTg(
           child: ListTile(
             leading: Icon(suspendida ? Icons.block : Icons.person, color: suspendida ? Tg.rojo : null),
             title: Text('${x['nombre_publico']}', style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -1551,7 +1686,7 @@ class _ConsultaTabState extends State<_ConsultaTab> {
         );
       case 'vendedores':
         final u = x['usuarios'] as Map?;
-        return Card(
+        return CardTg(
           child: ListTile(
             leading: const Icon(Icons.store_mall_directory),
             title: Text('${x['nombre_negocio'] ?? u?['nombre_publico'] ?? 'Sin nombre'}',
@@ -1565,7 +1700,7 @@ class _ConsultaTabState extends State<_ConsultaTab> {
         );
       case 'productos':
         final p = x['puestos'] as Map?;
-        return Card(
+        return CardTg(
           child: ListTile(
             leading: Icon(x['moderado'] == true ? Icons.visibility_off : Icons.inventory_2_outlined),
             title: Text('${x['nombre']}', style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -1590,7 +1725,7 @@ class _ConsultaTabState extends State<_ConsultaTab> {
             : _entidad == 'anuncios'
                 ? 'Ocultar anuncio'
                 : 'Cancelar oferta';
-        return Card(
+        return CardTg(
           child: ListTile(
             isThreeLine: true,
             leading: Icon(mod ? Icons.visibility_off : Icons.article_outlined, color: mod ? Tg.rojo : null),
@@ -1603,7 +1738,7 @@ class _ConsultaTabState extends State<_ConsultaTab> {
         );
       default:
         final t = x['tianguis'] as Map?;
-        return Card(
+        return CardTg(
           child: ListTile(
             leading: const Icon(Icons.storefront),
             title: Text('${x['nombre']}', style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -1654,6 +1789,13 @@ class _ConsultaTabState extends State<_ConsultaTab> {
             futuro: _futuro,
             onRecargar: _recargar,
             vacio: 'Sin resultados',
+            icono: Icons.search_off,
+            cabecera: (l) => CabeceraTg(
+              titulo: 'Consulta',
+              subtitulo: 'Busca personas, puestos y publicaciones',
+              icono: Icons.search,
+              datos: [DatoTg(Icons.list_alt, Tg.amarillo, '${l.length}', 'RESULTADOS')],
+            ),
             item: _fila,
           ),
         ),

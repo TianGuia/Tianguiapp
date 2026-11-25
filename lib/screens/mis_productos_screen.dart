@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../config/theme.dart';
+import '../widgets/urbano.dart';
 import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
 import '../services/vendedor_service.dart';
@@ -75,7 +76,7 @@ class _MisProductosScreenState extends State<MisProductosScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ScaffoldTg(
         appBar: AppBar(title: const Text('Mis productos')),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () => _abrirFormulario(),
@@ -85,53 +86,118 @@ class _MisProductosScreenState extends State<MisProductosScreen> {
         body: FutureBuilder<List<Producto>>(
           future: _futuro,
           builder: (_, s) {
-            if (s.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
+            if (s.connectionState != ConnectionState.done) return const CargandoTg();
+            if (s.hasError) {
+              return EstadoVacio(
+                icono: Icons.wifi_off_rounded,
+                color: Tg.rojo,
+                titulo: '¡Se cayó la señal!',
+                mensaje: 'No se pudieron cargar tus productos.\n${s.error}',
+                accionTexto: 'Reintentar',
+                accionIcono: Icons.refresh,
+                onAccion: _recargar,
+              );
             }
-            if (s.hasError) return Center(child: Text('No se pudieron cargar tus productos: ${s.error}'));
             final l = s.data!;
-            if (l.isEmpty) return const Center(child: Text('Aún no tienes productos'));
-            return ListView.builder(
-              padding: const EdgeInsets.only(bottom: 90),
-              itemCount: l.length,
-              itemBuilder: (_, i) {
-                final p = l[i];
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: ListTile(
-                    onTap: () => _abrirFormulario(producto: p),
-                    leading: p.imagenes.isEmpty
-                        ? const Icon(Icons.image_not_supported, size: 40)
-                        : ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(p.imagenes.first, width: 56, height: 56, fit: BoxFit.cover),
-                          ),
-                    title: Text(p.nombre, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('\$${p.precio ?? '-'} · stock ${p.cantidad ?? 0}'
-                        '${p.imagenes.length > 1 ? ' · ${p.imagenes.length} fotos' : ''}'
-                        '${p.disponible ? '' : ' · no disponible'}'),
-                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                      IconButton(
-                          tooltip: 'Quitar uno',
-                          icon: const Icon(Icons.remove_circle_outline),
-                          onPressed: () => _stock(p, -1)),
-                      IconButton(
-                          tooltip: 'Agregar uno',
-                          icon: const Icon(Icons.add_circle_outline),
-                          onPressed: () => _stock(p, 1)),
-                      IconButton(
-                        tooltip: 'Retirar producto',
-                        icon: const Icon(Icons.delete_outline, color: Tg.rojo),
-                        onPressed: () => _retirar(p),
-                      ),
-                    ]),
-                  ),
-                );
-              },
-            );
+            if (l.isEmpty) {
+              return EstadoVacio(
+                icono: Icons.inventory_2_rounded,
+                titulo: '¡Tu mercancía está en cero!',
+                mensaje: 'Sube tu primer producto con foto y precio para que los compradores lo encuentren.',
+                accionTexto: 'Agregar producto',
+                accionIcono: Icons.add,
+                onAccion: () => _abrirFormulario(),
+              );
+            }
+            final agotados = l.where((p) => (p.cantidad ?? 0) <= 0).length;
+            final ocultos = l.where((p) => !p.disponible).length;
+            return ListView(padding: const EdgeInsets.only(bottom: 100), children: [
+              CabeceraTg(
+                titulo: 'Mi mercancía',
+                subtitulo: 'Toca un producto para editarlo',
+                icono: Icons.inventory_2_rounded,
+                datos: [
+                  DatoTg(Icons.sell, Tg.amarillo, '${l.length}', 'PRODUCTOS'),
+                  DatoTg(Icons.production_quantity_limits, Tg.naranja, '$agotados', 'SIN STOCK'),
+                  DatoTg(Icons.visibility_off, Tg.azulClaro, '$ocultos', 'NO DISPONIBLES'),
+                ],
+              ),
+              for (final p in l) _tarjeta(p),
+            ]);
           },
         ),
       );
+
+  Widget _tarjeta(Producto p) {
+    final sinStock = (p.cantidad ?? 0) <= 0;
+    final foto = p.imagenes.isEmpty
+        ? Container(
+            width: 74,
+            height: 74,
+            decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(14)),
+            child: const Icon(Icons.image_not_supported, size: 34, color: Colors.white38),
+          )
+        : ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Image.network(p.imagenes.first,
+                width: 74,
+                height: 74,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                    width: 74, height: 74, color: Colors.white12,
+                    child: const Icon(Icons.broken_image, color: Colors.white38))),
+          );
+    return TarjetaTg(
+      acento: !p.disponible ? Colors.grey : (sinStock ? Tg.naranja : const Color(0xFF2EAD5B)),
+      onTap: () => _abrirFormulario(producto: p),
+      padding: const EdgeInsets.fromLTRB(10, 10, 6, 8),
+      child: Row(children: [
+        foto,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(p.nombre,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, height: 1.1)),
+            const SizedBox(height: 2),
+            Text(p.precio == null ? 'Sin precio' : '\$${p.precio}',
+                style: Tg.marcador(20, color: Tg.amarillo)),
+            const SizedBox(height: 3),
+            Wrap(spacing: 6, runSpacing: 4, children: [
+              PildoraTg(sinStock ? 'SIN STOCK' : 'STOCK ${p.cantidad ?? 0}',
+                  color: sinStock ? Tg.naranja : const Color(0xFF1E8E3E),
+                  colorTexto: sinStock ? Tg.azulOscuro : Colors.white),
+              if (!p.disponible) const PildoraTg('NO DISPONIBLE', color: Colors.grey, colorTexto: Colors.white),
+              if (p.imagenes.length > 1)
+                PildoraTg('${p.imagenes.length} FOTOS',
+                    color: Colors.white12, colorTexto: Colors.white70, icono: Icons.photo_library),
+            ]),
+          ]),
+        ),
+        Column(mainAxisSize: MainAxisSize.min, children: [
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            IconButton(
+                tooltip: 'Quitar uno',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.remove_circle_outline),
+                onPressed: () => _stock(p, -1)),
+            IconButton(
+                tooltip: 'Agregar uno',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.add_circle_outline),
+                onPressed: () => _stock(p, 1)),
+          ]),
+          IconButton(
+            tooltip: 'Retirar producto',
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(Icons.delete_outline, color: Tg.rojo),
+            onPressed: () => _retirar(p),
+          ),
+        ]),
+      ]),
+    );
+  }
 }
 
 // crear o editar un producto, la primera foto es la portada
@@ -220,6 +286,11 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
 
   Future<void> _guardar() async {
     if (_nombre.text.trim().isEmpty) return _msg('Escribe el nombre del producto');
+    if (!_puestos.any((p) => p.id == _puesto)) {
+      return _msg(_puestos.isEmpty
+          ? 'Primero crea un puesto en "Mi puesto" para poder publicar productos'
+          : 'Elige el puesto donde vendes este producto');
+    }
     final precioTxt = _precio.text.trim();
     final precio = precioTxt.isEmpty ? null : Entradas.leerDinero(precioTxt);
     if (precioTxt.isNotEmpty && (precio == null || precio <= 0)) {
@@ -303,7 +374,7 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
   Widget build(BuildContext context) {
     final puestosOk = _puestos.any((p) => p.id == _puesto);
     final catOk = _cats.any((c) => c['id'] == _cat);
-    return Scaffold(
+    return ScaffoldTg(
       appBar: AppBar(title: Text(_edita ? 'Editar producto' : 'Nuevo producto')),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         SizedBox(
@@ -391,7 +462,7 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
         DropdownButton<String>(
           isExpanded: true,
           value: puestosOk ? _puesto : null,
-          hint: const Text('Puesto donde lo vendes'),
+          hint: const Text('Puesto donde lo vendes *'),
           items: [for (final p in _puestos) DropdownMenuItem(value: p.id, child: Text(p.nombre))],
           onChanged: (v) => setState(() => _puesto = v),
         ),

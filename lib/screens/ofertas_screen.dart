@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/theme.dart';
+import '../widgets/urbano.dart';
 import '../models/modelos.dart';
 import '../models/tratos.dart';
 import '../services/vendedor_service.dart';
@@ -58,7 +59,7 @@ class _OfertasScreenState extends State<OfertasScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ScaffoldTg(
         appBar: AppBar(title: const Text('Ofertas relámpago')),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: _nueva,
@@ -70,66 +71,91 @@ class _OfertasScreenState extends State<OfertasScreen> {
           child: FutureBuilder<List<Oferta>>(
             future: _futuro,
             builder: (_, s) {
-              if (s.connectionState != ConnectionState.done) {
-                return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
-              }
+              if (s.connectionState != ConnectionState.done) return const CargandoTg();
               if (s.hasError) {
-                return ListView(children: [Padding(padding: const EdgeInsets.all(24), child: Text('No se pudieron cargar las ofertas: ${s.error}'))]);
+                return ListView(children: [
+                  SizedBox(
+                    height: 420,
+                    child: EstadoVacio(
+                      icono: Icons.wifi_off_rounded,
+                      color: Tg.rojo,
+                      titulo: '¡Se cayó la señal!',
+                      mensaje: 'No se pudieron cargar las ofertas.\n${s.error}',
+                    ),
+                  ),
+                ]);
               }
               final l = s.data!;
               if (l.isEmpty) {
-                return ListView(children: const [
-                  SizedBox(height: 120),
-                  Center(child: Text('Aún no publicas ofertas')),
+                return ListView(children: [
+                  SizedBox(
+                    height: 460,
+                    child: EstadoVacio(
+                      icono: Icons.bolt_rounded,
+                      color: Tg.naranja,
+                      titulo: '¡Lanza tu primera oferta!',
+                      mensaje: 'Una oferta relámpago mueve tu mercancía rápido: eliges productos, el descuento y a qué hora termina.',
+                      accionTexto: 'Crear oferta',
+                      accionIcono: Icons.bolt,
+                      onAccion: _nueva,
+                    ),
+                  ),
                 ]);
               }
-              return ListView.builder(
-                padding: const EdgeInsets.only(top: 6, bottom: 90),
-                itemCount: l.length,
-                itemBuilder: (_, i) {
-                  final o = l[i];
-                  return Opacity(
+              final vigentes = l.where((o) => o.vigente).length;
+              return ListView(padding: const EdgeInsets.only(bottom: 100), children: [
+                CabeceraTg(
+                  titulo: 'Ofertas relámpago',
+                  subtitulo: 'Descuentos que duran poco',
+                  icono: Icons.bolt_rounded,
+                  color: Tg.naranja,
+                  datos: [
+                    DatoTg(Icons.bolt, Tg.amarillo, '$vigentes', 'VIGENTES'),
+                    DatoTg(Icons.history, Colors.white70, '${l.length - vigentes}', 'TERMINADAS'),
+                  ],
+                ),
+                for (final o in l)
+                  Opacity(
                     opacity: o.vigente ? 1 : 0.6,
-                    child: Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      child: Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Row(children: [
-                            Expanded(
-                              child: Text(o.titulo ?? 'Oferta',
-                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                              decoration: BoxDecoration(
-                                  color: o.vigente ? Tg.verde : Colors.grey,
-                                  borderRadius: BorderRadius.circular(10)),
-                              child: Text(o.vigente ? 'VIGENTE' : 'TERMINADA',
-                                  style: const TextStyle(
-                                      color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
-                            ),
-                          ]),
-                          const SizedBox(height: 4),
-                          Text(o.vigente ? 'Termina: ${fmtFecha(o.fin)}' : 'Terminó: ${fmtFecha(o.fin)}'),
-                          const SizedBox(height: 6),
-                          for (final it in o.items)
-                            Text('• ${it.producto}: '
+                    child: TarjetaTg(
+                      acento: o.vigente ? Tg.naranja : Colors.grey,
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          Expanded(
+                            child: Text(o.titulo ?? 'Oferta',
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, height: 1.1)),
+                          ),
+                          const SizedBox(width: 8),
+                          PildoraTg(o.vigente ? 'VIGENTE' : 'TERMINADA',
+                              color: o.vigente ? Tg.verde : Colors.grey, colorTexto: Colors.white),
+                        ]),
+                        const SizedBox(height: 4),
+                        Row(children: [
+                          const Icon(Icons.timer_outlined, size: 16, color: Tg.azulClaro),
+                          const SizedBox(width: 5),
+                          Text(o.vigente ? 'Termina: ${fmtFecha(o.fin)}' : 'Terminó: ${fmtFecha(o.fin)}',
+                              style: const TextStyle(color: Tg.azulClaro, fontWeight: FontWeight.w800)),
+                        ]),
+                        const SizedBox(height: 8),
+                        for (final it in o.items)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 2),
+                            child: Text('• ${it.producto}: '
                                 '${it.ref != null ? '\$${it.ref} → ' : ''}'
                                 '${it.precioFinal != null ? '\$${it.precioFinal}' : '—'}'
-                                '${it.descuento != null ? '  (-${it.descuento}%)' : ''}'),
-                          if (o.vigente)
-                            TextButton.icon(
-                              onPressed: () => _terminar(o),
-                              icon: const Icon(Icons.stop_circle_outlined),
-                              label: const Text('Terminar ahora'),
-                            ),
-                        ]),
-                      ),
+                                '${it.descuento != null ? '  (-${it.descuento}%)' : ''}',
+                                style: const TextStyle(fontSize: 15, color: Colors.white70)),
+                          ),
+                        if (o.vigente)
+                          TextButton.icon(
+                            onPressed: () => _terminar(o),
+                            icon: const Icon(Icons.stop_circle_outlined),
+                            label: const Text('Terminar ahora'),
+                          ),
+                      ]),
                     ),
-                  );
-                },
-              );
+                  ),
+              ]);
             },
           ),
         ),
@@ -233,7 +259,7 @@ class _OfertaFormScreenState extends State<OfertaFormScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ScaffoldTg(
         appBar: AppBar(title: const Text('Nueva oferta')),
         body: _cargando
             ? const Center(child: CircularProgressIndicator(color: Tg.amarillo))

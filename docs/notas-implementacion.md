@@ -30,6 +30,20 @@ Toldo para aplicar sus migraciones y configurar autenticación y permisos.
 - **No hay carrito, pedidos ni pagos**: TianGuía no vende dentro de la app, se usan chat, propuesta de
   precio y apartado.
 
+## Valoraciones, etiquetas y fallas (necesita Toldo `20261128000000`)
+- **Etiquetas**: las que el comprador elige al calificar las ve cualquier usuario en el puesto, solo como
+  conteo ("Amable ×5"), mediante la función `etiquetas_puesto`. Si la migración no está aplicada, no salen.
+- **Comentarios**: son privados. Solo los leen quien calificó, el vendedor calificado y el administrador.
+  La app lo avisa en la ventana de calificar; la regla real está en la política `calif_select` de Toldo.
+  Antes de esa migración cualquier usuario con sesión podía leer la tabla completa.
+- **Reportar una falla**: Perfil > Ajustes y avisos. Se guarda en `reportes_falla` y el administrador la
+  lee en el panel (icono del bicho). No está ligada a un requisito funcional.
+- **Tutorial**: recorrido de 4 tarjetas (encontrar puestos, platicar con el vendedor, visitar y calificar, vender).
+  Sale solo la primera vez que se abre el inicio en cada teléfono (`shared_preferences`, llave `tutorial_visto`)
+  y se repite desde Perfil > Cómo funciona. No viene en los requisitos del PDF; entra por RNF-1 (usabilidad).
+  No usa la base de datos.
+- **Estilo**: las ventanas emergentes salen con el estilo de la app desde `theme.dart`, sin tocar cada una.
+
 ## Pendiente
 - Avisos (RF-07, RF-08, RF-09): existen la pantalla de notificaciones y las preferencias, pero la app
   no crea los avisos ni manda notificaciones push. Falta revisar si Toldo los genera con triggers.
@@ -43,6 +57,9 @@ Toldo para aplicar sus migraciones y configurar autenticación y permisos.
 4. Mi puesto > MIS PRODUCTOS > agregar con foto y stock.
 5. Con otra cuenta: Inicio (debe salir el puesto), Explorar (buscar), detalle: chat, propuesta, apartado, favorito.
 6. Vendedor: "Generar código de visita". Comprador: "Ya visité este puesto" > código > calificar.
+   Con una tercera cuenta (sin visita), comprobar que en el puesto se ven las etiquetas pero no el comentario.
+7. Teléfono nuevo o datos de la app borrados: al entrar debe salir el tutorial; al terminar o saltar no vuelve a salir solo.
+8. Perfil > Reportar una falla: enviar uno y verlo como administrador en el icono del bicho.
 
 ## Prueba de puestos y productos
 1. Mi puesto > **+ Puesto**: nombre, descripción, foto > crear. Menú ⋮ del puesto > **Editar**.

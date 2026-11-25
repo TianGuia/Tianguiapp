@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/estados.dart';
 import '../config/theme.dart';
+import '../widgets/urbano.dart';
 import '../models/tratos.dart';
 import '../services/ocultos.dart';
 import '../services/tratos_service.dart';
@@ -144,12 +145,7 @@ class _TratosScreenState extends State<TratosScreen> {
 
   Widget _etiqueta(String estado) {
     final c = _chip(estado);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-      decoration: BoxDecoration(color: c.color, borderRadius: BorderRadius.circular(10)),
-      child: Text(c.texto,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
-    );
+    return PildoraTg(c.texto, color: c.color, colorTexto: c.color == Tg.azulClaro ? Tg.azulOscuro : Colors.white);
   }
 
   Widget _boton(String texto, VoidCallback onPressed, {Color? color, Color? texto2}) => FilledButton(
@@ -172,25 +168,24 @@ class _TratosScreenState extends State<TratosScreen> {
   }) =>
       Opacity(
         opacity: atenuada ? 0.6 : 1,
-        child: Card(
-          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Expanded(
-                    child: Text(titulo,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800))),
-                _etiqueta(estado),
-              ]),
-              const SizedBox(height: 6),
-              for (final l in lineas) Text(l, style: const TextStyle(fontSize: 15)),
-              if (acciones.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Wrap(spacing: 8, runSpacing: 8, children: acciones),
-              ],
+        child: TarjetaTg(
+          acento: _chip(estado).color,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Expanded(
+                  child: Text(titulo,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, height: 1.1))),
+              const SizedBox(width: 8),
+              _etiqueta(estado),
             ]),
-          ),
+            const SizedBox(height: 6),
+            for (final l in lineas)
+              Text(l, style: const TextStyle(fontSize: 15, color: Colors.white70, height: 1.2)),
+            if (acciones.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(spacing: 8, runSpacing: 8, children: acciones),
+            ],
+          ]),
         ),
       );
 
@@ -274,6 +269,7 @@ class _TratosScreenState extends State<TratosScreen> {
     Future<List<T>> futuro,
     Widget Function(T) tarjeta,
     String vacio, {
+    required IconData iconoVacio,
     required Set<String> ocultos,
     required String Function(T) idDe,
     required bool Function(T) terminado,
@@ -284,19 +280,32 @@ class _TratosScreenState extends State<TratosScreen> {
         child: FutureBuilder<List<T>>(
           future: futuro,
           builder: (_, s) {
-            if (s.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
-            }
+            if (s.connectionState != ConnectionState.done) return const CargandoTg();
             if (s.hasError) {
               return ListView(children: [
-                Padding(padding: const EdgeInsets.all(24), child: Text('No se pudieron cargar los tratos: ${s.error}')),
+                SizedBox(
+                  height: 420,
+                  child: EstadoVacio(
+                    icono: Icons.wifi_off_rounded,
+                    color: Tg.rojo,
+                    titulo: '¡Se cayó la señal!',
+                    mensaje: 'No se pudieron cargar los tratos.\n${s.error}\nDesliza hacia abajo para reintentar.',
+                  ),
+                ),
               ]);
             }
             final l = s.data!.where((x) => !ocultos.contains(idDe(x))).toList();
             if (l.isEmpty) {
               return ListView(children: [
-                const SizedBox(height: 120),
-                Center(child: Text(vacio)),
+                SizedBox(
+                  height: 420,
+                  child: EstadoVacio(
+                    icono: iconoVacio,
+                    titulo: _comoVendedor ? '¡Todo en calma!' : '¡Aún nada por aquí!',
+                    mensaje: vacio,
+                    color: iconoVacio == Icons.inventory_2_rounded ? Tg.rosa : Tg.amarillo,
+                  ),
+                ),
               ]);
             }
             return ListView.builder(
@@ -309,13 +318,7 @@ class _TratosScreenState extends State<TratosScreen> {
                 return Dismissible(
                   key: ValueKey(idDe(x)),
                   direction: DismissDirection.endToStart,
-                  background: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 20),
-                    decoration: BoxDecoration(color: Tg.rojo, borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(Icons.delete, color: Colors.white),
-                  ),
+                  background: const FondoBorrar(),
                   onDismissed: (_) => quitar(x),
                   child: tarjeta(x),
                 );
@@ -328,7 +331,7 @@ class _TratosScreenState extends State<TratosScreen> {
   @override
   Widget build(BuildContext context) => DefaultTabController(
         length: 2,
-        child: Scaffold(
+        child: ScaffoldTg(
           appBar: AppBar(
             title: Text(_comoVendedor ? 'Propuestas y apartados' : 'Mis propuestas y apartados'),
             bottom: const TabBar(
@@ -338,13 +341,19 @@ class _TratosScreenState extends State<TratosScreen> {
           ),
           body: TabBarView(children: [
             _lista<Propuesta>(_props, _tarjetaPropuesta,
-                _comoVendedor ? 'Aún no te llegan propuestas' : 'Aún no has enviado propuestas',
+                _comoVendedor
+                    ? 'Aún no te llegan propuestas de precio. Cuando alguien te ofrezca, sale aquí.'
+                    : 'Desde un producto puedes proponerle un precio al vendedor. Tus propuestas salen aquí.',
+                iconoVacio: Icons.request_quote_rounded,
                 ocultos: _ocP,
                 idDe: (p) => p.id,
                 terminado: (p) => !p.pendiente,
                 quitar: (p) => _quitar('propuestas', p.id)),
             _lista<Apartado>(_aps, _tarjetaApartado,
-                _comoVendedor ? 'Aún no te llegan apartados' : 'Aún no has solicitado apartados',
+                _comoVendedor
+                    ? 'Aún no te llegan apartados. Cuando alguien aparte algo tuyo, sale aquí.'
+                    : 'Aparta un producto sin pagar y pasa por él al tianguis. Tus apartados salen aquí.',
+                iconoVacio: Icons.inventory_2_rounded,
                 ocultos: _ocA,
                 idDe: (a) => a.id,
                 terminado: (a) => !a.pendiente && !a.aceptado,

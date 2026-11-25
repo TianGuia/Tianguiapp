@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/theme.dart';
 import '../services/auth_service.dart';
 import '../widgets/fondo.dart';
+import '../widgets/urbano.dart';
 import '../widgets/entradas.dart';
 import '../widgets/mensaje.dart';
 
@@ -107,10 +108,24 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
     return Fondo(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(title: const Text('Editar perfil')),
+        appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            surfaceTintColor: Colors.transparent,
+            title: const Text('Editar perfil')),
         body: _cargando
-            ? const Center(child: CircularProgressIndicator(color: Tg.amarillo))
-            : ListView(padding: const EdgeInsets.all(20), children: [
+            ? const CargandoTg()
+            : ListView(padding: const EdgeInsets.only(bottom: 24), children: [
+                const CabeceraTg(
+                  titulo: 'Tu perfil',
+                  subtitulo: 'Así te ven en los chats y apartados',
+                  icono: Icons.person,
+                  color: Tg.rosa,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(children: [
                 Center(
                   child: GestureDetector(
                     onTap: _guardando ? null : _elegirFoto,
@@ -165,6 +180,8 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
                 FilledButton(
                   onPressed: _guardando ? null : _guardar,
                   child: Text(_guardando ? 'GUARDANDO…' : 'GUARDAR'),
+                ),
+                  ]),
                 ),
               ]),
       ),

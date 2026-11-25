@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/enums.dart';
 import '../config/theme.dart';
+import '../widgets/urbano.dart';
 import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
 import '../services/chat_service.dart';
@@ -156,7 +157,7 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ScaffoldTg(
         appBar: AppBar(title: const Text('Espacios')),
         floatingActionButton:
             FloatingActionButton.extended(onPressed: () => _formulario(), icon: const Icon(Icons.add), label: const Text('Anuncio')),
@@ -194,30 +195,78 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
             child: FutureBuilder<List<Map<String, dynamic>>>(
               future: _futuro,
               builder: (_, s) {
-                if (s.connectionState != ConnectionState.done) {
-                  return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
+                if (s.connectionState != ConnectionState.done) return const CargandoTg();
+                if (s.hasError) {
+                  return EstadoVacio(
+                    icono: Icons.wifi_off_rounded,
+                    color: Tg.rojo,
+                    titulo: '¡Se cayó la señal!',
+                    mensaje: 'No se pudieron cargar los anuncios.\n${s.error}',
+                  );
                 }
-                if (s.hasError) return Center(child: Text('No se pudieron cargar los anuncios: ${s.error}'));
                 final l = s.data!;
-                if (l.isEmpty) return const Center(child: Text('No hay anuncios por ahora'));
+                if (l.isEmpty) {
+                  return EstadoVacio(
+                    icono: Icons.crop_free_rounded,
+                    color: const Color(0xFF2EAD5B),
+                    titulo: '¡No hay anuncios por ahora!',
+                    mensaje: 'Aquí los vendedores se avisan de lugares libres, relevos y espacios para compartir. Publica el primero.',
+                    accionTexto: 'Publicar anuncio',
+                    accionIcono: Icons.add,
+                    onAccion: () => _formulario(),
+                  );
+                }
                 return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 90),
+                  padding: const EdgeInsets.fromLTRB(0, 4, 0, 100),
                   itemCount: l.length,
                   itemBuilder: (_, i) {
                     final a = l[i];
                     final mio = a['id_vendedor'] == widget.idVendedor;
                     final negocio = (a['perfiles_vendedor'] as Map?)?['nombre_negocio'];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        isThreeLine: true,
-                        leading: const Icon(Icons.crop_free, color: Tg.amarillo),
-                        title: Text('${_etiquetaRol(a['rol'])} · ${a['titulo']}',
-                            style: const TextStyle(fontWeight: FontWeight.w800)),
-                        subtitle: Text('${a['acuerdo']} · ${_nombreTianguis(a['id_tianguis'])}'
-                            '${negocio != null ? ' · $negocio' : ''}'
-                            '${(a['descripcion'] ?? '') != '' ? '\n${a['descripcion']}' : ''}'),
-                        trailing: mio
+                    final desc = (a['descripcion'] ?? '') as String;
+                    return TarjetaTg(
+                      acento: mio ? Tg.amarillo : const Color(0xFF2EAD5B),
+                      padding: const EdgeInsets.fromLTRB(12, 12, 4, 10),
+                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        SelloTg(
+                            icono: Icons.crop_free,
+                            color: mio ? Tg.amarillo : const Color(0xFF2EAD5B),
+                            colorIcono: mio ? Tg.azulOscuro : Colors.white,
+                            tam: 44),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Wrap(spacing: 6, runSpacing: 4, children: [
+                              PildoraTg(_etiquetaRol(a['rol']).toUpperCase(),
+                                  color: Tg.azulClaro, colorTexto: Tg.azulOscuro),
+                              PildoraTg('${a['acuerdo']}'.toUpperCase(),
+                                  color: Colors.white12, colorTexto: Colors.white70),
+                              if (mio) const PildoraTg('TUYO', color: Tg.amarillo),
+                            ]),
+                            const SizedBox(height: 4),
+                            Text('${a['titulo']}',
+                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, height: 1.1)),
+                            const SizedBox(height: 2),
+                            Row(children: [
+                              const Icon(Icons.place, size: 15, color: Tg.rosa),
+                              const SizedBox(width: 3),
+                              Expanded(
+                                child: Text(
+                                    '${_nombreTianguis(a['id_tianguis'])}${negocio != null ? ' · $negocio' : ''}',
+                                    style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                              ),
+                            ]),
+                            if (desc.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(desc,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 14.5, height: 1.15)),
+                              ),
+                          ]),
+                        ),
+                        mio
                             ? PopupMenuButton<String>(
                                 onSelected: (v) => v == 'editar' ? _formulario(anuncio: a) : _cerrar(a),
                                 itemBuilder: (_) => const [
@@ -225,7 +274,7 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
                                   PopupMenuItem(value: 'cerrar', child: Text('Cerrar anuncio')),
                                 ],
                               )
-                            : Row(mainAxisSize: MainAxisSize.min, children: [
+                            : Column(mainAxisSize: MainAxisSize.min, children: [
                                 IconButton(
                                   icon: const Icon(Icons.chat_bubble_outline),
                                   tooltip: 'Contactar',
@@ -238,7 +287,7 @@ class _EspaciosScreenState extends State<EspaciosScreen> {
                                   ],
                                 ),
                               ]),
-                      ),
+                      ]),
                     );
                   },
                 );
