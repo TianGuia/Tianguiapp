@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../config/theme.dart';
 import '../services/auth_service.dart';
-import '../widgets/fondo.dart';
 import '../widgets/pincel.dart';
+import '../widgets/urbano.dart';
 
 // acceso de administrador: una clave y la respuesta a una pregunta secreta.
 // la validacion la hace el servidor y la app no guarda nada
@@ -57,17 +58,25 @@ class _AdminEntradaScreenState extends State<AdminEntradaScreen> {
   @override
   Widget build(BuildContext context) {
     const negro = TextStyle(color: Colors.black);
-    return Fondo(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
+    return ScaffoldTg(
         appBar: AppBar(title: const Text('Administrador')),
         body: SafeArea(
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.admin_panel_settings, size: 64),
-                const SizedBox(height: 20),
+                const SelloTg(icono: Icons.admin_panel_settings, color: Tg.amarillo, tam: 84),
+                const SizedBox(height: 12),
+                Text('Panel de administración', textAlign: TextAlign.center, style: Tg.marcador(26)),
+                const SizedBox(height: 4),
+                const Text('Solo para quien administra TianGuía',
+                    style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 18),
+                TarjetaTg(
+                  margen: EdgeInsets.zero,
+                  acento: Tg.amarillo,
+                  padding: const EdgeInsets.all(16),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
                 TextField(
                   controller: _nombre,
                   style: negro,
@@ -95,6 +104,8 @@ class _AdminEntradaScreenState extends State<AdminEntradaScreen> {
                   onSubmitted: (_) => _cargando ? null : _entrar(),
                   decoration: InputDecoration(hintText: 'Respuesta', errorText: _error),
                 ),
+                  ]),
+                ),
                 const SizedBox(height: 20),
                 BotonPincel(
                     texto: 'ENTRAR', cargando: _cargando, onPressed: _cargando ? null : _entrar),
@@ -102,7 +113,6 @@ class _AdminEntradaScreenState extends State<AdminEntradaScreen> {
             ),
           ),
         ),
-      ),
     );
   }
 }
