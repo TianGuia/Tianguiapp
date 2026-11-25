@@ -72,6 +72,12 @@ class ChatService {
     ];
   }
 
+  // total de mensajes sin leer, para la insignia de la barra inferior
+  Future<int> totalNoLeidos() async {
+    final todas = await misConversaciones();
+    return todas.fold<int>(0, (t, c) => t + ((c['no_leidos'] as num?)?.toInt() ?? 0));
+  }
+
   Future<List<Map<String, dynamic>>> _conversacionesBasicas() async {
     final r = await _db
         .from('conversaciones')
