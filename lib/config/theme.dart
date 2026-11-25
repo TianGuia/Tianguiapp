@@ -46,10 +46,31 @@ class Tg {
           side: const BorderSide(color: Colors.white24),
         ),
       ),
+      // todas las ventanas emergentes (AlertDialog, SimpleDialog) con el look sticker de la app
       dialogTheme: DialogThemeData(
         backgroundColor: azulOscuro,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        titleTextStyle: marcador(20),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: azulClaro.withValues(alpha: 0.6), width: 2),
+        ),
+        titleTextStyle: marcador(21),
+        contentTextStyle: GoogleFonts.baloo2(
+            color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600, height: 1.2),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: azulOscuro,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: BorderSide(color: azulClaro.withValues(alpha: 0.5), width: 1.5),
+        ),
+        textStyle: GoogleFonts.baloo2(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: azulOscuro,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
