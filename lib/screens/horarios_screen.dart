@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
+import '../widgets/urbano.dart';
 import '../services/catalogo_service.dart';
 import '../services/vendedor_service.dart';
 import '../widgets/mensaje.dart';
@@ -153,47 +154,86 @@ class _HorariosScreenState extends State<HorariosScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ScaffoldTg(
         appBar: AppBar(title: const Text('Horario y ausencias')),
         body: _cargando
-            ? const Center(child: CircularProgressIndicator(color: Tg.amarillo))
-            : ListView(padding: const EdgeInsets.all(14), children: [
-                Text('Horario habitual', style: Tg.marcador(18)),
-                const SizedBox(height: 6),
-                if (_horarios.isEmpty) const Text('Aún no registras horarios'),
+            ? const CargandoTg()
+            : ListView(padding: const EdgeInsets.only(bottom: 30), children: [
+                CabeceraTg(
+                  titulo: 'Tu horario',
+                  subtitulo: 'Avísale a tu clientela cuándo te pones y cuándo no',
+                  icono: Icons.schedule_rounded,
+                  color: Tg.azulClaro,
+                  datos: [
+                    DatoTg(Icons.schedule, Tg.amarillo, '${_horarios.length}', 'HORARIOS'),
+                    DatoTg(Icons.event_busy, Tg.rosa, '${_ausencias.length}', 'AUSENCIAS'),
+                  ],
+                ),
+                const SeccionTg('Horario habitual'),
+                if (_horarios.isEmpty)
+                  const TarjetaTg(
+                    acento: Tg.amarillo,
+                    child: Text('Aún no registras horarios. Agrega los días y horas en que sueles ponerte.',
+                        style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700, height: 1.15)),
+                  ),
                 for (final h in _horarios)
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.schedule, color: Tg.amarillo),
-                      title: Text(_dias[(h['dia_semana'] as num).toInt() % 7]),
-                      subtitle: Text('${(h['hora_inicio'] as String).substring(0, 5)} – '
-                          '${(h['hora_fin'] as String).substring(0, 5)}  ${_tianguisDe(h)}'),
-                      trailing: IconButton(
+                  TarjetaTg(
+                    acento: Tg.amarillo,
+                    padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+                    child: Row(children: [
+                      const SelloTg(icono: Icons.schedule, color: Tg.amarillo, tam: 42),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(_dias[(h['dia_semana'] as num).toInt() % 7],
+                              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, height: 1.1)),
+                          Text('${(h['hora_inicio'] as String).substring(0, 5)} – '
+                              '${(h['hora_fin'] as String).substring(0, 5)}  ${_tianguisDe(h)}',
+                              style: const TextStyle(color: Colors.white70, fontSize: 14.5)),
+                        ]),
+                      ),
+                      IconButton(
                         icon: const Icon(Icons.delete_outline),
                         onPressed: () => _borrar(() => _svc.eliminarHorario(h['id'])),
                       ),
-                    ),
+                    ]),
                   ),
-                TextButton.icon(
-                    onPressed: _agregarHorario, icon: const Icon(Icons.add), label: const Text('Agregar horario')),
-                const SizedBox(height: 18),
-                Text('Ausencias programadas', style: Tg.marcador(18)),
-                const SizedBox(height: 6),
-                if (_ausencias.isEmpty) const Text('No tienes ausencias próximas'),
+                Center(
+                  child: TextButton.icon(
+                      onPressed: _agregarHorario, icon: const Icon(Icons.add), label: const Text('Agregar horario')),
+                ),
+                const SeccionTg('Ausencias programadas'),
+                if (_ausencias.isEmpty)
+                  const TarjetaTg(
+                    acento: Tg.rosa,
+                    child: Text('No tienes ausencias próximas. Si vas a faltar, avísalo aquí y tu gente lo sabrá.',
+                        style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700, height: 1.15)),
+                  ),
                 for (final a in _ausencias)
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.event_busy, color: Tg.rosa),
-                      title: Text('${a['fecha']}'),
-                      subtitle: Text([_tianguisDe(a), if ((a['motivo'] ?? '') != '') a['motivo']].join(' · ')),
-                      trailing: IconButton(
+                  TarjetaTg(
+                    acento: Tg.rosa,
+                    padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+                    child: Row(children: [
+                      const SelloTg(icono: Icons.event_busy, color: Tg.rosa, colorIcono: Colors.white, tam: 42),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text('${a['fecha']}',
+                              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, height: 1.1)),
+                          Text([_tianguisDe(a), if ((a['motivo'] ?? '') != '') a['motivo']].join(' · '),
+                              style: const TextStyle(color: Colors.white70, fontSize: 14.5)),
+                        ]),
+                      ),
+                      IconButton(
                         icon: const Icon(Icons.delete_outline),
                         onPressed: () => _borrar(() => _svc.eliminarAusencia(a['id'])),
                       ),
-                    ),
+                    ]),
                   ),
-                TextButton.icon(
-                    onPressed: _agregarAusencia, icon: const Icon(Icons.add), label: const Text('Avisar ausencia')),
+                Center(
+                  child: TextButton.icon(
+                      onPressed: _agregarAusencia, icon: const Icon(Icons.add), label: const Text('Avisar ausencia')),
+                ),
               ]),
       );
 }

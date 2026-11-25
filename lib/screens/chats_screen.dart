@@ -1,6 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../config/theme.dart';
 import '../services/chat_service.dart';
+import '../widgets/urbano.dart';
 import 'chat_screen.dart';
+
+class _Datos {
+  final List<Map<String, dynamic>> lista;
+  final Map<String, ({String nombre, String? foto})> perfiles;
+  final Map<String, Map<String, dynamic>> ultimos;
+  const _Datos(this.lista, this.perfiles, this.ultimos);
+}
 
 class ChatsScreen extends StatefulWidget {
   const ChatsScreen({super.key});
@@ -10,11 +21,25 @@ class ChatsScreen extends StatefulWidget {
 
 class _ChatsScreenState extends State<ChatsScreen> {
   final _svc = ChatService();
-  late Future<List<Map<String, dynamic>>> _futuro = _svc.misConversaciones();
+  final _yo = Supabase.instance.client.auth.currentUser!.id;
+  late Future<_Datos> _futuro = _cargar();
+
+  String? _otroId(Map<String, dynamic> c) =>
+      (c['id_iniciador'] == _yo ? c['id_receptor'] : c['id_iniciador']) as String?;
+
+  Future<_Datos> _cargar() async {
+    final lista = await _svc.misConversaciones();
+    final perfiles = await _svc.perfilesPublicos([
+      for (final c in lista)
+        if (_otroId(c) != null) _otroId(c)!
+    ]);
+    final ultimos = await _svc.ultimosMensajes([for (final c in lista) c['id'] as String]);
+    return _Datos(lista, perfiles, ultimos);
+  }
 
   void _recargar() {
     setState(() {
-      _futuro = _svc.misConversaciones();
+      _futuro = _cargar();
     });
   }
 
@@ -41,53 +66,133 @@ class _ChatsScreenState extends State<ChatsScreen> {
     }
   }
 
+  Widget _tarjeta(Map<String, dynamic> c, _Datos d) {
+    final id = c['id'] as String;
+    final otroId = _otroId(c);
+    final perfil = otroId == null ? null : d.perfiles[otroId];
+    final nombre = (perfil?.nombre ?? '').isNotEmpty ? perfil!.nombre : 'Persona del tianguis';
+    final producto = (c['productos'] as Map?)?['nombre'];
+    final anuncio = (c['anuncios_espacio'] as Map?)?['titulo'];
+    final asunto = '${producto ?? anuncio ?? 'Conversación'}';
+    final esEspacio = producto == null && anuncio != null;
+    final u = d.ultimos[id];
+    final texto = u == null
+        ? 'Aún no hay mensajes, ¡rómpele el hielo!'
+        : '${u['id_remitente'] == _yo ? 'Tú: ' : ''}${u['contenido']}';
+    final fecha = DateTime.tryParse('${u?['enviado_en'] ?? c['ultimo_mensaje_en'] ?? ''}')?.toLocal();
+    final color = esEspacio ? Tg.verde : Tg.amarillo;
+
+    return Dismissible(
+      key: ValueKey(id),
+      direction: DismissDirection.endToStart,
+      background: const FondoBorrar(),
+      // la tarjeta no se quita sola, primero se pregunta y luego se recarga la lista
+      confirmDismiss: (_) async {
+        await _borrar(id, asunto);
+        return false;
+      },
+      child: TarjetaTg(
+        acento: color,
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+        onTap: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ChatScreen(
+                idConversacion: id,
+                titulo: asunto,
+                nombre: perfil?.nombre.isNotEmpty == true ? perfil!.nombre : null,
+                fotoUrl: perfil?.foto,
+              ),
+            ),
+          );
+          if (mounted) _recargar();
+        },
+        onLongPress: () => _borrar(id, asunto),
+        child: Row(children: [
+          AvatarTg(nombre: nombre, fotoUrl: perfil?.foto, radio: 26),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(
+                  child: Text(nombre,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, height: 1.1)),
+                ),
+                const SizedBox(width: 8),
+                Text(fechaRelativa(fecha),
+                    style: GoogleFonts.baloo2(
+                        color: Tg.amarillo, fontWeight: FontWeight.w800, fontSize: 13)),
+              ]),
+              const SizedBox(height: 3),
+              Row(children: [
+                Icon(esEspacio ? Icons.crop_free : Icons.sell, size: 14, color: Tg.azulClaro),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(asunto,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: Tg.azulClaro, fontWeight: FontWeight.w800, fontSize: 13)),
+                ),
+              ]),
+              const SizedBox(height: 3),
+              Text(texto,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white70, fontSize: 14.5)),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ScaffoldTg(
         appBar: AppBar(title: const Text('Mis mensajes')),
-        body: FutureBuilder<List<Map<String, dynamic>>>(
+        body: FutureBuilder<_Datos>(
           future: _futuro,
           builder: (_, s) {
-            if (s.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
+            if (s.connectionState != ConnectionState.done) return const CargandoTg();
+            if (s.hasError) {
+              return EstadoVacio(
+                icono: Icons.wifi_off_rounded,
+                color: Tg.rojo,
+                titulo: '¡Se cayó la señal!',
+                mensaje: 'No pudimos traer tus chats.\n${s.error}',
+                accionTexto: 'Reintentar',
+                accionIcono: Icons.refresh,
+                onAccion: _recargar,
+              );
             }
-            if (s.hasError) return Center(child: Text('No se pudieron cargar los chats: ${s.error}'));
-            final l = s.data!;
-            if (l.isEmpty) return const Center(child: Text('Aún no tienes conversaciones'));
-            return ListView.builder(
-              itemCount: l.length,
-              itemBuilder: (_, i) {
-                final c = l[i];
-                final nombre = ChatService.tituloDe(c);
-                final asunto = ChatService.asuntoDe(c);
-                final ultimo = c['ultimo_texto'] as String?;
-                final noLeidos = (c['no_leidos'] as num?)?.toInt() ?? 0;
-                final sub = [if (asunto != null) asunto, if (ultimo != null) ultimo].join(' · ');
-                return ListTile(
-                  leading: Badge(
-                    isLabelVisible: noLeidos > 0,
-                    label: Text('$noLeidos'),
-                    child: const Icon(Icons.chat_bubble_outline),
-                  ),
-                  title: Text(nombre,
-                      style: TextStyle(fontWeight: noLeidos > 0 ? FontWeight.w800 : FontWeight.w600)),
-                  subtitle: sub.isEmpty ? null : Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    tooltip: 'Borrar conversación',
-                    onPressed: () => _borrar(c['id'] as String, nombre),
-                  ),
-                  onLongPress: () => _borrar(c['id'] as String, nombre),
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ChatScreen(idConversacion: c['id'], titulo: nombre),
-                      ),
-                    );
-                    if (mounted) _recargar();
-                  },
-                );
-              },
+            final d = s.data!;
+            if (d.lista.isEmpty) {
+              return const EstadoVacio(
+                icono: Icons.forum_rounded,
+                titulo: '¡Aquí no hay chisme todavía!',
+                mensaje: 'Cuando le escribas a un vendedor desde un producto, tu plática aparece aquí.',
+              );
+            }
+            final deProducto = d.lista.where((c) => c['productos'] != null).length;
+            final deEspacio = d.lista.where((c) => c['anuncios_espacio'] != null).length;
+            return RefreshIndicator(
+              onRefresh: () async => _recargar(),
+              child: ListView(padding: const EdgeInsets.only(bottom: 30), children: [
+                CabeceraTg(
+                  titulo: 'Tus pláticas',
+                  subtitulo: 'Desliza a la izquierda para borrar una',
+                  icono: Icons.forum_rounded,
+                  datos: [
+                    DatoTg(Icons.chat_bubble, Tg.amarillo, '${d.lista.length}', 'CHATS'),
+                    DatoTg(Icons.sell, Tg.azulClaro, '$deProducto', 'DE PRODUCTOS'),
+                    DatoTg(Icons.crop_free, const Color(0xFF2EAD5B), '$deEspacio', 'DE ESPACIOS'),
+                  ],
+                ),
+                for (final c in d.lista) _tarjeta(c, d),
+              ]),
             );
           },
         ),

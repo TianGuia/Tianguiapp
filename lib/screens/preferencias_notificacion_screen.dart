@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/theme.dart';
+import '../widgets/urbano.dart';
 import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
 import '../widgets/mensaje.dart';
@@ -171,61 +172,90 @@ class _PrefsState extends State<PreferenciasNotificacionScreen> {
     }
   }
 
+  static const _iconos = <String, (IconData, Color)>{
+    'ofertas': (Icons.bolt, Tg.naranja),
+    'ausencias': (Icons.event_busy, Tg.rosa),
+    'recordatorios_tianguis': (Icons.event, Tg.azulClaro),
+    'mensajes': (Icons.chat_bubble_rounded, Tg.amarillo),
+    'apartados_propuestas': (Icons.handshake_rounded, Color(0xFF2EAD5B)),
+  };
+
+  // renglon de un silencio con su boton para quitarlo
+  Widget _silencio(String nombre, dynamic id) => TarjetaTg(
+        padding: const EdgeInsets.fromLTRB(12, 6, 4, 6),
+        margen: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Row(children: [
+          const SelloTg(icono: Icons.notifications_off, color: Colors.white70, tam: 38),
+          const SizedBox(width: 12),
+          Expanded(child: Text(nombre, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+          IconButton(
+            tooltip: 'Quitar silencio',
+            icon: const Icon(Icons.close_rounded),
+            onPressed: () => _quitarSilencio(id),
+          ),
+        ]),
+      );
+
+  Widget _vacio(String texto) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 6),
+        child: Text(texto, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
+      );
+
+  Widget _agregar(String texto, VoidCallback onTap) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(onPressed: onTap, icon: const Icon(Icons.add_circle), label: Text(texto)),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     final nombres = {for (final t in _tianguis) t.id: t.nombre};
-    return Scaffold(
+    final sTianguis = _silencios.where((s) => s['id_tianguis'] != null).toList();
+    final sVendedores = _silencios.where((s) => s['id_vendedor'] != null).toList();
+    return ScaffoldTg(
       appBar: AppBar(title: const Text('Notificaciones')),
       body: _cargando
-          ? const Center(child: CircularProgressIndicator(color: Tg.amarillo))
-          : ListView(padding: const EdgeInsets.all(14), children: [
-              Text('Quiero recibir', style: Tg.marcador(18)),
+          ? const CargandoTg()
+          : ListView(padding: const EdgeInsets.only(bottom: 30), children: [
+              const CabeceraTg(
+                titulo: 'Qué te avisamos',
+                subtitulo: 'Tú decides qué te llega',
+                icono: Icons.notifications_rounded,
+                color: Tg.naranja,
+              ),
+              const SeccionTg('Quiero recibir'),
               for (final e in _tipos.entries)
-                SwitchListTile(
-                  title: Text(e.value),
-                  value: _prefs[e.key] == true,
+                InterruptorTg(
+                  icono: _iconos[e.key]?.$1 ?? Icons.notifications,
+                  color: _iconos[e.key]?.$2 ?? Tg.amarillo,
+                  texto: e.value,
+                  valor: _prefs[e.key] == true,
                   onChanged: (v) => _cambiar(e.key, v),
                 ),
-              const SizedBox(height: 14),
-              Text('Categorías que me interesan', style: Tg.marcador(18)),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 6),
-                child: Text('Te avisamos de las ofertas de estas categorías.'),
+              const SeccionTg('Categorías que me interesan'),
+              _vacio('Te avisamos de las ofertas de estas categorías.'),
+              if (_categorias.isEmpty) _vacio('No hay categorías disponibles'),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+                child: Wrap(spacing: 8, runSpacing: 8, children: [
+                  for (final c in _categorias)
+                    FichaTg(
+                      texto: '${c['nombre']}',
+                      elegida: _intereses.contains(c['id']),
+                      onCambio: (v) => _alternarInteres(c['id'] as String, v),
+                    ),
+                ]),
               ),
-              if (_categorias.isEmpty)
-                const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('No hay categorías disponibles')),
-              Wrap(spacing: 8, runSpacing: 4, children: [
-                for (final c in _categorias)
-                  FilterChip(
-                    label: Text('${c['nombre']}'),
-                    selected: _intereses.contains(c['id']),
-                    onSelected: (v) => _alternarInteres(c['id'] as String, v),
-                  ),
-              ]),
-              const SizedBox(height: 14),
-              Text('Tianguis silenciados', style: Tg.marcador(18)),
-              if (_silencios.where((s) => s['id_tianguis'] != null).isEmpty)
-                const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('Ninguno')),
-              for (final s in _silencios.where((s) => s['id_tianguis'] != null))
-                ListTile(
-                  leading: const Icon(Icons.notifications_off_outlined),
-                  title: Text(nombres[s['id_tianguis']] ?? 'Tianguis'),
-                  trailing: IconButton(icon: const Icon(Icons.close), onPressed: () => _quitarSilencio(s['id'])),
-                ),
-              TextButton.icon(
-                  onPressed: _silenciarTianguis, icon: const Icon(Icons.add), label: const Text('Silenciar un tianguis')),
-              const SizedBox(height: 14),
-              Text('Vendedores silenciados', style: Tg.marcador(18)),
-              if (_silencios.where((s) => s['id_vendedor'] != null).isEmpty)
-                const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('Ninguno')),
-              for (final s in _silencios.where((s) => s['id_vendedor'] != null))
-                ListTile(
-                  leading: const Icon(Icons.notifications_off_outlined),
-                  title: Text(_vendedores[s['id_vendedor']] ?? 'Vendedor'),
-                  trailing: IconButton(icon: const Icon(Icons.close), onPressed: () => _quitarSilencio(s['id'])),
-                ),
-              TextButton.icon(
-                  onPressed: _silenciarVendedor, icon: const Icon(Icons.add), label: const Text('Silenciar un vendedor')),
+              const SeccionTg('Tianguis silenciados'),
+              if (sTianguis.isEmpty) _vacio('Ninguno'),
+              for (final s in sTianguis) _silencio(nombres[s['id_tianguis']] ?? 'Tianguis', s['id']),
+              _agregar('Silenciar un tianguis', _silenciarTianguis),
+              const SeccionTg('Vendedores silenciados'),
+              if (sVendedores.isEmpty) _vacio('Ninguno'),
+              for (final s in sVendedores) _silencio(_vendedores[s['id_vendedor']] ?? 'Vendedor', s['id']),
+              _agregar('Silenciar un vendedor', _silenciarVendedor),
             ]),
     );
   }

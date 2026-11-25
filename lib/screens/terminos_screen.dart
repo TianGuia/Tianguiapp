@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
 import '../services/auth_service.dart';
-import '../widgets/fondo.dart';
+import '../widgets/urbano.dart';
 
 // rf-53 se cumple aqui: si hay condiciones nuevas se pide aceptarlas antes de seguir
 class TerminosScreen extends StatefulWidget {
@@ -39,23 +39,25 @@ class _TerminosScreenState extends State<TerminosScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Fondo(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
+    return ScaffoldTg(
         appBar: AppBar(title: const Text('Condiciones actualizadas'), automaticallyImplyLeading: false),
         body: SafeArea(
           child: Column(children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 8, 20, 12),
-              child: Text(
-                  'Publicamos una nueva versión. Para seguir usando TianGuía necesitas aceptarla.',
-                  style: TextStyle(fontSize: 16)),
+            CabeceraTg(
+              titulo: 'Hay novedades',
+              subtitulo: 'Para seguir en TianGuía necesitas aceptar la nueva versión.',
+              icono: Icons.fact_check,
+              datos: [DatoTg(Icons.description, Tg.amarillo, '${widget.pendientes.length}', 'POR ACEPTAR')],
             ),
             Expanded(
               child: ListView(padding: const EdgeInsets.symmetric(horizontal: 16), children: [
                 for (final v in widget.pendientes)
-                  Card(
-                    child: ExpansionTile(
+                  CardTg(
+                    margin: const EdgeInsets.symmetric(vertical: 5),
+                    child:
+                    ExpansionTile(
+                      shape: const Border(),
+                      collapsedShape: const Border(),
                       initiallyExpanded: widget.pendientes.length == 1,
                       title: Text(_titulo(v), style: const TextStyle(fontWeight: FontWeight.w700)),
                       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -80,7 +82,6 @@ class _TerminosScreenState extends State<TerminosScreen> {
             ),
           ]),
         ),
-      ),
     );
   }
 }

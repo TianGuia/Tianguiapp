@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/theme.dart';
+import '../widgets/urbano.dart';
 import '../services/ocultos.dart';
 import '../widgets/moderacion.dart';
 
@@ -48,48 +49,75 @@ class _MedidasScreenState extends State<MedidasScreen> {
   String _fecha(String iso) => DateTime.parse(iso).toLocal().toString().substring(0, 10);
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ScaffoldTg(
         appBar: AppBar(title: const Text('Avisos de moderación')),
         body: FutureBuilder(
           future: _futuro,
           builder: (_, s) {
-            if (s.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
+            if (s.connectionState != ConnectionState.done) return const CargandoTg();
+            if (s.hasError) {
+              return EstadoVacio(
+                icono: Icons.wifi_off_rounded,
+                color: Tg.rojo,
+                titulo: '¡Se cayó la señal!',
+                mensaje: 'No se pudieron cargar las medidas.\n${s.error}',
+              );
             }
-            if (s.hasError) return Center(child: Text('No se pudieron cargar las medidas: ${s.error}'));
             final d = s.data!;
             final medidas = d.medidas.where((m) => !_ocultas.contains(m['id'])).toList();
-            if (medidas.isEmpty) return const Center(child: Text('No tienes medidas de moderación'));
-            return ListView(padding: const EdgeInsets.all(12), children: [
+            if (medidas.isEmpty) {
+              return const EstadoVacio(
+                icono: Icons.verified_user_rounded,
+                color: Color(0xFF2EAD5B),
+                titulo: '¡Cuenta limpia!',
+                mensaje: 'No tienes medidas de moderación. Sigue así y respeta las reglas del tianguis.',
+              );
+            }
+            final activas = medidas.where((m) => m['activa'] == true).length;
+            return ListView(padding: const EdgeInsets.only(bottom: 30), children: [
+              CabeceraTg(
+                titulo: 'Avisos de moderación',
+                subtitulo: 'Desliza a la izquierda para quitar uno de la lista',
+                icono: Icons.gavel_rounded,
+                color: Tg.rosa,
+                datos: [
+                  DatoTg(Icons.warning_amber_rounded, Tg.naranja, '$activas', 'ACTIVAS'),
+                  DatoTg(Icons.history, Tg.azulClaro, '${medidas.length - activas}', 'SIN EFECTO'),
+                ],
+              ),
               for (final m in medidas)
                 Builder(builder: (_) {
                   final ap = d.apelaciones[m['id']];
+                  final activa = m['activa'] == true;
                   return Dismissible(
                     key: ValueKey(m['id']),
                     direction: DismissDirection.endToStart,
-                    background: Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: 20),
-                      decoration: BoxDecoration(color: Tg.rojo, borderRadius: BorderRadius.circular(12)),
-                      child: const Icon(Icons.delete, color: Colors.white),
-                    ),
+                    background: const FondoBorrar(),
                     onDismissed: (_) => _quitar(m['id'] as String),
-                    child: Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
+                    child: TarjetaTg(
+                      acento: activa ? Tg.naranja : Colors.grey,
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('${m['tipo_medida']}'.replaceAll('_', ' ').toUpperCase(),
-                            style: const TextStyle(fontWeight: FontWeight.w800, color: Tg.amarillo)),
-                        const SizedBox(height: 4),
-                        Text('${m['motivo_general']}'),
-                        const SizedBox(height: 4),
-                        Text('${_fecha(m['creada_en'])}${m['activa'] == true ? ' · activa' : ' · sin efecto'}',
-                            style: const TextStyle(color: Colors.white70)),
+                        Row(children: [
+                          Expanded(
+                            child: Text('${m['tipo_medida']}'.replaceAll('_', ' ').toUpperCase(),
+                                style: Tg.marcador(16, color: Tg.amarillo)),
+                          ),
+                          PildoraTg(activa ? 'ACTIVA' : 'SIN EFECTO',
+                              color: activa ? Tg.naranja : Colors.grey,
+                              colorTexto: activa ? Tg.azulOscuro : Colors.white),
+                        ]),
                         const SizedBox(height: 6),
+                        Text('${m['motivo_general']}', style: const TextStyle(fontSize: 16, height: 1.2)),
+                        const SizedBox(height: 4),
+                        Text(_fecha(m['creada_en']),
+                            style: const TextStyle(color: Tg.azulClaro, fontWeight: FontWeight.w800)),
                         if (ap != null)
-                          Text('Revisión: ${ap['estado']}${ap['comentario_resolucion'] != null ? ' · ${ap['comentario_resolucion']}' : ''}'),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                                'Revisión: ${ap['estado']}${ap['comentario_resolucion'] != null ? ' · ${ap['comentario_resolucion']}' : ''}',
+                                style: const TextStyle(color: Colors.white70)),
+                          ),
                         Align(
                           alignment: Alignment.centerRight,
                           child: Wrap(spacing: 4, children: [
@@ -108,7 +136,6 @@ class _MedidasScreenState extends State<MedidasScreen> {
                           ]),
                         ),
                       ]),
-                    ),
                     ),
                   );
                 }),

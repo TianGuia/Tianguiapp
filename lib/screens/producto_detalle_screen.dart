@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/theme.dart';
+import '../widgets/urbano.dart';
 import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
 import '../models/tratos.dart';
@@ -128,7 +129,7 @@ class _ProductoDetalleScreenState extends State<ProductoDetalleScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ScaffoldTg(
         appBar: AppBar(
           title: Text(p.nombre),
           actions: [

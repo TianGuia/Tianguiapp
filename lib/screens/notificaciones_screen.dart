@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
+import '../widgets/urbano.dart';
 import '../services/inicio_service.dart';
 import '../widgets/mensaje.dart';
 
@@ -66,7 +67,7 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ScaffoldTg(
       appBar: AppBar(
         title: const Text('Notificaciones'),
         actions: [
@@ -81,53 +82,82 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> {
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _futuro,
         builder: (_, s) {
-          if (s.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
+          if (s.connectionState != ConnectionState.done) return const CargandoTg();
+          if (s.hasError) {
+            return EstadoVacio(
+              icono: Icons.wifi_off_rounded,
+              color: Tg.rojo,
+              titulo: '¡Se cayó la señal!',
+              mensaje: 'No se pudieron cargar los avisos.\n${s.error}',
+            );
           }
-          if (s.hasError) return Center(child: Text('No se pudieron cargar los avisos: ${s.error}'));
           final l = _lista ?? s.data!;
           if (l.isEmpty) {
-            return const Center(child: Text('No tienes notificaciones por ahora'));
+            return const EstadoVacio(
+              icono: Icons.notifications_active_rounded,
+              color: Tg.naranja,
+              titulo: '¡Todo tranquilo!',
+              mensaje: 'Aquí te avisamos de ofertas, apartados, propuestas y cuando abra un puesto que sigues.',
+            );
           }
-          return ListView.separated(
-            padding: const EdgeInsets.all(14),
-            itemCount: l.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (_, i) {
-              final n = l[i];
-              final nueva = n['leida'] == false;
-              return Dismissible(
-                key: ValueKey(n['id']),
-                direction: DismissDirection.endToStart,
-                background: Container(
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 20),
-                  decoration: BoxDecoration(color: Tg.rojo, borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.delete, color: Colors.white),
-                ),
-                onDismissed: (_) => _borrar(n),
-                child: Card(
-                  margin: EdgeInsets.zero,
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: nueva ? Tg.amarillo : Colors.white12,
-                      child: Icon(Icons.notifications, color: nueva ? Tg.azulOscuro : Colors.white70),
-                    ),
-                    title: Text(n['titulo'] ?? '', style: const TextStyle(fontWeight: FontWeight.w800)),
-                    subtitle: Text([n['cuerpo'], _fecha(n['creada_en'])]
-                        .where((e) => e != null && '$e'.isNotEmpty)
-                        .join('\n')),
-                    trailing: IconButton(
-                      tooltip: 'Borrar',
-                      icon: const Icon(Icons.close, size: 20, color: Colors.white54),
-                      onPressed: () => _borrar(n),
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
+          final nuevas = l.where((n) => n['leida'] == false).length;
+          return ListView(padding: const EdgeInsets.only(bottom: 30), children: [
+            CabeceraTg(
+              titulo: 'Tus avisos',
+              subtitulo: 'Desliza a la izquierda para borrar uno',
+              icono: Icons.notifications_rounded,
+              color: Tg.naranja,
+              datos: [
+                DatoTg(Icons.mark_email_unread, Tg.amarillo, '$nuevas', 'NUEVOS'),
+                DatoTg(Icons.notifications, Tg.azulClaro, '${l.length}', 'EN TOTAL'),
+              ],
+            ),
+            for (final n in l) _tarjeta(n),
+          ]);
         },
+      ),
+    );
+  }
+
+  Widget _tarjeta(Map<String, dynamic> n) {
+    final nueva = n['leida'] == false;
+    return Dismissible(
+      key: ValueKey(n['id']),
+      direction: DismissDirection.endToStart,
+      background: const FondoBorrar(),
+      onDismissed: (_) => _borrar(n),
+      child: TarjetaTg(
+        acento: nueva ? Tg.amarillo : Colors.white24,
+        padding: const EdgeInsets.fromLTRB(12, 10, 6, 10),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          SelloTg(
+            icono: nueva ? Icons.notifications_active : Icons.notifications_none,
+            color: nueva ? Tg.amarillo : Colors.white24,
+            colorIcono: nueva ? Tg.azulOscuro : Colors.white70,
+            tam: 42,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(n['titulo'] ?? '',
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17, height: 1.1)),
+              if ((n['cuerpo'] ?? '') != '')
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text('${n['cuerpo']}',
+                      style: const TextStyle(color: Colors.white70, fontSize: 14.5, height: 1.15)),
+                ),
+              const SizedBox(height: 4),
+              Text(_fecha(n['creada_en']),
+                  style: const TextStyle(color: Tg.azulClaro, fontWeight: FontWeight.w800, fontSize: 12.5)),
+            ]),
+          ),
+          IconButton(
+            tooltip: 'Borrar',
+            icon: const Icon(Icons.close, size: 20, color: Colors.white54),
+            onPressed: () => _borrar(n),
+          ),
+        ]),
       ),
     );
   }

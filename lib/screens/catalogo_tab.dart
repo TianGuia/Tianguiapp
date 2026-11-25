@@ -4,6 +4,7 @@ import '../models/modelos.dart';
 import '../services/catalogo_service.dart';
 import '../widgets/entradas.dart';
 import '../widgets/pincel.dart';
+import '../widgets/urbano.dart';
 import 'producto_detalle_screen.dart';
 import 'puesto_screen.dart' show TarjetaProducto;
 
@@ -320,33 +321,60 @@ class _CatalogoTabState extends State<CatalogoTab> {
           child: FutureBuilder<List<Producto>>(
             future: _futuro,
             builder: (_, s) {
-              if (s.connectionState != ConnectionState.done) {
-                return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
-              }
-              if (s.hasError) return Center(child: Text('No se pudieron cargar los productos: ${s.error}'));
-              final l = s.data!;
-              if (l.isEmpty) {
-                return Center(
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Text(_filtrosActivos > 0
-                        ? 'Sin resultados con estos filtros'
-                        : 'Sin resultados'),
-                    if (_filtrosActivos > 0)
-                      TextButton(onPressed: _quitarFiltros, child: const Text('QUITAR FILTROS')),
-                  ]),
+              if (s.connectionState != ConnectionState.done) return const CargandoTg();
+              if (s.hasError) {
+                return EstadoVacio(
+                  icono: Icons.cloud_off,
+                  color: Tg.rosa,
+                  titulo: 'No se pudo cargar',
+                  mensaje: 'Revisa tu conexión e inténtalo otra vez.\n${s.error}',
+                  accionTexto: 'Reintentar',
+                  accionIcono: Icons.refresh,
+                  onAccion: _buscar,
                 );
               }
-              return ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                itemCount: l.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (_, i) => TarjetaProducto(
-                  producto: l[i],
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => ProductoDetalleScreen(producto: l[i])),
-                  ),
-                ),
+              final l = s.data!;
+              if (l.isEmpty) {
+                return EstadoVacio(
+                  icono: Icons.search_off,
+                  titulo: '¡Nel, nada por aquí!',
+                  mensaje: _filtrosActivos > 0
+                      ? 'No hay nada con estos filtros. Quítalos para ver más.'
+                      : 'Prueba con otra palabra o elige otra categoría.',
+                  accionTexto: _filtrosActivos > 0 ? 'Quitar filtros' : null,
+                  accionIcono: Icons.filter_alt_off,
+                  onAccion: _filtrosActivos > 0 ? _quitarFiltros : null,
+                );
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
+                itemCount: l.length + 1,
+                itemBuilder: (_, i) {
+                  if (i == 0) {
+                    return CabeceraTg(
+                      titulo: 'Catálogo',
+                      subtitulo: 'Lo que se vende en los tianguis',
+                      icono: Icons.shopping_bag,
+                      color: Tg.rosa,
+                      datos: [
+                        DatoTg(Icons.inventory_2, Tg.amarillo, '${l.length}', 'PRODUCTOS'),
+                        DatoTg(Icons.storefront, Tg.verde,
+                            '${l.where((p) => p.puestoEstado == 'abierto').length}', 'EN PUESTO ABIERTO'),
+                      ],
+                    );
+                  }
+                  final p = l[i - 1];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+                    child: TarjetaProducto(
+                      producto: p,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => ProductoDetalleScreen(producto: p)),
+                      ),
+                    ),
+                  );
+                },
               );
             },
           ),

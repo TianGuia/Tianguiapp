@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../services/auth_service.dart';
 import '../widgets/fondo.dart';
+import '../widgets/urbano.dart';
 import '../widgets/pincel.dart';
 import 'admin_entrada_screen.dart';
 import '../widgets/entradas.dart';
@@ -91,6 +92,11 @@ class _AccesoScreenState extends State<AccesoScreen> {
                     child: Text('VÁMONOS DE TIANGUIS', style: Tg.marcador(15)),
                   ),
                   const SizedBox(height: 26),
+                  TarjetaTg(
+                    margen: EdgeInsets.zero,
+                    acento: Tg.amarillo,
+                    padding: const EdgeInsets.all(16),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
                   const Text('¿Cómo quieres que te llamemos?',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
@@ -118,7 +124,9 @@ class _AccesoScreenState extends State<AccesoScreen> {
                         style: TextStyle(fontSize: 13)),
                   ),
                   const EnlacesLegales(),
-                  const SizedBox(height: 8),
+                    ]),
+                  ),
+                  const SizedBox(height: 12),
                   const Text(
                     'Tu cuenta se guarda en este teléfono: si cierras sesión, escribe el mismo '
                     'nombre para volver a entrar. Si borras la app perderás tus favoritos y '
