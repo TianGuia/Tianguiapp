@@ -6,9 +6,24 @@ import '../config/estados.dart';
 import '../models/modelos.dart';
 import '../models/tratos.dart';
 
+enum FalloUbicacionPuesto implements Exception {
+  servicioDesactivado('La ubicación del dispositivo está desactivada.'),
+  permisoDenegado('TianGuía no tiene permiso para usar tu ubicación.'),
+  gps('No pudimos obtener tu ubicación en este momento.');
+
+  const FalloUbicacionPuesto(this.mensaje);
+  final String mensaje;
+
+  Future<bool> abrirAjustes() => this == permisoDenegado
+      ? Geolocator.openAppSettings()
+      : Geolocator.openLocationSettings();
+}
+
 // aqui se cumplen rf-14 a rf-25, cada parte de abajo dice cual cumple
 class VendedorService {
-  final _db = Supabase.instance.client;
+  VendedorService({SupabaseClient? client})
+      : _db = client ?? Supabase.instance.client;
+  final SupabaseClient _db;
   String get _uid => _db.auth.currentUser!.id;
 
   Future<Map<String, dynamic>?> miPerfil() =>
@@ -117,24 +132,40 @@ class VendedorService {
 
   // rf-22 se cumple aqui: el vendedor abre o cierra su puesto
   // rf-23 se cumple aqui: al abrir el puesto se guarda donde esta ese dia
-  Future<String> marcarAbierto(String idPuesto) async {
-    var permiso = await Geolocator.checkPermission();
-    if (permiso == LocationPermission.denied) {
-      permiso = await Geolocator.requestPermission();
-    }
-    if (permiso == LocationPermission.denied ||
-        permiso == LocationPermission.deniedForever) {
-      throw Exception('Se necesita el permiso de ubicación para abrir el puesto.');
-    }
-    final pos = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-    );
+  Future<String> marcarAbierto(String idPuesto, {bool conUbicacion = true}) async {
+    final pos = conUbicacion ? await _ubicacionJornada() : null;
     return await _db.rpc('abrir_puesto', params: {
       'p_id_puesto': idPuesto,
-      'p_latitud': pos.latitude,
-      'p_longitud': pos.longitude,
-      'p_precision': pos.accuracy,
-    }) as String; // id de jornada
+      'p_latitud': pos?.latitude,
+      'p_longitud': pos?.longitude,
+      'p_precision': pos?.accuracy,
+    }) as String;
+  }
+
+  Future<Position> _ubicacionJornada() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        throw FalloUbicacionPuesto.servicioDesactivado;
+      }
+      var permiso = await Geolocator.checkPermission();
+      if (permiso == LocationPermission.denied) {
+        permiso = await Geolocator.requestPermission();
+      }
+      if (permiso != LocationPermission.always &&
+          permiso != LocationPermission.whileInUse) {
+        throw FalloUbicacionPuesto.permisoDenegado;
+      }
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 12),
+        ),
+      );
+    } on FalloUbicacionPuesto {
+      rethrow;
+    } catch (_) {
+      throw FalloUbicacionPuesto.gps;
+    }
   }
 
   Future<void> marcarCerrado(String idPuesto) =>

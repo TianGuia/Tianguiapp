@@ -129,6 +129,11 @@ class _PuestoScreenState extends State<PuestoScreen> {
                                 icono: Icons.location_on,
                                 angulo: 0.02),
                         ]),
+                        if (real != null && abierto && !real.tieneUbicacion)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: Text('Sin ubicación registrada en esta jornada.'),
+                          ),
                         if (real?.detalleCierre != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 8),

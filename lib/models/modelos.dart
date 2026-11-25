@@ -26,10 +26,12 @@ class Puesto {
   final double? lat, lng;
   final DateTime? fechaApertura, reabreEn;
   bool get abierto => estado == 'abierto';
+  bool get tieneUbicacion => lat != null && lng != null;
 
   // rf-22 se cumple aqui: el vendedor abre o cierra su puesto
   // rf-23 se cumple aqui: al abrir el puesto se guarda donde esta ese dia
-  Future<String> marcarAbierto() => VendedorService().marcarAbierto(id);
+  Future<String> marcarAbierto({bool conUbicacion = true}) =>
+      VendedorService().marcarAbierto(id, conUbicacion: conUbicacion);
 
   Future<void> marcarCerrado() => VendedorService().marcarCerrado(id);
 

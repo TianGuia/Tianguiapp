@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/theme.dart';
 import '../models/modelos.dart';
 import '../services/auth_service.dart';
@@ -23,13 +25,15 @@ class VendedorTab extends StatefulWidget {
   State<VendedorTab> createState() => _VendedorTabState();
 }
 
-enum _Accion { editar, temporal, indefinido, eliminar }
+enum _Accion { editar, abrirConUbicacion, temporal, indefinido, eliminar }
+enum _DecisionUbicacion { reintentar, abrirSinUbicacion }
 
 class _VendedorTabState extends State<VendedorTab> {
   final _svc = VendedorService();
   Map<String, dynamic>? _perfil;
   List<Puesto> _puestos = [];
   bool _cargando = true;
+  bool _cambiandoEstado = false;
   int _pendientes = 0; // propuestas y apartados por atender
 
   @override
@@ -89,17 +93,134 @@ class _VendedorTabState extends State<VendedorTab> {
     if (ok == true) await _cargar();
   }
 
-  Future<void> _alternar(Puesto p) async {
+  Future<void> _alternar(Puesto p, {bool abrirConUbicacion = false}) async {
+    if (_cambiandoEstado) return;
+    setState(() => _cambiandoEstado = true);
     try {
       if (p.abierto) {
         await _svc.marcarCerrado(p.id);
       } else {
-        await _svc.marcarAbierto(p.id);
+        if (!await _abrirPuesto(p, abrirConUbicacion: abrirConUbicacion)) return;
       }
-      await _cargar();
+      if (mounted) await _cargar();
     } catch (e) {
-      _msg('$e');
+      if (mounted) _msg('$e');
+    } finally {
+      if (mounted) setState(() => _cambiandoEstado = false);
     }
+  }
+
+  Future<bool?> _pedirUbicacion() => showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('¿Compartir la ubicación del puesto?'),
+          content: const Text('Puedes registrar dónde estás para esta jornada o abrir sin mostrar tu ubicación en el mapa.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Abrir sin ubicación')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Registrar ubicación')),
+          ],
+        ),
+      );
+
+  Future<bool> _abrirPuesto(Puesto p, {required bool abrirConUbicacion}) async {
+    final llave = 'ocultar_aviso_ubicacion_puesto_${p.idVendedor}';
+    final preferencias = await _preferenciasUbicacion();
+    if (!mounted) return false;
+    final recordarSinUbicacion = preferencias?.getBool(llave) ?? false;
+    final compartir = abrirConUbicacion
+        ? true
+        : (recordarSinUbicacion ? false : await _pedirUbicacion());
+    if (!mounted || compartir == null) return false;
+
+    while (compartir && mounted) {
+      try {
+        await _svc.marcarAbierto(p.id);
+        return true;
+      } on FalloUbicacionPuesto catch (fallo) {
+        if (!mounted) return false;
+        final decision = await _avisarFalloUbicacion(fallo, ocultar: recordarSinUbicacion);
+        if (!mounted || decision == null) return false;
+        if (decision.accion == _DecisionUbicacion.reintentar) continue;
+        if (preferencias != null) {
+          try {
+            await preferencias.setBool(llave, decision.ocultar);
+          } catch (_) {
+            // La preferencia local no condiciona la apertura del puesto.
+          }
+        }
+        break;
+      }
+    }
+    if (!mounted) return false;
+    await _svc.marcarAbierto(p.id, conUbicacion: false);
+    if (mounted) _msg('Puesto abierto sin ubicación registrada.');
+    return true;
+  }
+
+  Future<SharedPreferences?> _preferenciasUbicacion() async {
+    try {
+      return await SharedPreferences.getInstance();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<({ _DecisionUbicacion accion, bool ocultar })?> _avisarFalloUbicacion(
+    FalloUbicacionPuesto fallo, {
+    required bool ocultar,
+  }) {
+    var errorAjustes = false;
+    return showDialog<({ _DecisionUbicacion accion, bool ocultar })>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, cambiar) => AlertDialog(
+          title: const Text('No se registró la ubicación'),
+          scrollable: true,
+          content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('${fallo.mensaje} Puedes abrir sin ubicación o ajustar tu dispositivo y reintentar.'),
+            if (defaultTargetPlatform == TargetPlatform.iOS && fallo == FalloUbicacionPuesto.servicioDesactivado)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text('Para activar la localización del iPhone, ve a Ajustes > Privacidad y seguridad > Localización.'),
+              ),
+            TextButton.icon(
+              icon: const Icon(Icons.settings_outlined),
+              label: const Text('Abrir ajustes'),
+              onPressed: () async {
+                var abierto = false;
+                try {
+                  abierto = await fallo.abrirAjustes();
+                } catch (_) {
+                  // Algunas plataformas no admiten acceso directo a ajustes.
+                }
+                if (ctx.mounted) cambiar(() => errorAjustes = !abierto);
+              },
+            ),
+            if (errorAjustes)
+              const Text('Abre los ajustes del dispositivo para revisar la ubicación y los permisos de TianGuía.'),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: ocultar,
+              onChanged: (v) => cambiar(() => ocultar = v ?? false),
+              title: const Text('No volver a mostrar este aviso'),
+              subtitle: const Text('Podrás usar «Abrir con ubicación» en el menú del puesto.'),
+            ),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, (accion: _DecisionUbicacion.abrirSinUbicacion, ocultar: ocultar)),
+              child: const Text('Abrir sin ubicación'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, (accion: _DecisionUbicacion.reintentar, ocultar: false)),
+              child: const Text('Reintentar'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _codigo(Puesto p) async {
@@ -235,6 +356,8 @@ class _VendedorTabState extends State<VendedorTab> {
       switch (a) {
         case _Accion.editar:
           await _abrirFormulario(puesto: p);
+        case _Accion.abrirConUbicacion:
+          await _alternar(p, abrirConUbicacion: true);
         case _Accion.temporal:
           final r = await _preguntarCierre(p, temporal: true);
           if (r == null) return;
@@ -316,11 +439,17 @@ class _VendedorTabState extends State<VendedorTab> {
                   child: PopupMenuButton<_Accion>(
                     tooltip: 'Opciones del puesto',
                     onSelected: (a) => _accion(a, p),
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(value: _Accion.editar, child: ListTile(leading: Icon(Icons.edit), title: Text('Editar puesto'))),
-                      PopupMenuItem(value: _Accion.temporal, child: ListTile(leading: Icon(Icons.schedule), title: Text('Cerrar temporalmente'))),
-                      PopupMenuItem(value: _Accion.indefinido, child: ListTile(leading: Icon(Icons.pause_circle_outline), title: Text('Cerrar hasta nuevo aviso'))),
-                      PopupMenuItem(value: _Accion.eliminar, child: ListTile(leading: Icon(Icons.delete_outline, color: Tg.rojo), title: Text('Eliminar puesto'))),
+                    enabled: !_cambiandoEstado,
+                    itemBuilder: (_) => [
+                      if (!p.abierto)
+                        const PopupMenuItem(
+                          value: _Accion.abrirConUbicacion,
+                          child: ListTile(leading: Icon(Icons.location_on), title: Text('Abrir con ubicación')),
+                        ),
+                      const PopupMenuItem(value: _Accion.editar, child: ListTile(leading: Icon(Icons.edit), title: Text('Editar puesto'))),
+                      const PopupMenuItem(value: _Accion.temporal, child: ListTile(leading: Icon(Icons.schedule), title: Text('Cerrar temporalmente'))),
+                      const PopupMenuItem(value: _Accion.indefinido, child: ListTile(leading: Icon(Icons.pause_circle_outline), title: Text('Cerrar hasta nuevo aviso'))),
+                      const PopupMenuItem(value: _Accion.eliminar, child: ListTile(leading: Icon(Icons.delete_outline, color: Tg.rojo), title: Text('Eliminar puesto'))),
                     ],
                   ),
                 ),
@@ -357,11 +486,16 @@ class _VendedorTabState extends State<VendedorTab> {
                     ),
                   ]),
                 ),
+              if (p.abierto && !p.tieneUbicacion)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 8),
+                  child: Text('Sin ubicación registrada en esta jornada.'),
+                ),
               FilledButton.icon(
                 style: FilledButton.styleFrom(
                     backgroundColor: p.abierto ? Tg.rojo : Tg.amarillo,
                     foregroundColor: p.abierto ? Colors.white : Tg.azulOscuro),
-                onPressed: () => _alternar(p),
+                onPressed: _cambiandoEstado ? null : () => _alternar(p),
                 icon: Icon(p.abierto ? Icons.lock_outline : Icons.storefront),
                 label: Text(p.abierto ? 'CERRAR PUESTO' : 'YA LLEGUÉ · ABRIR'),
               ),

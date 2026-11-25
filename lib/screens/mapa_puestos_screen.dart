@@ -92,7 +92,7 @@ class MapaPuestos extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final conUbicacion = puestos.where((p) => p.lat != null && p.lng != null).toList();
+    final conUbicacion = puestos.where((p) => p.tieneUbicacion).toList();
     final ids = idTianguis == null ? puestos.map((p) => p.idTianguis).toSet() : {idTianguis};
     final capas = capasDeZonas(zonas.where((z) => ids.contains(z['id_tianguis'])).toList());
     return Stack(children: [

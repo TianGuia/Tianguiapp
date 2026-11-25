@@ -65,7 +65,7 @@ class _UbicacionProductoState extends State<UbicacionProducto> {
         final p = datos?.$1;
         if (p == null) return aviso;
         final tianguis = datos!.$2.where((t) => t.id == p.idTianguis).firstOrNull;
-        final conUbicacion = p.abierto && p.lat != null && p.lng != null;
+        final conUbicacion = p.abierto && p.tieneUbicacion;
         final hora = p.fechaApertura;
         return Card(
           child: Padding(
@@ -96,7 +96,7 @@ class _UbicacionProductoState extends State<UbicacionProducto> {
                     '${hora.hour.toString().padLeft(2, '0')}:${hora.minute.toString().padLeft(2, '0')}',
                     style: const TextStyle(color: Colors.white70, fontSize: 13)),
               if (p.abierto && !conUbicacion)
-                const Text('Abierto, pero sin ubicación registrada.',
+                const Text('Sin ubicación registrada en esta jornada.',
                     style: TextStyle(color: Colors.white70, fontSize: 13)),
               if (conUbicacion) ...[
                 const SizedBox(height: 10),

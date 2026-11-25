@@ -244,9 +244,11 @@ class _PuestosTabState extends State<PuestosTab> {
                           color: p.abierto ? Tg.verde : Colors.grey.shade700,
                           colorTexto: Colors.white,
                           icono: p.abierto ? Icons.check_circle : Icons.schedule),
-                      if (p.lat != null)
-                        const PildoraTg('CON UBICACIÓN',
-                            color: Tg.rosa, colorTexto: Colors.white, icono: Icons.location_on),
+                      if (p.abierto)
+                        PildoraTg(p.tieneUbicacion ? 'CON UBICACIÓN' : 'SIN UBICACIÓN',
+                            color: p.tieneUbicacion ? Tg.rosa : Colors.grey.shade700,
+                            colorTexto: Colors.white,
+                            icono: p.tieneUbicacion ? Icons.location_on : Icons.location_off),
                     ]),
                   ]),
                 ),

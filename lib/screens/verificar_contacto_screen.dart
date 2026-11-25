@@ -32,7 +32,7 @@ class _VerificarContactoScreenState extends State<VerificarContactoScreen> {
     } catch (e) {
       final t = '$e';
       _msg(t.contains('already') || t.contains('registered')
-          ? 'Ese correo ya tiene cuenta. Cierra sesión y entra con "Ya tengo cuenta con correo".'
+          ? 'Ese correo ya tiene cuenta. Cierra sesión y entra con "Iniciar sesión con correo".'
           : 'No se pudo enviar el código: $e');
     } finally {
       if (mounted) setState(() => _cargando = false);
