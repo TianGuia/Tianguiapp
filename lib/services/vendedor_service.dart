@@ -170,11 +170,13 @@ class VendedorService {
     String estadoArticulo = 'nuevo',
     num? precio,
     int? cantidad,
+    bool disponibilidadManual = true,
   }) async {
     final r = await _db.from('productos').insert({
       'id_vendedor': idVendedor, 'id_puesto': idPuesto, 'id_categoria': idCategoria,
       'nombre': nombre, 'descripcion': descripcion, 'estado_articulo': estadoArticulo,
       'precio_referencia': precio, 'cantidad_disponible': cantidad,
+      'disponibilidad_manual': disponibilidadManual,
     }).select('id').single();
     return r['id'];
   }
@@ -182,10 +184,11 @@ class VendedorService {
   // rf-19 se cumple aqui: el vendedor cambia los datos de un producto
   // rf-21 se cumple aqui: el vendedor actualiza cuantos le quedan de un producto
   Future<void> actualizarStock(String id, int cantidad) =>
-      actualizarProducto(id, {'cantidad_disponible': cantidad, 'disponible': cantidad > 0});
+      actualizarProducto(id, {'cantidad_disponible': cantidad});
 
-  Future<void> actualizarProducto(String id, Map<String, dynamic> cambios) =>
-      _db.from('productos').update({...cambios, 'actualizado_en': DateTime.now().toUtc().toIso8601String()}).eq('id', id);
+  Future<void> actualizarProducto(String id, Map<String, dynamic> cambios) async {
+    await _db.from('productos').update(cambios).eq('id', id).select('id').single();
+  }
 
   // rf-20 se cumple aqui: el producto no se borra, solo se oculta para que ya no salga
   Future<void> retirarProducto(String id) => actualizarProducto(id, {'activo': false});

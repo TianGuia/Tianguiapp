@@ -65,13 +65,14 @@ void main() {
 
   test('la disponibilidad admite inventario sin conteo, pero no cero piezas',
       () {
-    Producto producto(int? cantidad, {bool disponible = true}) =>
+    Producto producto(int? cantidad, {bool disponible = true, bool? manual}) =>
         Producto.fromMap({
           'id': 'producto',
           'id_vendedor': 'vendedor',
           'nombre': 'Producto',
           'estado_articulo': 'nuevo',
           'disponible': disponible,
+          'disponibilidad_manual': manual,
           'cantidad_disponible': cantidad,
           'perfiles_vendedor': {'nombre_negocio': 'Mi negocio'},
         });
@@ -80,5 +81,8 @@ void main() {
     expect(producto(0).sePuedeApartar, isFalse);
     expect(producto(2, disponible: false).sePuedeApartar, isFalse);
     expect(producto(2).vendedorNombre, 'Mi negocio');
+    final agotado = producto(0, disponible: false, manual: true);
+    expect(agotado.sePuedeApartar, isFalse);
+    expect(agotado.disponibilidadManual, isTrue);
   });
 }

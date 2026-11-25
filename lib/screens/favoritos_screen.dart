@@ -3,6 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/theme.dart';
 import '../widgets/urbano.dart';
 import '../models/modelos.dart';
+import '../services/datos_en_vivo.dart';
+import '../widgets/aviso_sincronizacion.dart';
+import '../widgets/mensaje.dart';
 import '../services/catalogo_service.dart';
 import '../services/favoritos_cambios.dart';
 import 'producto_detalle_screen.dart';
@@ -17,27 +20,41 @@ class FavoritosScreen extends StatefulWidget {
 
 class _FavoritosScreenState extends State<FavoritosScreen> {
   final _db = Supabase.instance.client;
-  Map<String, String> _tianguis = {};
-  late Future<List<Map<String, dynamic>>> _futuro = _cargar();
+  late final _datos = DatosEnVivo(
+    _cargar,
+    tablas: {'puestos': null, 'productos': null, 'tianguis': null},
+  );
 
-  Future<List<Map<String, dynamic>>> _cargar() async {
-    // puestos no tiene fk a tianguis, los nombres se piden aparte
-    final t = await CatalogoService().tianguis();
-    _tianguis = {for (final x in t) x.id: x.nombre};
-    final r = await _db
-        .from('favoritos')
-        .select('id, id_puesto, id_producto, id_tianguis, '
-            'puestos(id, nombre, estado, id_tianguis, descripcion), '
-            'productos(id, nombre, precio_referencia)')
-        .eq('id_usuario', _db.auth.currentUser!.id)
-        .order('creado_en', ascending: false);
-    return List<Map<String, dynamic>>.from(r);
+  Map<String, String> get _tianguis => _datos.datos?.tianguis ?? {};
+
+  @override
+  void dispose() {
+    _datos.dispose();
+    super.dispose();
+  }
+
+  Future<({List<Map<String, dynamic>> favoritos, Map<String, String> tianguis})> _cargar() async {
+    final (t, favoritos) = await (
+      CatalogoService().tianguis(),
+      _db
+          .from('favoritos')
+          .select('id, id_puesto, id_producto, id_tianguis, '
+              'puestos(id, nombre, estado, id_tianguis, descripcion), '
+              'productos(id, nombre, precio_referencia)')
+          .eq('id_usuario', _db.auth.currentUser!.id)
+          .order('creado_en', ascending: false),
+    ).wait;
+    return (favoritos: favoritos, tianguis: {for (final x in t) x.id: x.nombre});
   }
 
   Future<void> _quitar(Map<String, dynamic> f) async {
-    await _db.from('favoritos').delete().eq('id', f['id']);
-    FavoritosCambios.avisar();
-    setState(() => _futuro = _cargar());
+    try {
+      await _db.from('favoritos').delete().eq('id', f['id']);
+      FavoritosCambios.avisar();
+      if (mounted) await _datos.recargar();
+    } catch (_) {
+      if (mounted) mostrarMensaje(context, 'No se pudo quitar este favorito');
+    }
   }
 
   Future<void> _abrir(Map<String, dynamic> f) async {
@@ -59,56 +76,67 @@ class _FavoritosScreenState extends State<FavoritosScreen> {
             context, MaterialPageRoute(builder: (_) => ProductoDetalleScreen(producto: prod)));
       }
     }
-    if (mounted) setState(() => _futuro = _cargar());
+    if (mounted) await _datos.recargar();
   }
 
   @override
   Widget build(BuildContext context) => ScaffoldTg(
         appBar: AppBar(title: const Text('Mis favoritos')),
-        body: FutureBuilder<List<Map<String, dynamic>>>(
-          future: _futuro,
-          builder: (_, s) {
-            if (s.connectionState != ConnectionState.done) return const CargandoTg();
-            if (s.hasError) {
-              return EstadoVacio(
-                icono: Icons.wifi_off_rounded,
-                color: Tg.rojo,
-                titulo: '¡Se cayó la señal!',
-                mensaje: 'No se pudieron cargar tus favoritos.\n${s.error}',
-                accionTexto: 'Reintentar',
-                accionIcono: Icons.refresh,
-                onAccion: () => setState(() => _futuro = _cargar()),
-              );
+        body: ListenableBuilder(
+          listenable: _datos,
+          builder: (_, __) {
+            final aviso = _datos.desactualizado
+                ? AvisoSincronizacion(hayDatos: _datos.hayDatos, onReintentar: _datos.recargar)
+                : null;
+            final l = _datos.datos?.favoritos;
+            if (l == null) {
+              return aviso == null
+                  ? const CargandoTg()
+                  : Align(alignment: Alignment.topCenter, child: aviso);
             }
-            final l = s.data!;
-            if (l.isEmpty) {
-              return const EstadoVacio(
-                icono: Icons.favorite_rounded,
-                color: Tg.rosa,
-                titulo: '¡Aquí falta corazón!',
-                mensaje: 'Toca el corazón en un puesto o producto que te guste y lo guardamos aquí para que no se te pierda.',
-              );
-            }
-            final nPuestos = l.where((f) => f['puestos'] != null).length;
-            final nProd = l.where((f) => f['puestos'] == null && f['id_tianguis'] == null).length;
-            final nTian = l.where((f) => f['id_tianguis'] != null).length;
-            return ListView(padding: const EdgeInsets.only(bottom: 30), children: [
-              CabeceraTg(
-                titulo: 'Tus favoritos',
-                subtitulo: 'Lo que te late del tianguis',
-                icono: Icons.favorite_rounded,
-                color: Tg.rosa,
-                datos: [
-                  DatoTg(Icons.storefront, Tg.amarillo, '$nPuestos', 'PUESTOS'),
-                  DatoTg(Icons.shopping_bag, Tg.azulClaro, '$nProd', 'PRODUCTOS'),
-                  DatoTg(Icons.place, const Color(0xFF2EAD5B), '$nTian', 'TIANGUIS'),
-                ],
-              ),
-              for (final f in l) _tarjeta(f),
+            return Column(children: [
+              if (aviso != null) aviso,
+              Expanded(child: RefreshIndicator(onRefresh: _datos.recargar, child: _lista(l))),
             ]);
           },
         ),
       );
+
+  Widget _lista(List<Map<String, dynamic>> l) {
+    if (l.isEmpty) {
+      return ListView(physics: const AlwaysScrollableScrollPhysics(), children: const [
+        SizedBox(
+            height: 340,
+            child: EstadoVacio(
+              icono: Icons.favorite_rounded,
+              color: Tg.rosa,
+              titulo: '¡Aquí falta corazón!',
+              mensaje:
+                  'Toca el corazón en un puesto o producto que te guste y lo guardamos aquí para que no se te pierda.',
+            ))
+      ]);
+    }
+    final nPuestos = l.where((f) => f['puestos'] != null).length;
+    final nProd = l.where((f) => f['puestos'] == null && f['id_tianguis'] == null).length;
+    final nTian = l.where((f) => f['id_tianguis'] != null).length;
+    return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 30),
+        children: [
+          CabeceraTg(
+            titulo: 'Tus favoritos',
+            subtitulo: 'Lo que te late del tianguis',
+            icono: Icons.favorite_rounded,
+            color: Tg.rosa,
+            datos: [
+              DatoTg(Icons.storefront, Tg.amarillo, '$nPuestos', 'PUESTOS'),
+              DatoTg(Icons.shopping_bag, Tg.azulClaro, '$nProd', 'PRODUCTOS'),
+              DatoTg(Icons.place, const Color(0xFF2EAD5B), '$nTian', 'TIANGUIS'),
+            ],
+          ),
+          for (final f in l) _tarjeta(f),
+        ]);
+  }
 
   Widget _tarjeta(Map<String, dynamic> f) {
     final puesto = f['puestos'] as Map?;
@@ -136,7 +164,9 @@ class _FavoritosScreenState extends State<FavoritosScreen> {
       color = Tg.azulClaro;
       tipo = 'PRODUCTO';
       titulo = '${prod?['nombre'] ?? 'Producto'}';
-      sub = prod?['precio_referencia'] != null ? '\$${prod!['precio_referencia']}' : 'Sin precio de referencia';
+      sub = prod?['precio_referencia'] != null
+          ? '\$${prod!['precio_referencia']}'
+          : 'Sin precio de referencia';
     }
     final abierto = puesto != null && puesto['estado'] == 'abierto';
     return TarjetaTg(
@@ -158,7 +188,8 @@ class _FavoritosScreenState extends State<FavoritosScreen> {
               if (puesto != null)
                 Padding(
                   padding: const EdgeInsets.only(right: 5),
-                  child: Icon(Icons.circle, size: 11, color: abierto ? const Color(0xFF2EAD5B) : Colors.grey),
+                  child: Icon(Icons.circle,
+                      size: 11, color: abierto ? const Color(0xFF2EAD5B) : Colors.grey),
                 ),
               Flexible(
                 child: Text(sub, style: const TextStyle(color: Colors.white70, fontSize: 14)),

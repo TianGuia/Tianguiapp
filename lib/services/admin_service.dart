@@ -4,7 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 // los permisos los revisa la base de datos y no la app
 class AdminService {
   final _db = Supabase.instance.client;
-  String get _uid => _db.auth.currentUser!.id;
 
   static String _limpia(String t) => t.trim().replaceAll(RegExp(r'[,()%*]'), ' ');
 
@@ -98,31 +97,12 @@ class AdminService {
     return '';
   }
 
-  // medida: advertencia, ocultar_contenido, retirar_contenido o suspender_cuenta, null si no hay
-  Future<void> resolverReporte(Map<String, dynamic> reporte,
-      {String? medida, required String decision}) async {
-    if (medida != null) {
-      final afectado = reporte['id_usuario_reportado'];
-      if (afectado == null) {
-        throw 'Este reporte no tiene un usuario asociado para aplicar una medida';
-      }
-      await _db.from('medidas_moderacion').insert({
-        'id_reporte': reporte['id'],
-        'id_usuario_afectado': afectado,
-        'tipo_medida': medida,
-        'tipo_objetivo': reporte['tipo_objetivo'],
-        'id_objetivo': reporte['id_objetivo'],
-        'motivo_general': decision,
-        'id_admin': _uid,
+  Future<void> resolverReporte(String id, {String? medida, required String decision}) =>
+      _db.rpc('admin_resolver_reporte', params: {
+        'p_id': id,
+        'p_medida': medida,
+        'p_decision': decision,
       });
-    }
-    await _db.from('reportes').update({
-      'estado': 'resuelto',
-      'decision': decision,
-      'id_admin': _uid,
-      'resuelto_en': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', reporte['id']);
-  }
 
   // apelaciones
   // rf-51 se cumple aqui: el administrador resuelve las apelaciones
@@ -171,13 +151,17 @@ class AdminService {
           .eq('id_tianguis', idTianguis)
           .order('dia_semana'));
 
-  Future<void> agregarHorario(String idTianguis, int dia, String inicio, String fin) =>
-      _db.from('tianguis_horarios').insert({
-        'id_tianguis': idTianguis,
-        'dia_semana': dia,
-        'hora_inicio': inicio,
-        'hora_fin': fin,
-      });
+  Future<void> guardarHorario(String idTianguis, int dia, String inicio, String fin,
+      {String? idHorario}) async {
+    final datos = {'dia_semana': dia, 'hora_inicio': inicio, 'hora_fin': fin};
+    final tabla = _db.from('tianguis_horarios');
+    if (idHorario == null) {
+      await tabla.insert({...datos, 'id_tianguis': idTianguis});
+    } else {
+      await tabla.update(datos).eq('id', idHorario).eq('id_tianguis', idTianguis)
+          .select('id').single();
+    }
+  }
 
   Future<void> eliminarHorario(String id) =>
       _db.from('tianguis_horarios').delete().eq('id', id);

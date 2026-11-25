@@ -807,6 +807,8 @@ class _ReportesTabState extends State<_ReportesTab> {
               const Divider(height: 28),
               const Text('Decisión', style: TextStyle(fontWeight: FontWeight.w700)),
               for (final a in _acciones)
+                if (r['tipo_objetivo'] != 'perfil' ||
+                    (a.$2 != 'ocultar_contenido' && a.$2 != 'retirar_contenido'))
                 ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
@@ -819,7 +821,7 @@ class _ReportesTabState extends State<_ReportesTab> {
                         'Motivo general');
                     if (motivo == null) return;
                     try {
-                      await _svc.resolverReporte(r, medida: a.$2, decision: motivo);
+                      await _svc.resolverReporte(r['id'] as String, medida: a.$2, decision: motivo);
                       if (ctx.mounted) Navigator.pop(ctx);
                       if (mounted) {
                         _aviso(context, 'Reporte resuelto');
@@ -1176,12 +1178,18 @@ class _TianguisFormState extends State<_TianguisForm> {
     }
   }
 
-  Future<void> _agregarHorario() async {
+  Future<void> _editarHorario([Map<String, dynamic>? horario]) async {
     final id = _id;
     if (id == null) return;
-    var dia = 0;
-    var inicio = const TimeOfDay(hour: 8, minute: 0);
-    var fin = const TimeOfDay(hour: 15, minute: 0);
+    TimeOfDay leerHora(String texto) {
+      final partes = texto.split(':');
+      return TimeOfDay(hour: int.parse(partes[0]), minute: int.parse(partes[1]));
+    }
+    var dia = (horario?['dia_semana'] as num?)?.toInt() ?? 0;
+    var inicio = horario == null ? const TimeOfDay(hour: 8, minute: 0)
+        : leerHora(horario['hora_inicio'] as String);
+    var fin = horario == null ? const TimeOfDay(hour: 15, minute: 0)
+        : leerHora(horario['hora_fin'] as String);
     String fmt(TimeOfDay t) =>
         '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}:00';
     final ok = await showDialog<bool>(
@@ -1216,7 +1224,7 @@ class _TianguisFormState extends State<_TianguisForm> {
           ]),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCELAR')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('AGREGAR')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('GUARDAR')),
           ],
         ),
       ),
@@ -1227,10 +1235,11 @@ class _TianguisFormState extends State<_TianguisForm> {
       return;
     }
     try {
-      await _svc.agregarHorario(id, dia, fmt(inicio), fmt(fin));
+      await _svc.guardarHorario(id, dia, fmt(inicio), fmt(fin),
+          idHorario: horario?['id'] as String?);
       await _cargarHijos();
     } catch (e) {
-      if (mounted) _aviso(context, 'No se pudo agregar: $e');
+      if (mounted) _aviso(context, 'No se pudo guardar: $e');
     }
   }
 
@@ -1390,7 +1399,7 @@ class _TianguisFormState extends State<_TianguisForm> {
                   child: Text('Horarios generales',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800))),
               TextButton.icon(
-                  onPressed: _agregarHorario, icon: const Icon(Icons.add), label: const Text('Agregar')),
+                  onPressed: () => _editarHorario(), icon: const Icon(Icons.add), label: const Text('Agregar')),
             ]),
             if (_horarios.isEmpty) const Text('Sin horarios'),
             for (final h in _horarios)
@@ -1399,10 +1408,18 @@ class _TianguisFormState extends State<_TianguisForm> {
                   title: Text(_dias[(h['dia_semana'] as num).toInt() % 7]),
                   subtitle: Text(
                       '${'${h['hora_inicio']}'.substring(0, 5)} – ${'${h['hora_fin']}'.substring(0, 5)}'),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () => _borrar(() => _svc.eliminarHorario(h['id'] as String)),
-                  ),
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    IconButton(
+                      tooltip: 'Editar horario',
+                      icon: const Icon(Icons.edit_outlined),
+                      onPressed: () => _editarHorario(h),
+                    ),
+                    IconButton(
+                      tooltip: 'Eliminar horario',
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () => _borrar(() => _svc.eliminarHorario(h['id'] as String)),
+                    ),
+                  ]),
                 ),
               ),
             const SizedBox(height: 20),

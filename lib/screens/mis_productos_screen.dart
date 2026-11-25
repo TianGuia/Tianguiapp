@@ -234,7 +234,7 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
   String? _cat; // en edicion se resuelve por nombre al cargar las categorias
   late String? _puesto = widget.producto?.idPuesto;
   late String _estado = widget.producto?.estadoArticulo ?? 'nuevo';
-  late bool _disponible = widget.producto?.disponible ?? true;
+  late bool _disponible = widget.producto?.disponibilidadManual ?? true;
 
   late final List<ImagenProducto> _existentes = [...?widget.producto?.fotos];
   final List<ImagenProducto> _quitadas = [];
@@ -302,7 +302,6 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
       return _msg('La cantidad debe ser un número entero de 0 a 99999');
     }
     final desc = _desc.text.trim().isEmpty ? null : _desc.text.trim();
-    final disponible = _disponible && (cantidad == null || cantidad > 0);
 
     setState(() => _guardando = true);
     try {
@@ -317,7 +316,7 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
           'estado_articulo': _estado,
           'precio_referencia': precio,
           'cantidad_disponible': cantidad,
-          'disponible': disponible,
+          'disponibilidad_manual': _disponible,
         });
         for (final img in _quitadas) {
           await _svc.eliminarImagen(img);
@@ -332,8 +331,8 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
           estadoArticulo: _estado,
           precio: precio,
           cantidad: cantidad,
+          disponibilidadManual: _disponible,
         );
-        if (!disponible) await _svc.actualizarProducto(id, {'disponible': false});
       }
       var orden = _existentes.isEmpty ? 0 : _existentes.map((e) => e.orden).reduce((a, b) => a > b ? a : b) + 1;
       for (final f in _nuevas) {
@@ -475,7 +474,8 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text('Disponible para los compradores'),
+          title: const Text('Mostrar en el catálogo'),
+          subtitle: const Text('Con cero piezas, el producto se oculta hasta que repongas stock.'),
           value: _disponible,
           onChanged: (v) => setState(() => _disponible = v),
         ),

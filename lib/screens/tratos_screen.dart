@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/estados.dart';
@@ -5,6 +7,8 @@ import '../config/theme.dart';
 import '../widgets/urbano.dart';
 import '../models/tratos.dart';
 import '../services/ocultos.dart';
+import '../services/datos_en_vivo.dart';
+import '../widgets/aviso_sincronizacion.dart';
 import '../services/tratos_service.dart';
 import '../widgets/entradas.dart';
 import '../widgets/mensaje.dart';
@@ -22,8 +26,8 @@ class TratosScreen extends StatefulWidget {
 class _TratosScreenState extends State<TratosScreen> {
   final _svc = TratosService();
   final _yo = Supabase.instance.client.auth.currentUser!.id;
-  late Future<List<Propuesta>> _props;
-  late Future<List<Apartado>> _aps;
+  late final DatosEnVivo<List<Propuesta>> _props;
+  late final DatosEnVivo<List<Apartado>> _aps;
   Set<String> _ocP = {}, _ocA = {};
 
   bool get _comoVendedor => widget.idVendedor != null;
@@ -52,16 +56,30 @@ class _TratosScreenState extends State<TratosScreen> {
   }
 
   void _iniciar() {
-    // primero se vencen los pendientes pasados de fecha, luego se listan
-    final v = _svc.vencer();
-    _props = v.then((_) => _svc.propuestas(idVendedor: widget.idVendedor));
-    _aps = v.then((_) => _svc.apartados(idVendedor: widget.idVendedor));
+    final filtro = PostgresChangeFilter(
+      type: PostgresChangeFilterType.eq,
+      column: _comoVendedor ? 'id_vendedor' : 'id_comprador',
+      value: widget.idVendedor ?? _yo,
+    );
+    _props = DatosEnVivo(
+      () => _svc.propuestas(idVendedor: widget.idVendedor),
+      tablas: {'propuestas_precio': filtro},
+    );
+    _aps = DatosEnVivo(
+      () => _svc.apartados(idVendedor: widget.idVendedor),
+      tablas: {'apartados': filtro},
+    );
+    // El cron mantiene los vencimientos. Una visita adelanta su comprobación.
+    unawaited(_svc.vencer().then((_) {
+      if (mounted) return _aps.recargar();
+    }));
   }
 
-  void _recargar() {
-    setState(() {
-      _iniciar();
-    });
+  @override
+  void dispose() {
+    _props.dispose();
+    _aps.dispose();
+    super.dispose();
   }
 
   void _msg(String t) => mostrarMensaje(context, t);
@@ -75,7 +93,7 @@ class _TratosScreenState extends State<TratosScreen> {
     } catch (e) {
       if (mounted) _msg(_error(e));
     }
-    if (mounted) _recargar();
+    if (mounted) await (_props.recargar(), _aps.recargar()).wait;
   }
 
   // rf-26 se cumple aqui: el vendedor acepta, rechaza o contesta con otro precio
@@ -92,7 +110,8 @@ class _TratosScreenState extends State<TratosScreen> {
           inputFormatters: Entradas.formatoDinero,
           style: const TextStyle(color: Colors.black),
           decoration: InputDecoration(
-              hintText: p.precioRef == null ? 'Monto en pesos' : 'Monto (precio: \$${p.precioRef})'),
+              hintText:
+                  p.precioRef == null ? 'Monto en pesos' : 'Monto (precio: \$${p.precioRef})'),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
@@ -102,7 +121,9 @@ class _TratosScreenState extends State<TratosScreen> {
     );
     if (ok != true) return;
     final monto = Entradas.leerDinero(c.text);
-    if (monto == null || monto <= 0) return _msg('Escribe un monto válido (solo números, mayor a 0)');
+    if (monto == null || monto <= 0) {
+      return _msg('Escribe un monto válido (solo números, mayor a 0)');
+    }
     await _hacer(() => _svc.contraofertar(p.id, monto), 'Contraoferta enviada');
   }
 
@@ -120,7 +141,6 @@ class _TratosScreenState extends State<TratosScreen> {
     );
     return r == true;
   }
-
 
   ({String texto, Color color}) _chip(String estado) {
     switch (estado) {
@@ -145,10 +165,12 @@ class _TratosScreenState extends State<TratosScreen> {
 
   Widget _etiqueta(String estado) {
     final c = _chip(estado);
-    return PildoraTg(c.texto, color: c.color, colorTexto: c.color == Tg.azulClaro ? Tg.azulOscuro : Colors.white);
+    return PildoraTg(c.texto,
+        color: c.color, colorTexto: c.color == Tg.azulClaro ? Tg.azulOscuro : Colors.white);
   }
 
-  Widget _boton(String texto, VoidCallback onPressed, {Color? color, Color? texto2}) => FilledButton(
+  Widget _boton(String texto, VoidCallback onPressed, {Color? color, Color? texto2}) =>
+      FilledButton(
         style: FilledButton.styleFrom(
           minimumSize: const Size(0, 40),
           padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -174,7 +196,8 @@ class _TratosScreenState extends State<TratosScreen> {
             Row(children: [
               Expanded(
                   child: Text(titulo,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, height: 1.1))),
+                      style:
+                          const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, height: 1.1))),
               const SizedBox(width: 8),
               _etiqueta(estado),
             ]),
@@ -206,10 +229,12 @@ class _TratosScreenState extends State<TratosScreen> {
       ],
       acciones: puedoResponder
           ? [
-              _boton('Aceptar', () => _hacer(() => _svc.aceptarPropuesta(p.id), 'Propuesta aceptada'),
+              _boton(
+                  'Aceptar', () => _hacer(() => _svc.aceptarPropuesta(p.id), 'Propuesta aceptada'),
                   color: Tg.verde, texto2: Colors.white),
               _boton('Contraofertar', () => _contraofertar(p)),
-              _boton('Rechazar', () => _hacer(() => _svc.rechazarPropuesta(p.id), 'Propuesta rechazada'),
+              _boton('Rechazar',
+                  () => _hacer(() => _svc.rechazarPropuesta(p.id), 'Propuesta rechazada'),
                   color: Tg.rojo, texto2: Colors.white),
             ]
           : [
@@ -238,8 +263,11 @@ class _TratosScreenState extends State<TratosScreen> {
     final puedeCancelar = _comoVendedor ? a.aceptado : (a.pendiente || a.aceptado);
     if (puedeCancelar) {
       acciones.add(_boton('Cancelar apartado', () async {
-        if (await _confirmar('¿Cancelar apartado?',
-            a.aceptado ? 'Las piezas apartadas volverán a quedar disponibles.' : 'Se cancelará la solicitud.')) {
+        if (await _confirmar(
+            '¿Cancelar apartado?',
+            a.aceptado
+                ? 'Las piezas apartadas volverán a quedar disponibles.'
+                : 'Se cancelará la solicitud.')) {
           await _hacer(() => _svc.cancelarApartado(a.id), 'Apartado cancelado');
         }
       }));
@@ -259,14 +287,15 @@ class _TratosScreenState extends State<TratosScreen> {
         if (otro != null) '${_comoVendedor ? 'Comprador' : 'Vendedor'}: $otro',
         if (a.expira != null && (a.pendiente || a.aceptado)) 'Vence: ${fmtFecha(a.expira)}',
         // rf-39 se cumple aqui: aqui se avisa que la app no cobra y que el pago se arregla directo con el vendedor
-        if (!_comoVendedor && a.aceptado) 'Pasa por él antes de que venza. El pago es directo con el vendedor.',
+        if (!_comoVendedor && a.aceptado)
+          'Pasa por él antes de que venza. El pago es directo con el vendedor.',
       ],
       acciones: acciones,
     );
   }
 
   Widget _lista<T>(
-    Future<List<T>> futuro,
+    DatosEnVivo<List<T>> datos,
     Widget Function(T) tarjeta,
     String vacio, {
     required IconData iconoVacio,
@@ -276,27 +305,20 @@ class _TratosScreenState extends State<TratosScreen> {
     required void Function(T) quitar,
   }) =>
       RefreshIndicator(
-        onRefresh: () async => _recargar(),
-        child: FutureBuilder<List<T>>(
-          future: futuro,
-          builder: (_, s) {
-            if (s.connectionState != ConnectionState.done) return const CargandoTg();
-            if (s.hasError) {
-              return ListView(children: [
-                SizedBox(
-                  height: 420,
-                  child: EstadoVacio(
-                    icono: Icons.wifi_off_rounded,
-                    color: Tg.rojo,
-                    titulo: '¡Se cayó la señal!',
-                    mensaje: 'No se pudieron cargar los tratos.\n${s.error}\nDesliza hacia abajo para reintentar.',
-                  ),
-                ),
-              ]);
+        onRefresh: datos.recargar,
+        child: ListenableBuilder(
+          listenable: datos,
+          builder: (_, __) {
+            final aviso = datos.desactualizado
+                ? AvisoSincronizacion(hayDatos: datos.hayDatos, onReintentar: datos.recargar)
+                : null;
+            final l = datos.datos?.where((x) => !ocultos.contains(idDe(x))).toList();
+            if (l == null) {
+              return aviso == null ? const CargandoTg() : ListView(children: [aviso]);
             }
-            final l = s.data!.where((x) => !ocultos.contains(idDe(x))).toList();
             if (l.isEmpty) {
-              return ListView(children: [
+              return ListView(physics: const AlwaysScrollableScrollPhysics(), children: [
+                if (aviso != null) aviso,
                 SizedBox(
                   height: 420,
                   child: EstadoVacio(
@@ -310,9 +332,11 @@ class _TratosScreenState extends State<TratosScreen> {
             }
             return ListView.builder(
               padding: const EdgeInsets.only(top: 6, bottom: 30),
-              itemCount: l.length,
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: l.length + (aviso == null ? 0 : 1),
               itemBuilder: (_, i) {
-                final x = l[i];
+                if (aviso != null && i == 0) return aviso;
+                final x = l[i - (aviso == null ? 0 : 1)];
                 if (!terminado(x)) return tarjeta(x);
                 // los tratos terminados se pueden quitar deslizando hacia la izquierda.
                 return Dismissible(
@@ -340,7 +364,9 @@ class _TratosScreenState extends State<TratosScreen> {
             ),
           ),
           body: TabBarView(children: [
-            _lista<Propuesta>(_props, _tarjetaPropuesta,
+            _lista<Propuesta>(
+                _props,
+                _tarjetaPropuesta,
                 _comoVendedor
                     ? 'Aún no te llegan propuestas de precio. Cuando alguien te ofrezca, sale aquí.'
                     : 'Desde un producto puedes proponerle un precio al vendedor. Tus propuestas salen aquí.',
@@ -349,7 +375,9 @@ class _TratosScreenState extends State<TratosScreen> {
                 idDe: (p) => p.id,
                 terminado: (p) => !p.pendiente,
                 quitar: (p) => _quitar('propuestas', p.id)),
-            _lista<Apartado>(_aps, _tarjetaApartado,
+            _lista<Apartado>(
+                _aps,
+                _tarjetaApartado,
                 _comoVendedor
                     ? 'Aún no te llegan apartados. Cuando alguien aparte algo tuyo, sale aquí.'
                     : 'Aparta un producto sin pagar y pasa por él al tianguis. Tus apartados salen aquí.',
