@@ -57,4 +57,17 @@ class PuestosService {
       ]);
     }
   }
+
+  // lo que ve cualquier usuario: cuantas veces le pusieron cada etiqueta al puesto
+  // nunca trae comentarios, esos solo los ve el vendedor. si falla devuelve lista vacia
+  Future<List<({String nombre, int total})>> etiquetasDePuesto(String idPuesto) async {
+    try {
+      final r = await _db.rpc('etiquetas_puesto', params: {'p_puesto': idPuesto}) as List;
+      return [
+        for (final x in r) (nombre: '${x['nombre']}', total: (x['total'] as num).toInt()),
+      ];
+    } catch (_) {
+      return const [];
+    }
+  }
 }

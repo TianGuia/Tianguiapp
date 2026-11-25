@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/theme.dart';
+import '../widgets/urbano.dart';
 import '../widgets/moderacion.dart';
 
 // rf-43 se cumple aqui: el vendedor ve las calificaciones que le han dejado
@@ -33,57 +34,82 @@ class _ValoracionesScreenState extends State<ValoracionesScreen> {
       ];
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ScaffoldTg(
         appBar: AppBar(title: const Text('Mis valoraciones')),
         body: FutureBuilder<List<Map<String, dynamic>>>(
           future: _futuro,
           builder: (_, s) {
-            if (s.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator(color: Tg.amarillo));
+            if (s.connectionState != ConnectionState.done) return const CargandoTg();
+            if (s.hasError) {
+              return EstadoVacio(
+                icono: Icons.wifi_off_rounded,
+                color: Tg.rojo,
+                titulo: '¡Se cayó la señal!',
+                mensaje: 'No se pudieron cargar las valoraciones.\n${s.error}',
+              );
             }
-            if (s.hasError) return Center(child: Text('No se pudieron cargar las valoraciones: ${s.error}'));
             final l = s.data!;
-            if (l.isEmpty) return const Center(child: Text('Aún no tienes valoraciones'));
+            if (l.isEmpty) {
+              return const EstadoVacio(
+                icono: Icons.star_rounded,
+                titulo: '¡Aún no te califican!',
+                mensaje: 'Cuando alguien visite tu puesto y te deje estrellas, tus valoraciones salen aquí.',
+              );
+            }
             final promedio = l.map((c) => (c['puntuacion'] as num).toDouble()).reduce((a, b) => a + b) / l.length;
-            return ListView(padding: const EdgeInsets.all(12), children: [
-              Center(
-                child: Text('★ ${promedio.toStringAsFixed(1)}  (${l.length})', style: Tg.marcador(26)),
+            return ListView(padding: const EdgeInsets.only(bottom: 30), children: [
+              CabeceraTg(
+                titulo: 'Tu reputación',
+                subtitulo: 'Lo que dicen de tu puesto',
+                icono: Icons.star_rounded,
+                datos: [
+                  DatoTg(Icons.star, Tg.amarillo, promedio.toStringAsFixed(1), 'PROMEDIO'),
+                  DatoTg(Icons.rate_review, Tg.azulClaro, '${l.length}', 'VALORACIONES'),
+                ],
               ),
-              const SizedBox(height: 10),
               for (final c in l)
-                Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Row(children: [
-                        Text('★' * (c['puntuacion'] as num).toInt(), style: const TextStyle(color: Tg.amarillo, fontSize: 18)),
-                        const Spacer(),
-                        Text('${(c['puestos'] as Map?)?['nombre'] ?? ''}', style: const TextStyle(color: Colors.white70)),
-                      ]),
-                      if ((c['comentario'] ?? '') != '') Padding(padding: const EdgeInsets.only(top: 6), child: Text(c['comentario'])),
-                      if (_etiquetas(c).isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Wrap(spacing: 6, children: [for (final e in _etiquetas(c)) Chip(label: Text(e))]),
-                        ),
-                      Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                        TextButton(
-                          onPressed: () => reportarContenido(
-                            context,
-                            tipoObjetivo: TipoReporte.calificacion,
-                            idObjetivo: c['id'] as String,
-                            idUsuarioReportado: c['id_usuario'] as String?,
-                          ),
-                          child: const Text('Reportar'),
-                        ),
-                        TextButton(
-                          onPressed: () => solicitarRevision(context, idCalificacion: c['id'] as String),
-                          child: const Text('Solicitar revisión'),
-                        ),
-                      ]),
+                TarjetaTg(
+                  acento: Tg.amarillo,
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Text('★' * (c['puntuacion'] as num).toInt(),
+                          style: const TextStyle(color: Tg.amarillo, fontSize: 20)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text('${(c['puestos'] as Map?)?['nombre'] ?? ''}',
+                            textAlign: TextAlign.right,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
+                      ),
                     ]),
-                  ),
+                    if ((c['comentario'] ?? '') != '')
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text('${c['comentario']}', style: const TextStyle(fontSize: 16, height: 1.2)),
+                      ),
+                    if (_etiquetas(c).isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Wrap(spacing: 6, runSpacing: 4, children: [
+                          for (final e in _etiquetas(c)) PildoraTg(e, color: Tg.azulClaro, colorTexto: Tg.azulOscuro),
+                        ]),
+                      ),
+                    Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      TextButton(
+                        onPressed: () => reportarContenido(
+                          context,
+                          tipoObjetivo: TipoReporte.calificacion,
+                          idObjetivo: c['id'] as String,
+                          idUsuarioReportado: c['id_usuario'] as String?,
+                        ),
+                        child: const Text('Reportar'),
+                      ),
+                      TextButton(
+                        onPressed: () => solicitarRevision(context, idCalificacion: c['id'] as String),
+                        child: const Text('Solicitar revisión'),
+                      ),
+                    ]),
+                  ]),
                 ),
             ]);
           },

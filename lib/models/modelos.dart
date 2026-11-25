@@ -165,7 +165,12 @@ class PuestoResumen {
   final int? diaSemana;
   final double promedio; // 0 si aun no tiene calificaciones
   final int calificaciones, guardados;
+  // personas distintas que lo calificaron (una persona puede calificar en varias jornadas)
+  final int calificadores;
   final bool abierto;
+  // marcas calculadas en la base (v_puestos_resumen): Nuevo = menos de 30 dias desde
+  // su primera apertura; Veterano = mas de 1 año, 10 personas, promedio >= 4 y sigue abriendo
+  final bool esNuevo, esVeterano;
 
   PuestoResumen.fromMap(Map<String, dynamic> m)
       : id = m['id'],
@@ -179,6 +184,9 @@ class PuestoResumen {
         promedio = (m['promedio'] as num?)?.toDouble() ?? 0,
         calificaciones = (m['calificaciones'] as num?)?.toInt() ?? 0,
         guardados = (m['guardados'] as num?)?.toInt() ?? 0,
+        calificadores = (m['calificadores'] as num?)?.toInt() ?? 0,
+        esNuevo = m['es_nuevo'] == true,
+        esVeterano = m['es_veterano'] == true,
         abierto = m['abierto'] == true;
 
   String? get imagenUrl => rutaImagen == null
