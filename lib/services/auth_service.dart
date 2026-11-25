@@ -33,6 +33,7 @@ class AuthService {
   // nombre de la cuenta anonima que cerro sesion en este telefono
   // la sesion sigue guardada, con ese nombre se vuelve a entrar
   static final sesionOculta = ValueNotifier<String?>(null);
+  static const _esperaDocumentos = Duration(seconds: 12);
   static const _kOculta = 'sesion_anonima_oculta';
 
   static Future<void> cargarSesionOculta() async {
@@ -54,23 +55,10 @@ class AuthService {
     } catch (_) {} // no pasa nada si no se guarda
   }
 
-  // cerrar sesion anonima no revoca la sesion, solo la oculta
-  Future<void> ocultarSesion() async {
-    String? nombre;
-    try {
-      nombre = (await miPerfil())?['nombre_publico'] as String?;
-    } catch (_) {} // sin nombre sigue igual
-    nombre ??= usuario?.userMetadata?['nombre_publico'] as String?;
-    await _guardarOculta((nombre == null || nombre.trim().isEmpty) ? 'Invitado' : nombre.trim());
-  }
-
-  // cierra de verdad la cuenta oculta, ya no se puede recuperar
+  // Solo para sesiones ocultas guardadas por versiones anteriores.
   Future<void> descartarSesionOculta() async {
+    if (usuario != null) await cerrarSesion();
     await _guardarOculta(null);
-    await PushService.quitarDispositivo();
-    try {
-      await _db.auth.signOut();
-    } catch (_) {} // da igual si ya estaba cerrada
   }
 
   Future<void> _reanudarSesion() async {
@@ -106,10 +94,6 @@ class AuthService {
     }
     if (!await nombreDisponible(n)) throw const NombreEnUsoException();
     await _db.auth.signInAnonymously(data: {'nombre_publico': n});
-    try {
-      // rf-40 se cumple aqui: se guarda que la persona acepto las condiciones
-      await aceptarTerminosVigentes();
-    } catch (_) {} // si falla se piden otra vez despues
     try {
       await actualizarPerfil(
           nombre: n); // respaldo si el trigger no tomo el nombre
@@ -157,24 +141,10 @@ class AuthService {
   // rf-40 se cumple aqui: la persona acepta las condiciones de uso antes de entrar
   // rf-53 se cumple aqui: si hay condiciones nuevas se pide aceptarlas antes de seguir
 
-  Future<void> aceptarTerminosVigentes() async {
-    final uid = usuario?.id;
-    if (uid == null) return;
-    final pendientes = await _db.rpc('terminos_pendientes');
-    if (pendientes is List) {
-      if (pendientes.isEmpty) return;
-      await _db.from('aceptaciones_terminos').insert([
-        for (final v in pendientes) {'id_usuario': uid, 'id_version': v['id']}
-      ]);
-    } else if (pendientes == true) {
-      await _db.rpc('aceptar_terminos_vigentes');
-    }
-  }
-
-  Future<bool> hayTerminosPendientes() async {
-    final pendientes = await _db.rpc('terminos_pendientes');
-    return pendientes is List ? pendientes.isNotEmpty : pendientes == true;
-  }
+  Future<void> aceptarTerminosVigentes(List<Map<String, dynamic>> documentos) =>
+      _db.rpc<void>('aceptar_terminos_vigentes', params: {
+        'p_versiones': [for (final documento in documentos) documento['id']],
+      }).timeout(_esperaDocumentos);
 
   // si nombre_disponible no existe en el backend no se bloquea la entrada
   Future<bool> nombreDisponible(String nombre) async {
@@ -195,10 +165,10 @@ class AuthService {
   }
 
   Future<List<Map<String, dynamic>>> terminosPendientes() async {
-    final r = await _db.rpc('terminos_pendientes');
-    return r is List
-        ? [for (final v in r) Map<String, dynamic>.from(v as Map)]
-        : <Map<String, dynamic>>[];
+    final r = await _db.rpc('terminos_pendientes').timeout(_esperaDocumentos);
+    return [
+      for (final v in r as List) Map<String, dynamic>.from(v as Map)
+    ];
   }
 
   // administrador
@@ -220,9 +190,6 @@ class AuthService {
           data: {'nombre_publico': 'Admin ${nombre.trim()}'});
       final ok = await _db.rpc('admin_entrar', params: params);
       if (ok != true) throw const AdminAccesoException();
-      try {
-        await aceptarTerminosVigentes();
-      } catch (_) {} // se piden despues
     } catch (e) {
       try {
         await _db.auth.signOut();
@@ -249,21 +216,24 @@ class AuthService {
       // sin red no debe quedarse colgado
       await _db.rpc('admin_salir').timeout(const Duration(seconds: 6));
     } catch (_) {} // sin red se sigue con el cierre local
-    try {
-      await _db.auth.signOut().timeout(const Duration(seconds: 6));
-    } catch (_) {
-      // sin red, cierra al menos la local
-      try {
-        await _db.auth.signOut(scope: SignOutScope.local);
-      } catch (_) {} // ya no hay mas que hacer
-    }
+    await _cerrarAuth();
     cambioRol.value++;
   }
 
   // rf-35 se cumple aqui: la persona puede salir de su cuenta en este telefono
   Future<void> cerrarSesion() async {
-    await PushService.quitarDispositivo(); // antes de cerrar: sin sesion no se puede borrar
-    await _db.auth.signOut();
+    await PushService.quitarDispositivo();
+    await _cerrarAuth();
+  }
+
+  Future<void> _cerrarAuth() async {
+    try {
+      await _db.auth.signOut(scope: SignOutScope.local)
+          .timeout(const Duration(seconds: 6));
+    } catch (_) {
+      // El SDK limpia la sesión local antes de solicitar la revocación.
+      if (_db.auth.currentSession != null) rethrow;
+    }
   }
 
   Future<Map<String, dynamic>?> miPerfil() =>

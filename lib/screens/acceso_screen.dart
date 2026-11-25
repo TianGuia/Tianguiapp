@@ -55,7 +55,7 @@ class _AccesoScreenState extends State<AccesoScreen> {
     });
     try {
       await _auth.registrar(n);
-      // AuthGate detecta la sesion y muestra el home.
+      // AuthGate comprueba y registra el consentimiento antes de mostrar el inicio.
     } on NombreEnUsoException {
       if (mounted) setState(() => _errorNombre = 'Este nombre de usuario ya existe, elige otro');
     } catch (e) {

@@ -39,7 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _cargando = true);
     try {
       await _auth.enviarCodigo(_correo.text, nombre: nombre.isEmpty ? null : nombre);
-      setState(() => _codigoEnviado = true);
+      if (mounted) setState(() => _codigoEnviado = true);
     } catch (e) {
       _msg('No se pudo enviar el código: $e');
     } finally {
@@ -52,9 +52,8 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _cargando = true);
     try {
       await _auth.iniciarSesion(_correo.text, _codigo.text);
-      await _auth.aceptarTerminosVigentes();
     } catch (e) {
-      _msg('Código incorrecto o vencido: $e');
+      if (mounted) _msg('Código incorrecto o vencido: $e');
     } finally {
       if (mounted) setState(() => _cargando = false);
     }

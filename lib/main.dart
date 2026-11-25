@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'config/supabase_config.dart';
+import 'services/auth_service.dart';
 import 'services/push_service.dart';
 
 Future<void> main() async {
@@ -13,9 +14,10 @@ Future<void> main() async {
     url: SupabaseConfig.url,
     publishableKey: SupabaseConfig.key,
   );
+  await AuthService.cargarSesionOculta();
   runApp(const TianGuiaApp());
   // despues de pintar: el permiso de notificaciones no debe retrasar el arranque
-  PushService.iniciar();
+  PushService.iniciar(AuthService.sesionOculta);
 }
 
 SupabaseClient get db => Supabase.instance.client;

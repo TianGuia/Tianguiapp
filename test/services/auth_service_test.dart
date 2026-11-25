@@ -12,10 +12,14 @@ void main() {
   late AuthService service;
   late List<http.Request> updates;
   late bool rejectUpdate;
+  late List<http.Request> sessionRequests;
+  late int logoutStatus;
 
   setUp(() async {
     updates = [];
     rejectUpdate = false;
+    sessionRequests = [];
+    logoutStatus = 204;
     final transport = MockClient((request) async {
       if (request.url.path == '/auth/v1/token') {
         final expiresAt = DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600;
@@ -31,13 +35,34 @@ void main() {
             'user': {
               'id': userId,
               'aud': 'authenticated',
-              'email': 'usuario@example.test',
+              'is_anonymous': true,
               'app_metadata': {},
               'user_metadata': {},
               'created_at': '2026-01-01T00:00:00Z',
             },
           }),
           200,
+          request: request,
+          headers: {'content-type': 'application/json'},
+        );
+      }
+      if (request.url.path == '/auth/v1/logout') {
+        sessionRequests.add(request);
+        return http.Response(
+          logoutStatus == 204 ? '' : '{"msg":"revocación no disponible"}',
+          logoutStatus,
+          request: request,
+          headers: {'content-type': 'application/json'},
+        );
+      }
+      if (request.url.path == '/rest/v1/rpc/aceptar_terminos_vigentes') {
+        sessionRequests.add(request);
+        return http.Response('', 204, request: request);
+      }
+      if (request.url.path == '/rest/v1/rpc/terminos_pendientes') {
+        return http.Response(
+          '{"code":"P0001","message":"Los documentos no están disponibles"}',
+          400,
           request: request,
           headers: {'content-type': 'application/json'},
         );
@@ -106,6 +131,36 @@ void main() {
 
     await expectLater(
       service.actualizarPerfil(nombre: 'Otro nombre'),
+      throwsA(isA<PostgrestException>()),
+    );
+  });
+
+  test('cierra una sesión anónima aunque falle la revocación remota', () async {
+    logoutStatus = 400;
+    expect(service.esAnonimo, isTrue);
+
+    await service.cerrarSesion();
+
+    expect(client.auth.currentSession, isNull);
+    expect(sessionRequests.single.url.queryParameters['scope'], 'local');
+  });
+
+  test('registra solo las versiones mostradas al usuario', () async {
+    final documentos = [
+      {'id': '10000000-0000-0000-0000-000000000002', 'contenido': 'Términos'},
+      {'id': '10000000-0000-0000-0000-000000000003', 'contenido': 'Privacidad'},
+    ];
+
+    await service.aceptarTerminosVigentes(documentos);
+
+    expect(jsonDecode(sessionRequests.single.body), {
+      'p_versiones': [for (final documento in documentos) documento['id']],
+    });
+  });
+
+  test('propaga una consulta de documentos fallida', () async {
+    await expectLater(
+      service.terminosPendientes(),
       throwsA(isA<PostgrestException>()),
     );
   });
