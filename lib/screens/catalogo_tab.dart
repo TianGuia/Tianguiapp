@@ -5,12 +5,15 @@ import '../services/catalogo_service.dart';
 import '../widgets/entradas.dart';
 import '../widgets/pincel.dart';
 import '../widgets/urbano.dart';
+import '../widgets/aviso_sincronizacion.dart';
 import 'producto_detalle_screen.dart';
 import 'puesto_screen.dart' show TarjetaProducto;
 
 // rf-01 se cumple aqui: se buscan productos escribiendo una palabra o eligiendo una categoria
 // rf-02 se cumple aqui: los productos se filtran por tianguis, dia, categoria y precio
 // rf-03 se cumple aqui: se muestra todo de un producto, como fotos, precio y quien lo vende
+typedef _Filtros = (String, String?, String?, int?, num?, num?);
+
 class CatalogoTab extends StatefulWidget {
   const CatalogoTab({super.key});
   @override
@@ -26,7 +29,26 @@ class _CatalogoTabState extends State<CatalogoTab> {
   String? _idTianguis;
   int? _dia; // 0 = domingo … 6 = sabado
   num? _precioMin, _precioMax;
-  late Future<List<Producto>> _futuro = _svc.buscarProductos();
+  late _Filtros _consultaActual = _criterios;
+  late Future<List<Producto>> _futuro = _consultar(_consultaActual);
+  _Filtros? _filtrosSincronizados;
+  List<Producto>? _sincronizados;
+  int _solicitud = 0;
+
+  _Filtros get _criterios => (_texto.text.trim(), _cat, _idTianguis, _dia, _precioMin, _precioMax);
+
+  Future<List<Producto>> _consultar(_Filtros filtros) async {
+    final solicitud = ++_solicitud;
+    final productos = await _svc.filtrarProductos(
+      texto: filtros.$1, idCategoria: filtros.$2, idTianguis: filtros.$3,
+      diaSemana: filtros.$4, precioMin: filtros.$5, precioMax: filtros.$6,
+    ).timeout(const Duration(seconds: 10));
+    if (mounted && solicitud == _solicitud) {
+      _filtrosSincronizados = filtros;
+      _sincronizados = productos;
+    }
+    return productos;
+  }
 
   static const _dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -52,18 +74,12 @@ class _CatalogoTabState extends State<CatalogoTab> {
     super.dispose();
   }
 
-  void _buscar() {
-    setState(() {
-      _futuro = _svc.filtrarProductos(
-        texto: _texto.text,
-        idCategoria: _cat,
-        idTianguis: _idTianguis,
-        diaSemana: _dia,
-        precioMin: _precioMin,
-        precioMax: _precioMax,
-      );
-    });
-  }
+  void _buscar() => setState(() {
+    _consultaActual = _criterios;
+    _futuro = _consultar(_consultaActual);
+  });
+
+  void _reintentar() => setState(() => _futuro = _consultar(_consultaActual));
 
   static const _negro = TextStyle(color: Colors.black);
   static const _etiquetaCampo = TextStyle(color: Colors.black54);
@@ -321,21 +337,21 @@ class _CatalogoTabState extends State<CatalogoTab> {
           child: FutureBuilder<List<Producto>>(
             future: _futuro,
             builder: (_, s) {
-              if (s.connectionState != ConnectionState.done) return const CargandoTg();
-              if (s.hasError) {
-                return EstadoVacio(
-                  icono: Icons.cloud_off,
-                  color: Tg.rosa,
-                  titulo: 'No se pudo cargar',
-                  mensaje: 'Revisa tu conexión e inténtalo otra vez.\n${s.error}',
-                  accionTexto: 'Reintentar',
-                  accionIcono: Icons.refresh,
-                  onAccion: _buscar,
-                );
+              final cache = _consultaActual == _filtrosSincronizados ? _sincronizados : null;
+              final l = s.connectionState == ConnectionState.done && !s.hasError ? s.data : cache;
+              final aviso = s.connectionState == ConnectionState.done && s.hasError
+                  ? AvisoSincronizacion(hayDatos: l != null, onReintentar: _reintentar)
+                  : null;
+              if (l == null) {
+                return aviso == null ? const CargandoTg() : Align(alignment: Alignment.topCenter, child: aviso);
               }
-              final l = s.data!;
+
+              Widget conAviso(Widget contenido) => aviso == null ? contenido : Column(children: [
+                aviso,
+                Expanded(child: contenido),
+              ]);
               if (l.isEmpty) {
-                return EstadoVacio(
+                return conAviso(EstadoVacio(
                   icono: Icons.search_off,
                   titulo: '¡Nel, nada por aquí!',
                   mensaje: _filtrosActivos > 0
@@ -344,9 +360,9 @@ class _CatalogoTabState extends State<CatalogoTab> {
                   accionTexto: _filtrosActivos > 0 ? 'Quitar filtros' : null,
                   accionIcono: Icons.filter_alt_off,
                   onAccion: _filtrosActivos > 0 ? _quitarFiltros : null,
-                );
+                ));
               }
-              return ListView.builder(
+              return conAviso(ListView.builder(
                 padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
                 itemCount: l.length + 1,
                 itemBuilder: (_, i) {
@@ -375,7 +391,7 @@ class _CatalogoTabState extends State<CatalogoTab> {
                     ),
                   );
                 },
-              );
+              ));
             },
           ),
         ),

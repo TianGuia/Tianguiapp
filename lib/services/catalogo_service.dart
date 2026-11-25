@@ -8,10 +8,13 @@ import 'favoritos_cambios.dart';
 // rf-02 se cumple aqui: los productos se filtran por tianguis, dia, categoria y precio
 // rf-03 se cumple aqui: se muestra todo de un producto, como fotos, precio y quien lo vende
 class CatalogoService {
-  final _db = Supabase.instance.client;
+  CatalogoService({SupabaseClient? client})
+      : _db = client ?? Supabase.instance.client;
+
+  final SupabaseClient _db;
 
   static const _select =
-      '*, categorias(nombre), puestos!productos_id_puesto_fkey(nombre, estado), producto_imagenes(ruta_storage, orden)';
+      '*, categorias(nombre), puestos!productos_id_puesto_fkey(nombre, estado), perfiles_vendedor(nombre_negocio), producto_imagenes(ruta_storage, orden)';
 
   Future<List<Map<String, dynamic>>> categorias() =>
       _db.from('categorias').select().eq('activa', true).order('nombre');
@@ -32,7 +35,10 @@ class CatalogoService {
     num? precioMax,
     int? diaSemana, // 0 = domingo … 6 = sabado
   }) async {
-    var q = _db.from('productos').select(_select).eq('activo', true).eq('moderado', false).eq('disponible', true);
+    var q = _db.rpc<PostgrestList>('productos_catalogo', params: {
+      'p_tianguis': idTianguis,
+      'p_dia': diaSemana,
+    });
 
     if (texto != null && texto.trim().isNotEmpty) {
       q = q.textSearch('busqueda', texto.trim(),
@@ -42,39 +48,7 @@ class CatalogoService {
     if (precioMin != null) q = q.gte('precio_referencia', precioMin);
     if (precioMax != null) q = q.lte('precio_referencia', precioMax);
 
-    if (idTianguis != null) {
-      final ps = await _db.from('puestos').select('id').eq('id_tianguis', idTianguis);
-      final ids = ps.map((p) => p['id'] as String).toList();
-      if (ids.isEmpty) return [];
-      q = q.inFilter('id_puesto', ids);
-    }
-
-    // rf-02 se cumple aqui: el filtro por dia mira el horario del vendedor y el del tianguis
-    if (diaSemana != null) {
-      final hv = await _db
-          .from('vendedor_horarios')
-          .select('id_vendedor')
-          .eq('dia_semana', diaSemana);
-      final ht = await _db
-          .from('tianguis_horarios')
-          .select('id_tianguis')
-          .eq('dia_semana', diaSemana);
-      final vendedores = {for (final h in hv) h['id_vendedor'] as String}.toList();
-      final tianguis = {for (final h in ht) h['id_tianguis'] as String}.toList();
-      var puestos = <String>[];
-      if (tianguis.isNotEmpty) {
-        final ps = await _db.from('puestos').select('id').inFilter('id_tianguis', tianguis);
-        puestos = [for (final p in ps) p['id'] as String];
-      }
-      final condiciones = [
-        if (vendedores.isNotEmpty) 'id_vendedor.in.(${vendedores.join(',')})',
-        if (puestos.isNotEmpty) 'id_puesto.in.(${puestos.join(',')})',
-      ];
-      if (condiciones.isEmpty) return [];
-      q = q.or(condiciones.join(','));
-    }
-
-    final r = await q.order('creado_en', ascending: false).limit(60);
+    final r = await q.select(_select).order('creado_en', ascending: false).limit(60);
     return r.map<Producto>(Producto.fromMap).toList();
   }
 
@@ -82,6 +56,9 @@ class CatalogoService {
     final r = await _db.from('productos').select(_select).eq('id', id).maybeSingle();
     return r == null ? null : Producto.fromMap(r);
   }
+
+  Future<String?> nombreVendedorDeProducto(String idProducto) =>
+      _db.rpc<String?>('nombre_vendedor_producto', params: {'p_producto': idProducto});
 
   // favoritos
   // rf-06 se cumple aqui: se guardan productos como favoritos
@@ -119,14 +96,18 @@ class CatalogoService {
 
   // rf-25: solo se consultan ofertas activas que aún no vencen.
   Future<OfertaVigente?> ofertaVigente(String idProducto, num? precioRef) async {
+    final ahora = DateTime.now().toUtc().toIso8601String();
     final r = await _db
         .from('ofertas')
         .select('titulo, fecha_fin, precio_promocional, descuento')
         .eq('id_producto', idProducto)
         .eq('estado', Est.ofertaActiva)
-        .gt('fecha_fin', DateTime.now().toUtc().toIso8601String())
+        .lte('fecha_inicio', ahora)
+        .gt('fecha_fin', ahora)
+        .order('fecha_fin')
+        .order('id')
         .limit(1);
-    if ((r as List).isEmpty) return null;
+    if (r.isEmpty) return null;
     final o = r.first;
     final precio = precioPromo(precioRef, o['precio_promocional'] as num?, o['descuento'] as num?);
     if (precio == null) return null;

@@ -189,15 +189,17 @@ class AdminService {
           .eq('id_tianguis', idTianguis)
           .order('orden'));
 
-  Future<void> agregarZona(String idTianguis, String nombre, String tipo,
-          {Object? geometria, int orden = 0}) =>
-      _db.from('tianguis_zonas').insert({
-        'id_tianguis': idTianguis,
-        'nombre': nombre,
-        'tipo': tipo,
-        'geometria': geometria,
-        'orden': orden,
-      });
+  Future<void> guardarZona(String idTianguis, String nombre, String tipo,
+      {String? idZona, Object? geometria, int orden = 0}) async {
+    final datos = {'nombre': nombre, 'tipo': tipo, 'geometria': geometria};
+    final tabla = _db.from('tianguis_zonas');
+    if (idZona == null) {
+      await tabla.insert({...datos, 'id_tianguis': idTianguis, 'orden': orden});
+    } else {
+      await tabla.update(datos).eq('id', idZona).eq('id_tianguis', idTianguis)
+          .select('id').single();
+    }
+  }
 
   Future<void> eliminarZona(String id) => _db.from('tianguis_zonas').delete().eq('id', id);
 

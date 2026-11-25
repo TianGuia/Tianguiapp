@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/theme.dart';
 import '../models/modelos.dart';
-import '../screens/mapa_puestos_screen.dart';
+import '../screens/puestos_tab.dart';
 import '../services/catalogo_service.dart';
 import '../services/inicio_service.dart';
+import '../services/datos_en_vivo.dart';
+import 'aviso_sincronizacion.dart';
 
 // rf-05 se cumple aqui: se ve si el puesto esta abierto o cerrado y donde estaba la ultima vez
 class UbicacionProducto extends StatefulWidget {
@@ -14,17 +17,37 @@ class UbicacionProducto extends StatefulWidget {
 }
 
 class _UbicacionProductoState extends State<UbicacionProducto> {
-  late final Future<({Puesto? puesto, List<Tianguis> tianguis})> _futuro = _cargar();
+  late final DatosEnVivo<(Puesto?, List<Tianguis>)>? _datos;
 
-  Future<({Puesto? puesto, List<Tianguis> tianguis})> _cargar() async {
-    final p = await InicioService().puestoPorId(widget.idPuesto!);
-    final t = await CatalogoService().tianguis();
-    return (puesto: p, tianguis: t);
+  @override
+  void initState() {
+    super.initState();
+    final id = widget.idPuesto;
+    _datos = id == null
+        ? null
+        : DatosEnVivo(
+            () => (InicioService().puestoPorId(id), CatalogoService().tianguis()).wait,
+            tablas: {
+              'puestos': PostgresChangeFilter(
+                type: PostgresChangeFilterType.eq,
+                column: 'id',
+                value: id,
+              ),
+              'tianguis': null,
+            },
+          );
+  }
+
+  @override
+  void dispose() {
+    _datos?.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.idPuesto == null) {
+    final estado = _datos;
+    if (estado == null) {
       return const Card(
         child: Padding(
           padding: EdgeInsets.all(14),
@@ -32,26 +55,31 @@ class _UbicacionProductoState extends State<UbicacionProducto> {
         ),
       );
     }
-    return FutureBuilder(
-      future: _futuro,
-      builder: (_, s) {
-        if (!s.hasData) return const SizedBox.shrink();
-        final p = s.data!.puesto;
-        if (p == null) return const SizedBox.shrink();
-        final tianguis = s.data!.tianguis.where((t) => t.id == p.idTianguis).firstOrNull;
+    return ListenableBuilder(
+      listenable: estado,
+      builder: (_, __) {
+        final aviso = estado.desactualizado
+            ? AvisoSincronizacion(hayDatos: estado.hayDatos, onReintentar: estado.recargar)
+            : const SizedBox.shrink();
+        final datos = estado.datos;
+        final p = datos?.$1;
+        if (p == null) return aviso;
+        final tianguis = datos!.$2.where((t) => t.id == p.idTianguis).firstOrNull;
         final conUbicacion = p.abierto && p.lat != null && p.lng != null;
         final hora = p.fechaApertura;
         return Card(
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              aviso,
               Text('¿Dónde lo encuentro?', style: Tg.marcador(17)),
               const SizedBox(height: 8),
               Row(children: [
                 Icon(Icons.storefront, color: p.abierto ? Tg.verde : Colors.white54),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(p.nombre, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                  child: Text(p.nombre,
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                 ),
               ]),
               if (tianguis != null) Text('Tianguis: ${tianguis.nombre}'),
@@ -63,7 +91,8 @@ class _UbicacionProductoState extends State<UbicacionProducto> {
                       color: p.abierto ? const Color(0xFF2EAD5B) : Tg.rosa)),
               if (p.detalleCierre != null) Text(p.detalleCierre!),
               if (conUbicacion && hora != null)
-                Text('Ubicación registrada a las '
+                Text(
+                    'Ubicación registrada a las '
                     '${hora.hour.toString().padLeft(2, '0')}:${hora.minute.toString().padLeft(2, '0')}',
                     style: const TextStyle(color: Colors.white70, fontSize: 13)),
               if (p.abierto && !conUbicacion)
@@ -79,7 +108,11 @@ class _UbicacionProductoState extends State<UbicacionProducto> {
                     MaterialPageRoute(
                       builder: (_) => Scaffold(
                         appBar: AppBar(title: Text(p.nombre)),
-                        body: MapaPuestos(puestos: [p], tianguis: s.data!.tianguis, idTianguis: null),
+                        body: PuestosTab(
+                          iniciaEnMapa: true,
+                          tianguisInicial: p.idTianguis,
+                          puestoEnMapa: p.id,
+                        ),
                       ),
                     ),
                   ),
