@@ -493,12 +493,12 @@ class _VendedorTabState extends State<VendedorTab> {
           ]),
           const SeccionTg('Mis puestos'),
           if (_puestos.isEmpty)
-            TarjetaTg(
+            const TarjetaTg(
               acento: Tg.amarillo,
               child: Row(children: [
-                const SelloTg(icono: Icons.add_business, color: Tg.amarillo, tam: 46),
-                const SizedBox(width: 12),
-                const Expanded(
+                SelloTg(icono: Icons.add_business, color: Tg.amarillo, tam: 46),
+                SizedBox(width: 12),
+                Expanded(
                   child: Text('Aún no tienes puestos. Crea el primero con el botón + Puesto.',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, height: 1.15)),
                 ),

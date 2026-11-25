@@ -113,12 +113,12 @@ class MapaPuestos extends StatelessWidget {
         ],
       ),
       if (conUbicacion.isEmpty)
-        Align(
+        const Align(
           alignment: Alignment.topCenter,
           child: TarjetaTg(
-            margen: const EdgeInsets.all(12),
+            margen: EdgeInsets.all(12),
             acento: Tg.amarillo,
-            child: const Row(children: [
+            child: Row(children: [
               Icon(Icons.location_off, color: Tg.amarillo),
               SizedBox(width: 10),
               Expanded(

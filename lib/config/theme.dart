@@ -66,9 +66,9 @@ class Tg {
         ),
         textStyle: GoogleFonts.baloo2(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
       ),
-      bottomSheetTheme: BottomSheetThemeData(
+      bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: azulOscuro,
-        shape: const RoundedRectangleBorder(
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
       ),
