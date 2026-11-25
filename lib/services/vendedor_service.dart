@@ -110,12 +110,10 @@ class VendedorService {
   }
 
   // eliminar es baja logica, se quedan visitas y calificaciones
-  // los productos quedan sin puesto pero siguen en el catalogo
-  Future<void> eliminarPuesto(String idPuesto) async {
-    await marcarCerrado(idPuesto);
-    await _db.from('productos').update({'id_puesto': null}).eq('id_puesto', idPuesto);
-    await actualizarPuesto(idPuesto, {'activo': false});
-  }
+  // retirar_puesto (Toldo) lo hace todo en una transaccion: cierra la jornada,
+  // retira los productos conservando su stock, termina las ofertas y desactiva el puesto
+  Future<void> eliminarPuesto(String idPuesto) =>
+      _db.rpc('retirar_puesto', params: {'p_id_puesto': idPuesto});
 
   // rf-22 se cumple aqui: el vendedor abre o cierra su puesto
   // rf-23 se cumple aqui: al abrir el puesto se guarda donde esta ese dia

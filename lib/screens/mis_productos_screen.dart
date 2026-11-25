@@ -286,6 +286,11 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
 
   Future<void> _guardar() async {
     if (_nombre.text.trim().isEmpty) return _msg('Escribe el nombre del producto');
+    if (!_puestos.any((p) => p.id == _puesto)) {
+      return _msg(_puestos.isEmpty
+          ? 'Primero crea un puesto en "Mi puesto" para poder publicar productos'
+          : 'Elige el puesto donde vendes este producto');
+    }
     final precioTxt = _precio.text.trim();
     final precio = precioTxt.isEmpty ? null : Entradas.leerDinero(precioTxt);
     if (precioTxt.isNotEmpty && (precio == null || precio <= 0)) {
@@ -457,7 +462,7 @@ class _ProductoFormScreenState extends State<ProductoFormScreen> {
         DropdownButton<String>(
           isExpanded: true,
           value: puestosOk ? _puesto : null,
-          hint: const Text('Puesto donde lo vendes'),
+          hint: const Text('Puesto donde lo vendes *'),
           items: [for (final p in _puestos) DropdownMenuItem(value: p.id, child: Text(p.nombre))],
           onChanged: (v) => setState(() => _puesto = v),
         ),

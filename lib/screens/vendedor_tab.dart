@@ -207,7 +207,8 @@ class _VendedorTabState extends State<VendedorTab> {
       builder: (ctx) => AlertDialog(
         title: const Text('¿Eliminar puesto?'),
         content: Text('"${p.nombre}" dejará de mostrarse a los compradores. '
-            'Tus productos se conservan en tu catálogo, sin puesto asignado.\n\n'
+            'También se retirarán sus productos y se terminarán sus ofertas activas. '
+            'Las visitas y calificaciones se conservan.\n\n'
             'Si solo te ausentas un tiempo, mejor usa "Cerrar temporalmente".'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
