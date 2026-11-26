@@ -203,13 +203,17 @@ class VendedorService {
       _db.rpc('cerrar_puesto', params: {'p_id_puesto': idPuesto});
 
   // RF-41 se cumple aqui: el comprador escribe el codigo que le da el vendedor para confirmar que si fue al puesto
-  Future<Map<String, dynamic>> generarCodigoVisita(String idPuesto, {int minutos = 10}) async {
-    final codigo = await _db.rpc('generar_codigo_visita',
-        params: {'p_id_puesto': idPuesto, 'p_minutos': minutos}) as String;
-    return {
-      'codigo': codigo,
-      'expira_en': DateTime.now().add(Duration(minutes: minutos)).toUtc().toIso8601String(),
-    };
+  Future<({String codigo, DateTime expiraEn})> generarCodigoVisita(
+    String idPuesto,
+  ) async {
+    final datos = await _db.rpc(
+      'codigo_visita_vigente',
+      params: {'p_id_puesto': idPuesto},
+    ) as Map<String, dynamic>;
+    return (
+      codigo: datos['codigo'] as String,
+      expiraEn: DateTime.parse(datos['expira_en'] as String),
+    );
   }
 
   Future<List<Producto>> misProductos(String idVendedor) async {

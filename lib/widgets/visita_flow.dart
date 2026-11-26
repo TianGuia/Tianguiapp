@@ -34,7 +34,7 @@ Future<void> confirmarVisita(BuildContext context) async {
           keyboardType: TextInputType.number,
           inputFormatters: Entradas.formatoCodigoVisita,
           style: const TextStyle(color: Colors.black, fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: 6),
-          decoration: const InputDecoration(hintText: '······'),
+          decoration: const InputDecoration(hintText: '········'),
         ),
       ]),
     ),
