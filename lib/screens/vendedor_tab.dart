@@ -227,8 +227,8 @@ class _VendedorTabState extends State<VendedorTab> {
     try {
       final c = await _svc.generarCodigoVisita(p.id);
       if (!mounted) return;
-      final codigo = '${c['codigo']}';
-      final hasta = DateTime.parse(c['expira_en']).toLocal().toString().substring(11, 16);
+      final codigo = c.codigo;
+      final hasta = c.expiraEn.toLocal().toString().substring(11, 19);
       showDialog(
         context: context,
         builder: (ctx) => DialogoTg(
@@ -236,7 +236,7 @@ class _VendedorTabState extends State<VendedorTab> {
           titulo: 'Código de visita',
           acciones: [FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('LISTO'))],
           child: Column(children: [
-            const Text('Díctaselo al comprador para que confirme que está en tu puesto.',
+            const Text('Comparte este código con el comprador para confirmar su visita. Cada código dura 10 minutos.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700, height: 1.15)),
             const SizedBox(height: 14),
@@ -504,7 +504,7 @@ class _VendedorTabState extends State<VendedorTab> {
                   child: TextButton.icon(
                       onPressed: () => _codigo(p),
                       icon: const Icon(Icons.qr_code),
-                      label: const Text('Generar código de visita')),
+                      label: const Text('Ver código de visita')),
                 ),
             ]),
           ),
